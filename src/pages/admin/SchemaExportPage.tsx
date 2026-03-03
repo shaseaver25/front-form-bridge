@@ -9,10 +9,8 @@ import { useState } from "react";
 import { Download, Database, Loader2, CheckCircle, Copy, FileCode, AlertCircle, ShieldCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
 
-// Static overlay files imported at build time
-import overlay001 from "@/../supabase/provisioning/001_super_admin_backdoor.sql?raw";
-import overlay002 from "@/../supabase/provisioning/002_tier_rls_policies.sql?raw";
-import overlay003 from "@/../supabase/provisioning/003_support_tickets.sql?raw";
+// Overlay files disabled — provisioning SQL not available in this project
+const overlayFiles: { name: string; label: string; description: string; content: string }[] = [];
 
 interface SchemaStats {
   tables: number;
@@ -24,13 +22,6 @@ interface SchemaStats {
   excludedTables: number;
   excludedFunctions: number;
 }
-
-const overlayFiles = [
-  { name: "001_super_admin_backdoor.sql", label: "Super Admin Backdoor", description: "adds is_super_admin flag, access log, read policies for TailoredU team", content: overlay001 },
-  { name: "002_tier_rls_policies.sql", label: "Tier-Based RLS Policies", description: "enforces subscription tier gating (starter/professional/enterprise)", content: overlay002 },
-  { name: "003_support_tickets.sql", label: "Support Tickets", description: "creates support_tickets table for in-app help bubble", content: overlay003 },
-];
-
 function downloadFile(content: string, filename: string) {
   const blob = new Blob([content], { type: "text/sql" });
   const url = URL.createObjectURL(blob);
