@@ -30,7 +30,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { BulkImportConstituents } from "./constituents/BulkImportConstituents";
 import { BulkEmailCleanup } from "./constituents/BulkEmailCleanup";
 
-type Constituent = Database["public"]["Views"]["constituents_with_ltv"]["Row"];
+type Constituent = any;
 
 const ConstituentList = () => {
   const [constituents, setConstituents] = useState<Constituent[]>([]);

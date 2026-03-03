@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
-type Tables = Database['public']['Tables'];
+type Tables = Record<string, any>;
 
 export interface Program {
   id: string;

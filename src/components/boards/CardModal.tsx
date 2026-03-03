@@ -70,7 +70,7 @@ import { toast } from "sonner";
 type CardDependency = {
   id: string;
   depends_on_card_id: string;
-  depends_on_card: { id: string; headline: string; column_id: string } | null;
+  depends_on_card: { id: string; headline: string; column_id: string; completed_at?: any } | null;
 };
 
 interface CardModalProps {
@@ -633,7 +633,7 @@ export function CardModal({ card, columns, isOpen, onClose }: CardModalProps) {
                   {dependenciesData?.dependsOn && dependenciesData.dependsOn.length > 0 ? (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">Depends on:</p>
-                      {dependenciesData.dependsOn.map((dep: CardDependency) => (
+                      {dependenciesData.dependsOn.map((dep: any) => (
                         <div
                           key={dep.id}
                           className="flex items-center justify-between p-2 bg-muted/50 rounded-md group"
@@ -693,9 +693,9 @@ export function CardModal({ card, columns, isOpen, onClose }: CardModalProps) {
                                   c.headline
                                     .toLowerCase()
                                     .includes(dependencySearch.toLowerCase()) &&
-                                  !dependenciesData?.dependsOn?.some(
-                                    (d: CardDependency) => d.depends_on_card_id === c.id
-                                  )
+                                   !(dependenciesData?.dependsOn as any[])?.some(
+                                    (d: any) => d.depends_on_card_id === c.id
+                                   )
                               )
                               .slice(0, 10)
                               .map((c) => (
@@ -729,8 +729,8 @@ export function CardModal({ card, columns, isOpen, onClose }: CardModalProps) {
                               (c) =>
                                 c.id !== card.id &&
                                 c.headline.toLowerCase().includes(dependencySearch.toLowerCase()) &&
-                                !dependenciesData?.dependsOn?.some(
-                                  (d: CardDependency) => d.depends_on_card_id === c.id
+                                !(dependenciesData?.dependsOn as any[])?.some(
+                                  (d: any) => d.depends_on_card_id === c.id
                                 )
                             ).length === 0 && (
                               <p className="text-sm text-muted-foreground text-center py-2">

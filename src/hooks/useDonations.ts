@@ -114,7 +114,7 @@ export function useCreateCampaign() {
     mutationFn: async (campaign: Partial<DonationCampaign>) => {
       const { data, error } = await supabase
         .from("donation_campaigns")
-        .insert([campaign as Database['public']['Tables']['donation_campaigns']['Insert']])
+        .insert([campaign as any])
         .select()
         .single();
       if (error) throw error;
@@ -175,7 +175,7 @@ export function useCreateDonationForm() {
     mutationFn: async (form: Partial<DonationForm>) => {
       const { data, error } = await supabase
         .from("donation_forms")
-        .insert([form as Database['public']['Tables']['donation_forms']['Insert']])
+        .insert([form as any])
         .select()
         .single();
       if (error) throw error;

@@ -128,8 +128,8 @@ const ContentAssetForm = ({ open, onOpenChange, onSuccess, asset }: ContentAsset
 
     const assetData = {
       title: title.trim(),
-      asset_type: assetType as Database['public']['Enums']['asset_type'],
-      content_tags: selectedTags as Database['public']['Enums']['content_tag'][],
+      asset_type: assetType,
+      content_tags: selectedTags,
       description: description.trim() || null,
       file_url: fileUrl.trim() || null,
     };
