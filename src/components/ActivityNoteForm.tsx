@@ -43,7 +43,6 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
 
   useEffect(() => {
     if (open && defaultTitle) {
-      // Try to match default title to interaction types
       const matchedType = INTERACTION_TYPES.find(
         type => defaultTitle.toLowerCase().includes(type.value.replace("_", " "))
       );
@@ -54,8 +53,8 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
   }, [open, defaultTitle]);
 
   const toggleInteractionType = (value: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(value) 
+    setSelectedTypes(prev =>
+      prev.includes(value)
         ? prev.filter(t => t !== value)
         : [...prev, value]
     );
@@ -79,7 +78,7 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedTypes.length === 0) {
       toast.error("Please select at least one interaction type");
       return;
@@ -99,34 +98,31 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
     }
 
     setLoading(true);
-    
-    // Generate title from selected types
+
     const title = selectedTypes
       .map(type => INTERACTION_TYPES.find(t => t.value === type)?.label)
       .filter(Boolean)
       .join(", ");
-    
-    // Insert the activity note
-    const { error: activityError } = await supabase.from("activities").insert({
-      constituent_id: constituentId,
+
+    // Insert activity note using crm_activities table
+    const { error: activityError } = await supabase.from("crm_activities").insert({
       activity_type: "note",
-      title,
-      description,
+      subject: title,
+      body: description,
+      contact_id: constituentId,
     });
 
-    // If action items are checked, create tasks
+    // If action items are checked, log them as additional activities
     if (!activityError && createActionItem) {
-      const { data: userData } = await supabase.auth.getUser();
-      
-      const tasksToInsert = actionItems.map(item => ({
-        title: item.title,
-        description: description || null,
-        due_date: item.dueDate,
-        status: "pending",
-        created_by: userData?.user?.id || null,
+      const activitiesToInsert = actionItems.map(item => ({
+        activity_type: "task",
+        subject: item.title,
+        body: description || null,
+        scheduled_at: item.dueDate,
+        contact_id: constituentId,
       }));
 
-      const { error: taskError } = await supabase.from("tasks").insert(tasksToInsert);
+      const { error: taskError } = await supabase.from("crm_activities").insert(activitiesToInsert);
 
       if (taskError) {
         console.error("Failed to create action items:", taskError);
@@ -141,8 +137,8 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
     if (activityError) {
       toast.error("Failed to add note");
     } else {
-      const successMessage = createActionItem 
-        ? `Note and ${actionItems.length} action item(s) added successfully` 
+      const successMessage = createActionItem
+        ? `Note and ${actionItems.length} action item(s) added successfully`
         : "Note added successfully";
       toast.success(successMessage);
       setSelectedTypes([]);
@@ -172,7 +168,7 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
                     checked={selectedTypes.includes(type.value)}
                     onCheckedChange={() => toggleInteractionType(type.value)}
                   />
-                  <Label 
+                  <Label
                     htmlFor={type.value}
                     className="text-sm font-normal cursor-pointer"
                   >
@@ -200,8 +196,8 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
               checked={createActionItem}
               onCheckedChange={(checked) => setCreateActionItem(checked as boolean)}
             />
-            <Label 
-              htmlFor="actionItem" 
+            <Label
+              htmlFor="actionItem"
               className="text-sm font-normal cursor-pointer"
             >
               Create action items
@@ -212,16 +208,11 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Action Items</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addActionItem}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={addActionItem}>
                   Add Another
                 </Button>
               </div>
-              
+
               {actionItems.map((item, index) => (
                 <div key={index} className="space-y-2 p-3 border rounded-lg bg-muted/30">
                   <div className="flex items-center justify-between">
@@ -229,13 +220,7 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
                       Action Item {index + 1}
                     </Label>
                     {actionItems.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeActionItem(index)}
-                        className="h-6 w-6 p-0"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeActionItem(index)} className="h-6 w-6 p-0">
                         ×
                       </Button>
                     )}
@@ -258,12 +243,7 @@ const ActivityNoteForm = ({ open, onOpenChange, constituentId, onSuccess, defaul
           )}
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Building2, Menu, X } from "lucide-react";
+import { Search, Menu, X } from "lucide-react";
 
 interface LandingNavbarProps {
   onLoginClick: () => void;
@@ -14,7 +14,6 @@ const LandingNavbar = ({ onLoginClick, scrollToSection }: LandingNavbarProps) =>
   const navLinks = [
     { label: "Home", id: "hero" },
     { label: "Features", id: "features" },
-    { label: "Pricing", id: "pricing" },
     { label: "Contact", id: "contact" },
   ];
 
@@ -30,9 +29,12 @@ const LandingNavbar = ({ onLoginClick, scrollToSection }: LandingNavbarProps) =>
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
+              <Search className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">TailoredU CRM</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-xl font-bold text-foreground">AvidEdge Search</span>
+              <span className="text-[10px] tracking-wider uppercase text-muted-foreground">a CRM by TailorEDU</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
