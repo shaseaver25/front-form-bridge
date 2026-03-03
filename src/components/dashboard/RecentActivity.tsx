@@ -39,12 +39,16 @@ export function RecentActivity() {
 
       const activityList: ActivityItem[] = [];
 
-      (giftsResult.data ?? []).forEach((g: { id: string; amount: number; date_received: string; constituents: { full_legal_name: string } | null }) => {
+      (giftsResult.data ?? []).forEach((g: any) => {
+        const constituentName = Array.isArray(g.constituents) 
+          ? g.constituents[0]?.full_legal_name 
+          : g.constituents?.full_legal_name;
+          
         activityList.push({
           id: `gift-${g.id}`,
           type: "gift",
           title: `$${g.amount?.toLocaleString()} donation`,
-          description: `From ${g.constituents?.full_legal_name || "Unknown"}`,
+          description: `From ${constituentName || "Unknown"}`,
           timestamp: g.date_received || "",
         });
       });

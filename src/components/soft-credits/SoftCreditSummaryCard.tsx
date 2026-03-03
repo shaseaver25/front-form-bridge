@@ -93,7 +93,7 @@ export function SoftCreditSummaryCard({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pt-2 space-y-2">
-                  {Object.entries(data.byType).map(([type, { count, total }]) => (
+                  {Object.entries(data.byType as Record<string, { count: number; total: number }>).map(([type, { count, total }]) => (
                     <div
                       key={type}
                       className="flex items-center justify-between text-sm"

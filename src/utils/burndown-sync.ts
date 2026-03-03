@@ -138,7 +138,7 @@ export async function syncDonationsToIncome(orgId: string): Promise<SyncResult> 
       }
 
       try {
-        const donorName = donation.constituent?.full_legal_name || "Anonymous Donor";
+        const donorName = (donation.constituent as any)?.full_legal_name || "Anonymous Donor";
 
         const { error: insertError } = await supabase
           .from("burndown_income_entries")

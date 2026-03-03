@@ -87,7 +87,11 @@ export function UnifiedTasksWidget() {
     const unified: UnifiedTask[] = [];
 
     // Map grant tasks
-    (grantTasks ?? []).forEach((t: { id: string; title: string; description: string | null; due_date: string | null; status: string; grant_opportunities: { id: string; title: string } | null }) => {
+    (grantTasks ?? []).forEach((t: any) => {
+      const grantOpp = Array.isArray(t.grant_opportunities) 
+        ? t.grant_opportunities[0] 
+        : t.grant_opportunities;
+        
       unified.push({
         id: t.id,
         title: t.title,
@@ -95,13 +99,15 @@ export function UnifiedTasksWidget() {
         due_date: t.due_date,
         status: t.status,
         source: "grant",
-        sourceId: t.grant_opportunities?.id || null,
-        sourceName: t.grant_opportunities?.title || null,
+        sourceId: grantOpp?.id || null,
+        sourceName: grantOpp?.title || null,
       });
     });
 
     // Map board tasks
-    (boardTasks ?? []).forEach((t: { id: string; headline: string; due_date: string | null; board_id: string; priority: string | null; boards: { name: string } | null }) => {
+    (boardTasks ?? []).forEach((t: any) => {
+      const board = Array.isArray(t.boards) ? t.boards[0] : t.boards;
+      
       unified.push({
         id: t.id,
         title: t.headline,
@@ -110,7 +116,7 @@ export function UnifiedTasksWidget() {
         status: "pending",
         source: "board",
         sourceId: t.board_id,
-        sourceName: t.boards?.name || null,
+        sourceName: board?.name || null,
         priority: t.priority,
       });
     });
