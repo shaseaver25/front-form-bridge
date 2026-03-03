@@ -20,11 +20,8 @@ import {
   Link2,
   Users,
   FileText,
-  DollarSign,
   TrendingUp,
-  Target,
   Calendar,
-  CalendarDays,
   Kanban,
   Mail,
   Settings,
@@ -34,12 +31,9 @@ import {
   Building2,
   FolderOpen,
   ClipboardCheck,
-  Heart,
   ShieldCheck,
-  Calculator,
   LayoutTemplate,
   Database,
-  CreditCard,
   Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,12 +56,10 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Constituents", url: "/constituents", icon: Users },
-  { title: "Grants", url: "/grants", icon: FileText, tierRequired: "professional" },
-  { title: "Donations", url: "/donations", icon: DollarSign },
-  { title: "Major Gifts", url: "/major-gifts", icon: DollarSign, tierRequired: "professional" },
+  { title: "Contacts", url: "/constituents", icon: Users },
+  { title: "Companies", url: "/sites", icon: Building2 },
+  { title: "Jobs", url: "/grants", icon: FileText, tierRequired: "professional" },
   { title: "Pipeline", url: "/pipeline", icon: TrendingUp },
-  { title: "Pledges", url: "/pledges", icon: Target },
 ];
 
 const workItems: NavItem[] = [
@@ -83,29 +75,18 @@ const workItems: NavItem[] = [
   },
 ];
 
-const eventsItems: NavItem[] = [
-  { title: "Events", url: "/events", icon: CalendarDays },
-  { title: "Programs", url: "/mission-impact", icon: Building2 },
-  { title: "Volunteer Events", url: "/volunteer-events/admin", icon: Heart },
-];
-
-const marketingItems: NavItem[] = [
-  { title: "Email Marketing", url: "/email-marketing", icon: Mail },
+const outreachItems: NavItem[] = [
+  { title: "Email Outreach", url: "/email-marketing", icon: Mail },
   { title: "Campaigns", url: "/campaigns", icon: Send },
   { title: "Content", url: "/content-repository", icon: FolderOpen },
 ];
 
-const financeItems: NavItem[] = [
-  { title: "Payments", url: "/payments", icon: CreditCard },
-  { title: "Financial Runway", url: "/financial-runway", icon: Calculator, pro: "burndown" },
-];
-
 const adminItems: NavItem[] = [
-  { title: "Organizations", url: "/sites", icon: Building2 },
   { title: "Integrations", url: "/integrations", icon: Link2 },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
 ];
+
 
 const superAdminItems: NavItem[] = [
   { title: "Customers", url: "/admin/customers", icon: Building2 },
@@ -197,19 +178,9 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Events & Programs
+            Outreach
           </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(eventsItems)}</SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Marketing</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(marketingItems)}</SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Finance</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(financeItems)}</SidebarGroupContent>
+          <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
