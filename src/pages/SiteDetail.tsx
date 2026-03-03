@@ -15,56 +15,35 @@ import {
   Edit,
   Building2,
   Globe,
-  Heart,
-  Phone,
-  MapPin,
   Users,
-  Calendar,
-  Target,
-  FileText,
   Activity,
   Briefcase,
   Save,
   X,
   Pencil,
-  Kanban,
+  DollarSign,
 } from "lucide-react";
-import { SiteContactsSection } from "@/components/sites/SiteContactsSection";
-import { SiteActivitiesSection } from "@/components/sites/SiteActivitiesSection";
-import { SiteOpportunitiesSection } from "@/components/sites/SiteOpportunitiesSection";
-import { SiteProgramsSection } from "@/components/sites/SiteProgramsSection";
-import { SiteBoardsSection } from "@/components/sites/SiteBoardsSection";
-import { SiteVolunteersSection } from "@/components/sites/SiteVolunteersSection";
-import { AddActivityDialog } from "@/components/sites/AddActivityDialog";
 
 const statusColors: Record<string, string> = {
-  prospect: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-  contacted: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  in_conversation: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  pilot: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-  active_partner: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  inactive: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-  declined: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  inactive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  prospect: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  former: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 export default function SiteDetail() {
   const { siteId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showAddActivity, setShowAddActivity] = useState(false);
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [editedNotes, setEditedNotes] = useState("");
-  const [editedConnectionNotes, setEditedConnectionNotes] = useState("");
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [editedDesc, setEditedDesc] = useState("");
 
-  const { data: site, isLoading } = useQuery({
-    queryKey: ["site", siteId],
+  const { data: company, isLoading } = useQuery({
+    queryKey: ["company", siteId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("sites")
-        .select(`
-          *,
-          primary_contact:constituents!sites_primary_contact_id_fkey(id, first_name, last_name, primary_email)
-        `)
+        .from("crm_companies")
+        .select("*")
         .eq("id", siteId)
         .single();
       if (error) throw error;
@@ -73,42 +52,69 @@ export default function SiteDetail() {
     enabled: !!siteId,
   });
 
-  const updateNotes = useMutation({
-    mutationFn: async ({ notes, connection_notes }: { notes: string; connection_notes: string }) => {
+  // Fetch contacts linked to this company
+  const { data: contacts } = useQuery({
+    queryKey: ["company-contacts", siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_contacts")
+        .select("id, first_name, last_name, job_title, status")
+        .eq("primary_company_id", siteId)
+        .order("last_name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
+  });
+
+  // Fetch jobs linked to this company
+  const { data: jobs } = useQuery({
+    queryKey: ["company-jobs", siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_jobs")
+        .select("id, name, job_title, status, location, created_at")
+        .eq("company_id", siteId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
+  });
+
+  // Fetch activities linked to this company
+  const { data: activities } = useQuery({
+    queryKey: ["company-activities", siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_activities")
+        .select("id, activity_type, subject, body, created_at, completed")
+        .eq("company_id", siteId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
+  });
+
+  const updateDescription = useMutation({
+    mutationFn: async (description: string) => {
       const { error } = await supabase
-        .from("sites")
-        .update({ notes, connection_notes })
+        .from("crm_companies")
+        .update({ description })
         .eq("id", siteId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["site", siteId] });
-      toast.success("Notes updated");
-      setIsEditingNotes(false);
+      queryClient.invalidateQueries({ queryKey: ["company", siteId] });
+      toast.success("Description updated");
+      setIsEditingDesc(false);
     },
     onError: () => {
-      toast.error("Failed to update notes");
+      toast.error("Failed to update description");
     },
   });
-
-  const handleEditNotes = () => {
-    setEditedNotes(site?.notes || "");
-    setEditedConnectionNotes(site?.connection_notes || "");
-    setIsEditingNotes(true);
-  };
-
-  const handleSaveNotes = () => {
-    updateNotes.mutate({
-      notes: editedNotes,
-      connection_notes: editedConnectionNotes,
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingNotes(false);
-    setEditedNotes("");
-    setEditedConnectionNotes("");
-  };
 
   if (isLoading) {
     return (
@@ -127,12 +133,12 @@ export default function SiteDetail() {
     );
   }
 
-  if (!site) {
+  if (!company) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center py-16">
-          <p className="text-muted-foreground mb-4">Site not found</p>
-          <Button onClick={() => navigate("/sites")}>Back to Sites</Button>
+          <p className="text-muted-foreground mb-4">Company not found</p>
+          <Button onClick={() => navigate("/sites")}>Back to Companies</Button>
         </div>
       </Layout>
     );
@@ -151,43 +157,36 @@ export default function SiteDetail() {
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{site.name}</h1>
-              <Badge className={statusColors[site.relationship_status || "prospect"]}>
-                {(site.relationship_status || "prospect").replace(/_/g, " ")}
+              <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
+              <Badge className={statusColors[company.status || "prospect"]}>
+                {(company.status || "prospect").replace(/_/g, " ")}
               </Badge>
+              {company.company_type && (
+                <Badge variant="outline">
+                  {company.company_type.replace(/_/g, " ")}
+                </Badge>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              {site.organization_type && (
-                <span className="flex items-center gap-1">
-                  <Building2 className="h-4 w-4" />
-                  {site.organization_type.replace(/_/g, " ")}
-                </span>
+              {company.domain && (
+                <a
+                  href={`https://${company.domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 hover:text-primary"
+                >
+                  <Globe className="h-4 w-4" />
+                  {company.domain}
+                </a>
               )}
-              {(site.address_city || site.city) && (
+              {company.revenue && (
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {site.address_city || site.city}, {site.address_state || site.state}
-                </span>
-              )}
-              {site.enrollment && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {site.enrollment.toLocaleString()} students
+                  <DollarSign className="h-4 w-4" />
+                  Revenue: ${Number(company.revenue).toLocaleString()}
                 </span>
               )}
             </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowAddActivity(true)}>
-              <Activity className="mr-2 h-4 w-4" />
-              Log Activity
-            </Button>
-            <Button variant="outline" onClick={() => navigate(`/sites/${siteId}/edit`)}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
           </div>
         </div>
 
@@ -195,225 +194,179 @@ export default function SiteDetail() {
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Instructor</p>
-              <p className="text-lg font-semibold">{site.instructor_name || "Not assigned"}</p>
+              <p className="text-sm text-muted-foreground">Type</p>
+              <p className="text-lg font-semibold capitalize">{company.company_type || "—"}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Volunteers Needed</p>
-              <p className="text-lg font-semibold">{site.volunteers_needed ? "Yes" : "No"}</p>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="text-lg font-semibold capitalize">{company.status || "—"}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Meeting Time</p>
-              <p className="text-lg font-semibold">{site.meeting_time || "Not set"}</p>
+              <p className="text-sm text-muted-foreground">Contacts</p>
+              <p className="text-lg font-semibold">{contacts?.length ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Meeting Days</p>
-              <p className="text-lg font-semibold">
-                {site.meeting_days?.length ? site.meeting_days.join(", ") : "Not set"}
-              </p>
+              <p className="text-sm text-muted-foreground">Jobs</p>
+              <p className="text-lg font-semibold">{jobs?.length ?? 0}</p>
             </CardContent>
           </Card>
         </div>
-
-        {/* Additional Info Cards */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Budget Tier</p>
-              <p className="text-lg font-semibold capitalize">{site.budget_tier || "Unknown"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Tech Readiness</p>
-              <p className="text-lg font-semibold capitalize">{site.tech_readiness || "Unknown"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Decision Timeline</p>
-              <p className="text-lg font-semibold">{site.decision_timeline || "Not set"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Connection</p>
-              <p className="text-lg font-semibold capitalize">
-                {site.connection_source?.replace(/_/g, " ") || "Unknown"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Contact Info */}
-        {(site.website || site.phone || site.address_street) && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-6">
-                {site.website && (
-                  <a
-                    href={site.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:text-primary"
-                  >
-                    <Globe className="h-4 w-4" />
-                    {site.website}
-                  </a>
-                )}
-                {site.phone && (
-                  <span className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4" />
-                    {site.phone}
-                  </span>
-                )}
-                {site.address_street && (
-                  <span className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4" />
-                    {site.address_street}, {site.address_city}, {site.address_state} {site.address_zip}
-                  </span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Tabs */}
-        <Tabs defaultValue="activities" className="space-y-4">
+        <Tabs defaultValue="contacts" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="activities" className="gap-2">
-              <Activity className="h-4 w-4" />
-              Activities
-            </TabsTrigger>
             <TabsTrigger value="contacts" className="gap-2">
               <Users className="h-4 w-4" />
-              Contacts
+              Contacts ({contacts?.length ?? 0})
             </TabsTrigger>
-            <TabsTrigger value="opportunities" className="gap-2">
+            <TabsTrigger value="jobs" className="gap-2">
               <Briefcase className="h-4 w-4" />
-              Opportunities
+              Jobs ({jobs?.length ?? 0})
             </TabsTrigger>
-            <TabsTrigger value="programs" className="gap-2">
-              <Target className="h-4 w-4" />
-              Programs
-            </TabsTrigger>
-            <TabsTrigger value="boards" className="gap-2">
-              <Kanban className="h-4 w-4" />
-              Boards
-            </TabsTrigger>
-            <TabsTrigger value="volunteers" className="gap-2">
-              <Heart className="h-4 w-4" />
-              Volunteers
+            <TabsTrigger value="activities" className="gap-2">
+              <Activity className="h-4 w-4" />
+              Activities ({activities?.length ?? 0})
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="activities">
-            <SiteActivitiesSection siteId={siteId!} />
-          </TabsContent>
-
           <TabsContent value="contacts">
-            <SiteContactsSection siteId={siteId!} />
+            <Card>
+              <CardContent className="p-4">
+                {contacts && contacts.length > 0 ? (
+                  <div className="space-y-3">
+                    {contacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/constituents/${contact.id}`)}
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {contact.first_name} {contact.last_name}
+                          </p>
+                          {contact.job_title && (
+                            <p className="text-sm text-muted-foreground">{contact.job_title}</p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="capitalize">{contact.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No contacts linked to this company</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="opportunities">
-            <SiteOpportunitiesSection siteId={siteId!} />
+          <TabsContent value="jobs">
+            <Card>
+              <CardContent className="p-4">
+                {jobs && jobs.length > 0 ? (
+                  <div className="space-y-3">
+                    {jobs.map((job) => (
+                      <div
+                        key={job.id}
+                        className="flex items-center justify-between p-3 rounded-lg border"
+                      >
+                        <div>
+                          <p className="font-medium">{job.name}</p>
+                          {job.job_title && (
+                            <p className="text-sm text-muted-foreground">{job.job_title}</p>
+                          )}
+                          {job.location && (
+                            <p className="text-sm text-muted-foreground">{job.location}</p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="capitalize">{job.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No jobs linked to this company</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          <TabsContent value="programs">
-            <SiteProgramsSection siteId={siteId!} />
-          </TabsContent>
-
-          <TabsContent value="boards">
-            <SiteBoardsSection siteId={siteId!} siteName={site.name} />
-          </TabsContent>
-
-          <TabsContent value="volunteers">
-            <SiteVolunteersSection siteId={siteId!} siteName={site.name} />
+          <TabsContent value="activities">
+            <Card>
+              <CardContent className="p-4">
+                {activities && activities.length > 0 ? (
+                  <div className="space-y-3">
+                    {activities.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="p-3 rounded-lg border space-y-1"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm">
+                            {activity.subject || activity.activity_type}
+                          </p>
+                          <Badge variant={activity.completed ? "secondary" : "outline"} className="text-xs">
+                            {activity.completed ? "Done" : "Pending"}
+                          </Badge>
+                        </div>
+                        {activity.body && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">{activity.body}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(activity.created_at!).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No activities recorded</p>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
-        {/* Notes */}
+        {/* Description */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Notes</CardTitle>
-            {isEditingNotes ? (
+            <CardTitle>Description</CardTitle>
+            {isEditingDesc ? (
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingDesc(false)}>
                   <X className="h-4 w-4 mr-1" />
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleSaveNotes} disabled={updateNotes.isPending}>
+                <Button size="sm" onClick={() => updateDescription.mutate(editedDesc)} disabled={updateDescription.isPending}>
                   <Save className="h-4 w-4 mr-1" />
-                  {updateNotes.isPending ? "Saving..." : "Save"}
+                  {updateDescription.isPending ? "Saving..." : "Save"}
                 </Button>
               </div>
             ) : (
-              <Button variant="ghost" size="sm" onClick={handleEditNotes}>
+              <Button variant="ghost" size="sm" onClick={() => { setEditedDesc(company.description || ""); setIsEditingDesc(true); }}>
                 <Pencil className="h-4 w-4 mr-1" />
                 Edit
               </Button>
             )}
           </CardHeader>
-          <CardContent className="space-y-4">
-            {isEditingNotes ? (
-              <>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                    Connection Notes
-                  </p>
-                  <Textarea
-                    value={editedConnectionNotes}
-                    onChange={(e) => setEditedConnectionNotes(e.target.value)}
-                    placeholder="Add connection notes..."
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">
-                    General Notes
-                  </p>
-                  <Textarea
-                    value={editedNotes}
-                    onChange={(e) => setEditedNotes(e.target.value)}
-                    placeholder="Add general notes..."
-                    rows={4}
-                  />
-                </div>
-              </>
+          <CardContent>
+            {isEditingDesc ? (
+              <Textarea
+                value={editedDesc}
+                onChange={(e) => setEditedDesc(e.target.value)}
+                placeholder="Add a description..."
+                rows={4}
+              />
             ) : (
-              <>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Connection Notes
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {site.connection_notes || <span className="text-muted-foreground italic">No connection notes</span>}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    General Notes
-                  </p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {site.notes || <span className="text-muted-foreground italic">No general notes</span>}
-                  </p>
-                </div>
-              </>
+              <p className="text-sm whitespace-pre-wrap">
+                {company.description || <span className="text-muted-foreground italic">No description</span>}
+              </p>
             )}
           </CardContent>
         </Card>
-
-        <AddActivityDialog
-          siteId={siteId!}
-          open={showAddActivity}
-          onOpenChange={setShowAddActivity}
-        />
       </div>
     </Layout>
   );
