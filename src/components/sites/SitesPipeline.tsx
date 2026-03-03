@@ -1,31 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Users, Mail, Phone, MapPin } from "lucide-react";
+import { Building2, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const pipelineStages = [
   { key: "prospect", label: "Prospects", color: "bg-gray-500" },
-  { key: "contacted", label: "Contacted", color: "bg-blue-500" },
-  { key: "in_conversation", label: "In Conversation", color: "bg-yellow-500" },
-  { key: "pilot", label: "Pilot", color: "bg-purple-500" },
-  { key: "active_partner", label: "Active Partners", color: "bg-green-500" },
+  { key: "active", label: "Active", color: "bg-green-500" },
+  { key: "inactive", label: "Inactive", color: "bg-yellow-500" },
+  { key: "former", label: "Former", color: "bg-red-500" },
 ];
 
-interface Site {
-  id: string;
-  name: string;
-  relationship_status: string;
-  organization_type?: string;
-  address_city?: string;
-  city?: string;
-  primary_contact?: { first_name: string; last_name: string; primary_email: string } | null;
-  enrollment?: number;
-  budget_tier?: string;
-}
-
 interface SitesPipelineProps {
-  sites: Site[];
+  sites: any[];
   isLoading: boolean;
   onAddSite: (status?: string) => void;
 }
@@ -34,15 +21,14 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
   const navigate = useNavigate();
 
   const getSitesByStage = (stage: string) =>
-    sites.filter((s) => (s.relationship_status || "prospect") === stage);
+    sites.filter((s) => (s.status || "prospect") === stage);
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {pipelineStages.map((stage) => (
           <div key={stage.key} className="space-y-3">
             <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-32" />
             <Skeleton className="h-32" />
           </div>
         ))}
@@ -51,7 +37,7 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
       {pipelineStages.map((stage) => {
         const stageSites = getSitesByStage(stage.key);
         return (
@@ -67,41 +53,27 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
             </div>
 
             <div className="space-y-2 min-h-[200px] bg-muted/30 rounded-lg p-2">
-              {stageSites.map((site) => (
+              {stageSites.map((company: any) => (
                 <Card
-                  key={site.id}
+                  key={company.id}
                   className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50"
-                  onClick={() => navigate(`/sites/${site.id}`)}
+                  onClick={() => navigate(`/sites/${company.id}`)}
                 >
                   <CardContent className="p-3 space-y-2">
-                    <h4 className="font-medium text-sm line-clamp-1">{site.name}</h4>
+                    <h4 className="font-medium text-sm line-clamp-1">{company.name}</h4>
                     
-                    {(site.address_city || site.city) && (
+                    {company.domain && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        {site.address_city || site.city}
+                        <Globe className="h-3 w-3 shrink-0" />
+                        {company.domain}
                       </p>
                     )}
                     
-                    {site.primary_contact && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Users className="h-3 w-3 shrink-0" />
-                        {site.primary_contact.first_name} {site.primary_contact.last_name}
-                      </p>
+                    {company.company_type && (
+                      <Badge variant="secondary" className="text-xs">
+                        {company.company_type.replace(/_/g, " ")}
+                      </Badge>
                     )}
-                    
-                    <div className="flex flex-wrap gap-1">
-                      {site.budget_tier && (
-                        <Badge variant="outline" className="text-xs">
-                          {site.budget_tier}
-                        </Badge>
-                      )}
-                      {site.organization_type && (
-                        <Badge variant="secondary" className="text-xs">
-                          {site.organization_type.replace(/_/g, " ")}
-                        </Badge>
-                      )}
-                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -111,7 +83,7 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
                   className="h-24 border-2 border-dashed rounded-lg flex items-center justify-center text-sm text-muted-foreground cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
                   onClick={() => onAddSite(stage.key)}
                 >
-                  + Add {stage.label.slice(0, -1)}
+                  + Add Company
                 </div>
               )}
             </div>

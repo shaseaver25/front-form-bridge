@@ -15,24 +15,21 @@ import { AddSiteDialog } from "@/components/sites/AddSiteDialog";
 import { SiteQuickStats } from "@/components/sites/SiteQuickStats";
 import { BulkImportSites } from "@/components/sites/BulkImportSites";
 
-const siteTypeOptions = [
-{ value: "all", label: "All Types" },
-{ value: "school", label: "School" },
-{ value: "district", label: "District" },
-{ value: "organization", label: "Organization" },
-{ value: "programming_site", label: "Programming Site" },
-{ value: "partner", label: "Partner" }];
-
+const companyTypeOptions = [
+  { value: "all", label: "All Types" },
+  { value: "client", label: "Client" },
+  { value: "prospect", label: "Prospect" },
+  { value: "partner", label: "Partner" },
+  { value: "vendor", label: "Vendor" },
+];
 
 const statusOptions = [
-{ value: "all", label: "All Status" },
-{ value: "prospect", label: "Prospect" },
-{ value: "contacted", label: "Contacted" },
-{ value: "in_conversation", label: "In Conversation" },
-{ value: "pilot", label: "Pilot" },
-{ value: "active_partner", label: "Active Partner" },
-{ value: "inactive", label: "Inactive" },
-{ value: "declined", label: "Declined" }];
+  { value: "all", label: "All Status" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "prospect", label: "Prospect" },
+  { value: "former", label: "Former" },
+];
 
 
 export default function SitesHub() {
@@ -47,24 +44,19 @@ export default function SitesHub() {
   const { data: sites, isLoading } = useQuery({
     queryKey: ["sites", search, filterStatus, filterType],
     queryFn: async () => {
-      let query = supabase.
-      from("sites").
-      select(`
-          *,
-          primary_contact:constituents!sites_primary_contact_id_fkey(id, first_name, last_name, primary_email),
-          site_contacts(count),
-          site_activities(count)
-        `).
-      order("name");
+      let query = supabase
+        .from("crm_companies")
+        .select("*")
+        .order("name");
 
       if (search) {
-        query = query.or(`name.ilike.%${search}%,address_city.ilike.%${search}%`);
+        query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%`);
       }
       if (filterStatus !== "all") {
-        query = query.eq("relationship_status", filterStatus);
+        query = query.eq("status", filterStatus);
       }
       if (filterType !== "all") {
-        query = query.eq("site_type", filterType);
+        query = query.eq("company_type", filterType);
       }
 
       const { data, error } = await query;
@@ -130,7 +122,7 @@ export default function SitesHub() {
                 <SelectValue placeholder="Type" />
               </SelectTrigger>
               <SelectContent>
-                {siteTypeOptions.map((opt) =>
+                {companyTypeOptions.map((opt) =>
                 <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>
