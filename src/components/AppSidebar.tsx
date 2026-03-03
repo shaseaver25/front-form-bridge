@@ -60,6 +60,8 @@ const mainNavItems: NavItem[] = [
   { title: "Companies", url: "/sites", icon: Building2 },
   { title: "Jobs", url: "/grants", icon: FileText, tierRequired: "professional" },
   { title: "Pipeline", url: "/pipeline", icon: TrendingUp },
+  { title: "Recruiting", url: "/recruitment-pipeline", icon: Kanban },
+  { title: "Placements", url: "/placements", icon: ClipboardCheck },
 ];
 
 const workItems: NavItem[] = [

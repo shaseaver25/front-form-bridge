@@ -22,6 +22,7 @@ import {
   X,
   Pencil,
   DollarSign,
+  MapPin,
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
@@ -99,6 +100,21 @@ export default function SiteDetail() {
         .eq("company_id", siteId)
         .order("created_at", { ascending: false })
         .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!siteId,
+  });
+
+  // Fetch addresses linked to this company
+  const { data: addresses } = useQuery({
+    queryKey: ["company-addresses", siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_addresses")
+        .select("*")
+        .eq("company_id", siteId)
+        .order("is_primary", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -240,6 +256,12 @@ export default function SiteDetail() {
               <Activity className="h-4 w-4" />
               Activities ({activities?.length ?? 0})
             </TabsTrigger>
+            {addresses && addresses.length > 0 && (
+              <TabsTrigger value="addresses" className="gap-2">
+                <MapPin className="h-4 w-4" />
+                Addresses ({addresses.length})
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="contacts">
@@ -335,6 +357,30 @@ export default function SiteDetail() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {addresses && addresses.length > 0 && (
+            <TabsContent value="addresses">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {addresses.map((addr: any) => (
+                      <div key={addr.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="text-sm">
+                            {[addr.line1, addr.line2, addr.city, addr.state, addr.zip_code, addr.country].filter(Boolean).join(", ")}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {addr.category}{addr.is_primary ? " • Primary" : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Description */}
