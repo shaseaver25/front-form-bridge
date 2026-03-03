@@ -5,32 +5,28 @@ import { Building2, Users, Handshake, TrendingUp } from "lucide-react";
 
 export function SiteQuickStats() {
   const { data: stats } = useQuery({
-    queryKey: ["site-stats"],
+    queryKey: ["company-stats"],
     queryFn: async () => {
-      const { data: sites, error } = await supabase
-        .from("sites")
-        .select("relationship_status, site_type");
+      const { data: companies, error } = await supabase
+        .from("crm_companies")
+        .select("status, company_type");
       
       if (error) throw error;
 
-      const total = sites?.length ?? 0;
-      const prospects = sites?.filter(s => s.relationship_status === "prospect").length ?? 0;
-      const activePartners = sites?.filter(s => s.relationship_status === "active_partner").length ?? 0;
-      const inConversation = sites?.filter(s => 
-        s.relationship_status === "contacted" || 
-        s.relationship_status === "in_conversation" ||
-        s.relationship_status === "pilot"
-      ).length ?? 0;
+      const total = companies?.length ?? 0;
+      const prospects = companies?.filter(c => c.company_type === "prospect" || c.status === "prospect").length ?? 0;
+      const active = companies?.filter(c => c.status === "active").length ?? 0;
+      const clients = companies?.filter(c => c.company_type === "client").length ?? 0;
 
-      return { total, prospects, activePartners, inConversation };
+      return { total, prospects, active, clients };
     },
   });
 
   const statCards = [
-    { label: "Total Sites", value: stats?.total ?? 0, icon: Building2, color: "text-blue-600" },
+    { label: "Total Companies", value: stats?.total ?? 0, icon: Building2, color: "text-blue-600" },
     { label: "Prospects", value: stats?.prospects ?? 0, icon: TrendingUp, color: "text-yellow-600" },
-    { label: "In Pipeline", value: stats?.inConversation ?? 0, icon: Users, color: "text-purple-600" },
-    { label: "Active Partners", value: stats?.activePartners ?? 0, icon: Handshake, color: "text-green-600" },
+    { label: "Active", value: stats?.active ?? 0, icon: Users, color: "text-purple-600" },
+    { label: "Clients", value: stats?.clients ?? 0, icon: Handshake, color: "text-green-600" },
   ];
 
   return (

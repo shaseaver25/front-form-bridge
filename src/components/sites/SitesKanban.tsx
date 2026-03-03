@@ -5,16 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Users, GripVertical } from "lucide-react";
+import { Globe, GripVertical } from "lucide-react";
 import { toast } from "sonner";
-import type { Site } from "@/types/sites";
 
 const kanbanColumns = [
   { key: "prospect", label: "Prospects", color: "bg-gray-500" },
-  { key: "contacted", label: "Contacted", color: "bg-blue-500" },
-  { key: "in_conversation", label: "In Conversation", color: "bg-yellow-500" },
-  { key: "pilot", label: "Pilot", color: "bg-purple-500" },
-  { key: "active_partner", label: "Active Partners", color: "bg-green-500" },
+  { key: "active", label: "Active", color: "bg-green-500" },
+  { key: "inactive", label: "Inactive", color: "bg-yellow-500" },
+  { key: "former", label: "Former", color: "bg-red-500" },
 ];
 
 interface SitesKanbanProps {
@@ -42,23 +40,16 @@ function KanbanCard({ site }: { site: any }) {
           <div className="flex-1 min-w-0 space-y-1">
             <h4 className="font-medium text-sm truncate">{site.name}</h4>
             
-            {(site.address_city || site.city) && (
+            {site.domain && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <MapPin className="h-3 w-3 shrink-0" />
-                <span className="truncate">{site.address_city || site.city}, {site.address_state || site.state}</span>
-              </p>
-            )}
-            
-            {site.enrollment && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {site.enrollment.toLocaleString()} students
+                <Globe className="h-3 w-3 shrink-0" />
+                <span className="truncate">{site.domain}</span>
               </p>
             )}
 
-            {site.organization_type && (
+            {site.company_type && (
               <Badge variant="outline" className="text-xs">
-                {site.organization_type.replace(/_/g, " ")}
+                {site.company_type.replace(/_/g, " ")}
               </Badge>
             )}
           </div>
@@ -79,10 +70,10 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
     });
     
     sites?.forEach((site) => {
-      const status = site.relationship_status || "prospect";
+      const status = site.status || "prospect";
       if (grouped[status]) {
         grouped[status].push(site);
-      } else if (status !== "inactive" && status !== "declined") {
+      } else {
         grouped["prospect"].push(site);
       }
     });
@@ -93,8 +84,8 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
   const updateStatus = useMutation({
     mutationFn: async ({ siteId, newStatus }: { siteId: string; newStatus: string }) => {
       const { error } = await supabase
-        .from("sites")
-        .update({ relationship_status: newStatus })
+        .from("crm_companies")
+        .update({ status: newStatus })
         .eq("id", siteId);
       if (error) throw error;
     },
@@ -102,7 +93,7 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
       toast.success("Status updated");
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to update status");
     },
   });
@@ -127,11 +118,10 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {kanbanColumns.map((col) => (
           <div key={col.key} className="space-y-3">
             <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-32" />
             <Skeleton className="h-32" />
           </div>
         ))}
@@ -140,7 +130,7 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 lg:grid-cols-5">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
       {kanbanColumns.map((column) => (
         <div key={column.key} className="space-y-3">
           <div className="flex items-center justify-between">
@@ -163,7 +153,7 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
             onDragOver={(e) => handleDragOver(e, column.key)}
             onDragLeave={handleDragLeave}
           >
-            {sitesByStatus[column.key]?.map((site) => (
+            {sitesByStatus[column.key]?.map((site: any) => (
               <KanbanCard key={site.id} site={site} />
             ))}
             
