@@ -57,12 +57,19 @@ export default function SiteDetail() {
     queryKey: ["company-contacts", siteId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("crm_contacts")
-        .select("id, first_name, last_name, job_title, status")
-        .eq("primary_company_id", siteId)
-        .order("last_name");
+        .from("crm_career_history")
+        .select("job_title, contact:crm_contacts!inner(id, first_name, last_name, job_title, status)")
+        .eq("company_id", siteId)
+        .eq("is_current", true);
       if (error) throw error;
-      return data;
+      // Flatten the joined data
+      return (data || []).map((row: any) => ({
+        id: row.contact.id,
+        first_name: row.contact.first_name,
+        last_name: row.contact.last_name,
+        job_title: row.job_title || row.contact.job_title,
+        status: row.contact.status,
+      }));
     },
     enabled: !!siteId,
   });
