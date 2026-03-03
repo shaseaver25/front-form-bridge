@@ -9,7 +9,7 @@ import {
   QuickLinks,
   UnifiedTasksWidget,
 } from "@/components/dashboard";
-import { GivebutterStatusWidget } from "@/components/integrations/GivebutterStatusWidget";
+
 import { MeetingsThisWeekWidget } from "@/components/calendar";
 import { TailoredUCustomersWidget } from "@/components/dashboard/TailoredUCustomersWidget";
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
@@ -110,7 +110,7 @@ const Index = () => {
             <TailoredUCustomersWidget />
             <UpcomingEventsWidget />
             <MeetingsThisWeekWidget />
-            <GivebutterStatusWidget />
+            
           </div>
         </div>
       </div>
