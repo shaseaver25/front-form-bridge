@@ -346,21 +346,16 @@ export function ChipAssistant() {
       <div className="fixed bottom-24 right-6 z-50">
         <button
           onClick={() => setIsOpen((v) => !v)}
-          className="w-14 h-14 rounded-full shadow-lg overflow-hidden relative border-2 border-primary hover:scale-105 transition-transform"
+          className="w-14 h-14 rounded-full shadow-lg overflow-hidden relative border-2 border-primary hover:scale-105 transition-transform bg-primary"
         >
           {isOpen ? (
             <div className="w-full h-full bg-primary flex items-center justify-center">
               <X className="h-5 w-5 text-primary-foreground" />
             </div>
           ) : (
-            <video
-              src="/images/chip-avatar.mp4"
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
+            <div className="w-full h-full flex items-center justify-center">
+              <Bot className="h-6 w-6 text-primary-foreground" />
+            </div>
           )}
 
           {isSuperAdmin && unresolvedCount > 0 && !isOpen && (
