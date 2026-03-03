@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Loader2, Filter, Upload, MailX } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Plus, Loader2 } from "lucide-react";
 import ConstituentForm from "./ConstituentForm";
 import ConstituentDetail from "./ConstituentDetail";
 import {
@@ -20,151 +17,133 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { RecordAvatar } from "@/components/ui/record-avatar";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { ListCard } from "@/components/ui/list-card";
 import { FloatingActions } from "@/components/ui/floating-actions";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
-import { SearchFilterBar, FilterChip } from "@/components/ui/search-filter-bar";
+import { SearchFilterBar } from "@/components/ui/search-filter-bar";
 import { DensityToggle } from "@/components/ui/density-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BulkImportConstituents } from "./constituents/BulkImportConstituents";
-import { BulkEmailCleanup } from "./constituents/BulkEmailCleanup";
 
-type Constituent = any;
+type Contact = {
+  id: string;
+  first_name: string | null;
+  last_name: string;
+  job_title: string | null;
+  status: string;
+  contact_type: string;
+  description: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  primary_email?: string | null;
+  primary_company_name?: string | null;
+};
 
 const ConstituentList = () => {
-  const [constituents, setConstituents] = useState<Constituent[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedConstituent, setSelectedConstituent] = useState<Constituent | null>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [lybuntFilter, setLybuntFilter] = useState(false);
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
-  const [importOpen, setImportOpen] = useState(false);
-  const [cleanupOpen, setCleanupOpen] = useState(false);
 
-  const fetchConstituents = async () => {
+  const fetchContacts = async () => {
     setLoading(true);
 
-    if (lybuntFilter) {
-      const currentYear = new Date().getFullYear();
-      const prevYearStart = `${currentYear - 1}-01-01`;
-      const prevYearEnd = `${currentYear - 1}-12-31`;
-      const currentYearStart = `${currentYear}-01-01`;
-      const currentYearEnd = `${currentYear}-12-31`;
+    // Fetch contacts from crm_contacts
+    const { data: contactsData, error } = await supabase
+      .from("crm_contacts")
+      .select(`
+        id, first_name, last_name, job_title, status, contact_type, 
+        description, created_at, updated_at,
+        crm_contact_emails(value, is_primary),
+        crm_companies!crm_contacts_primary_company_id_fkey(name)
+      `)
+      .order("created_at", { ascending: false });
 
-      const { data: allConstituents, error: constituentError } = await supabase
-        .from("constituents_with_ltv")
-        .select("*");
-
-      if (constituentError) {
-        toast.error("Failed to load constituents");
-        setLoading(false);
-        return;
-      }
-
-      const lybuntConstituents = [];
-      for (const constituent of allConstituents || []) {
-        const { data: prevYearGifts } = await supabase
-          .from("gifts")
-          .select("amount")
-          .eq("constituent_id", constituent.id)
-          .gte("date_received", prevYearStart)
-          .lte("date_received", prevYearEnd);
-
-        const { data: currentYearGifts } = await supabase
-          .from("gifts")
-          .select("amount")
-          .eq("constituent_id", constituent.id)
-          .gte("date_received", currentYearStart)
-          .lte("date_received", currentYearEnd);
-
-        const prevYearTotal = (prevYearGifts || []).reduce(
-          (sum, gift) => sum + parseFloat(gift.amount.toString()),
-          0
-        );
-        const currentYearTotal = (currentYearGifts || []).reduce(
-          (sum, gift) => sum + parseFloat(gift.amount.toString()),
-          0
-        );
-
-        if (prevYearTotal >= 1.0 && currentYearTotal === 0) {
-          lybuntConstituents.push({
-            ...constituent,
-            prev_year_total: prevYearTotal,
-            current_year_total: currentYearTotal,
-          });
-        }
-      }
-
-      setConstituents(lybuntConstituents);
-    } else {
-      const { data, error } = await supabase
-        .from("constituents_with_ltv")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast.error("Failed to load constituents");
-      } else {
-        setConstituents(data || []);
-      }
+    if (error) {
+      console.error("Failed to load contacts:", error);
+      toast.error("Failed to load contacts");
+      setLoading(false);
+      return;
     }
+
+    // Map to a flat structure with primary email
+    const mapped: Contact[] = (contactsData || []).map((c: any) => {
+      const primaryEmail = c.crm_contact_emails?.find((e: any) => e.is_primary)?.value 
+        || c.crm_contact_emails?.[0]?.value 
+        || null;
+      const companyName = c.crm_companies?.name || null;
+      return {
+        id: c.id,
+        first_name: c.first_name,
+        last_name: c.last_name,
+        job_title: c.job_title,
+        status: c.status,
+        contact_type: c.contact_type,
+        description: c.description,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        primary_email: primaryEmail,
+        primary_company_name: companyName,
+      };
+    });
+
+    setContacts(mapped);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchConstituents();
-  }, [lybuntFilter]);
+    fetchContacts();
+  }, []);
 
-  const filteredConstituents = constituents.filter(
-    (c) =>
-      c.full_legal_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.primary_email && c.primary_email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const getDisplayName = (c: Contact) => {
+    return [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown";
+  };
 
-  const handleEdit = (constituent: Constituent) => {
-    setSelectedConstituent(constituent);
+  const filteredContacts = contacts.filter((c) => {
+    const name = getDisplayName(c).toLowerCase();
+    const email = (c.primary_email || "").toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return name.includes(search) || email.includes(search);
+  });
+
+  const handleEdit = (contact: Contact) => {
+    setSelectedContact(contact);
     setFormOpen(true);
   };
 
-  const handleView = (constituent: Constituent) => {
-    setSelectedConstituent(constituent);
+  const handleView = (contact: Contact) => {
+    setSelectedContact(contact);
     setDetailOpen(true);
   };
 
-  const handleDeleteClick = (constituent: Constituent) => {
-    setSelectedConstituent(constituent);
+  const handleDeleteClick = (contact: Contact) => {
+    setSelectedContact(contact);
     setDeleteDialogOpen(true);
   };
 
   const handleDelete = async () => {
-    if (!selectedConstituent) return;
+    if (!selectedContact) return;
 
     setDeleteLoading(true);
-    const { error } = await supabase.from("constituents").delete().eq("id", selectedConstituent.id);
+    const { error } = await supabase.from("crm_contacts").delete().eq("id", selectedContact.id);
 
     setDeleteLoading(false);
     setDeleteDialogOpen(false);
 
     if (error) {
-      toast.error("Failed to delete constituent");
+      toast.error("Failed to delete contact");
     } else {
       toast.success("Contact deleted successfully");
-      fetchConstituents();
+      fetchContacts();
     }
   };
 
-  const activeFilters: FilterChip[] = lybuntFilter
-    ? [{ id: "lybunt", label: "Returning Clients Filter Active" }]
-    : [];
-
   const handleClearFilters = () => {
     setSearchTerm("");
-    setLybuntFilter(false);
   };
 
   return (
@@ -180,17 +159,9 @@ const ConstituentList = () => {
             </div>
             <div className="flex items-center gap-2">
               <DensityToggle value={density} onChange={setDensity} />
-              <Button variant="outline" onClick={() => setCleanupOpen(true)}>
-                <MailX className="w-4 h-4 mr-2" />
-                Clean Emails
-              </Button>
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" />
-                Bulk Import
-              </Button>
               <Button
                 onClick={() => {
-                  setSelectedConstituent(null);
+                  setSelectedContact(null);
                   setFormOpen(true);
                 }}
               >
@@ -205,37 +176,26 @@ const ConstituentList = () => {
             <SearchFilterBar
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              filters={activeFilters}
-              onFilterRemove={() => setLybuntFilter(false)}
+              filters={[]}
+              onFilterRemove={() => {}}
               onClearAll={handleClearFilters}
-              totalCount={constituents.length}
-              filteredCount={filteredConstituents.length}
+              totalCount={contacts.length}
+              filteredCount={filteredContacts.length}
               placeholder="Search by name or email..."
             />
-
-            <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg border">
-              <Filter className="w-4 h-4 text-muted-foreground" />
-              <Label htmlFor="lybunt-filter" className="flex-1 cursor-pointer">
-                <div className="font-medium">Returning Clients</div>
-                <div className="text-xs text-muted-foreground">
-                  Clients who were active last year but have no activity this year
-                </div>
-              </Label>
-              <Switch id="lybunt-filter" checked={lybuntFilter} onCheckedChange={setLybuntFilter} />
-            </div>
           </div>
 
           {loading ? (
             <SkeletonCard type="constituent" count={6} />
-          ) : filteredConstituents.length === 0 ? (
+          ) : filteredContacts.length === 0 ? (
             <EmptyState
-              type={searchTerm || lybuntFilter ? "no-results" : "no-data"}
+              type={searchTerm ? "no-results" : "no-data"}
               searchTerm={searchTerm}
               entityName="Contact"
               onAction={
-                !searchTerm && !lybuntFilter
+                !searchTerm
                   ? () => {
-                      setSelectedConstituent(null);
+                      setSelectedContact(null);
                       setFormOpen(true);
                     }
                   : undefined
@@ -250,22 +210,22 @@ const ConstituentList = () => {
                   : "space-y-3 animate-fade-in"
               }
             >
-              {filteredConstituents.map((constituent) => (
+              {filteredContacts.map((contact) => (
                 <ListCard
-                  key={constituent.id}
-                  onClick={() => handleView(constituent)}
+                  key={contact.id}
+                  onClick={() => handleView(contact)}
                   className={density === "compact" ? "p-4" : ""}
                 >
                   <FloatingActions
-                    onView={() => handleView(constituent)}
-                    onEdit={() => handleEdit(constituent)}
-                    onDelete={() => handleDeleteClick(constituent)}
+                    onView={() => handleView(contact)}
+                    onEdit={() => handleEdit(contact)}
+                    onDelete={() => handleDeleteClick(contact)}
                   />
 
                   <div className="flex items-start gap-4">
                     <RecordAvatar
                       type="constituent"
-                      name={constituent.full_legal_name}
+                      name={getDisplayName(contact)}
                       size={density === "compact" ? "sm" : "md"}
                     />
 
@@ -273,80 +233,27 @@ const ConstituentList = () => {
                       <h3
                         className={`font-semibold text-foreground truncate ${density === "compact" ? "text-base" : "text-lg"}`}
                       >
-                        {constituent.full_legal_name}
+                        {getDisplayName(contact)}
                       </h3>
-                      {constituent.employer && (
+                      {contact.job_title && (
                         <p className="text-sm font-medium text-muted-foreground truncate">
-                          {constituent.employer}
+                          {contact.job_title}
+                        </p>
+                      )}
+                      {contact.primary_company_name && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {contact.primary_company_name}
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground truncate">
-                        {constituent.primary_email || "No email"}
+                        {contact.primary_email || "No email"}
                       </p>
 
                       {density === "comfortable" && (
-                        <>
-                          {constituent.communication_preference && (
-                            <div className="mt-2">
-                              <StatusBadge
-                                status={constituent.communication_preference}
-                                type="communication"
-                              />
-                            </div>
-                          )}
-
-                          <div className="h-px bg-border my-4" />
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                Total LTV
-                              </p>
-                              <p className="font-mono font-semibold text-primary">
-                                $
-                                {Number(constituent.total_ltv || 0).toLocaleString("en-US", {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </p>
-                            </div>
-
-                            {lybuntFilter && (
-                              <div>
-                                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                                  Prev Year
-                                </p>
-                                <p className="font-mono font-semibold text-secondary">
-                                  $
-                                  {Number((constituent as Record<string, unknown>).prev_year_total || 0).toLocaleString(
-                                    "en-US",
-                                    {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    }
-                                  )}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-
-                      {density === "compact" && (
-                        <div className="flex items-center gap-4 mt-2">
-                          <span className="font-mono text-sm font-semibold text-primary">
-                            $
-                            {Number(constituent.total_ltv || 0).toLocaleString("en-US", {
-                              maximumFractionDigits: 0,
-                            })}
+                        <div className="mt-2">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+                            {contact.contact_type}
                           </span>
-                          {constituent.communication_preference && (
-                            <StatusBadge
-                              status={constituent.communication_preference}
-                              type="communication"
-                              showIcon={false}
-                            />
-                          )}
                         </div>
                       )}
                     </div>
@@ -361,14 +268,14 @@ const ConstituentList = () => {
       <ConstituentForm
         open={formOpen}
         onOpenChange={setFormOpen}
-        onSuccess={fetchConstituents}
-        constituent={selectedConstituent}
+        onSuccess={fetchContacts}
+        constituent={selectedContact}
       />
 
       <ConstituentDetail
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        constituent={selectedConstituent}
+        constituent={selectedContact}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -376,7 +283,7 @@ const ConstituentList = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {selectedConstituent?.full_legal_name} from your
+              This will permanently delete {selectedContact ? getDisplayName(selectedContact) : ""} from your
               database. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -393,18 +300,6 @@ const ConstituentList = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <BulkImportConstituents
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        onSuccess={fetchConstituents}
-      />
-
-      <BulkEmailCleanup
-        open={cleanupOpen}
-        onOpenChange={setCleanupOpen}
-        onSuccess={fetchConstituents}
-      />
     </>
   );
 };

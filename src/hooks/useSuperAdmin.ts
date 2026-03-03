@@ -16,25 +16,8 @@ export function useSuperAdmin() {
           return;
         }
 
-        // Only shannon@tailoredu.org can be super admin
-        if (user.email !== "shannon@tailoredu.org") {
-          setIsSuperAdmin(false);
-          setIsLoading(false);
-          return;
-        }
-
-        const { data: profile, error } = await supabase
-          .from("user_profiles")
-          .select("is_super_admin")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error checking super admin status:", error);
-          setIsSuperAdmin(false);
-        } else {
-          setIsSuperAdmin(profile?.is_super_admin ?? false);
-        }
+        // Simple email-based super admin check since user_profiles table doesn't exist
+        setIsSuperAdmin(user.email === "shannon@tailoredu.org");
       } catch (error) {
         console.error("Error in useSuperAdmin:", error);
         setIsSuperAdmin(false);
