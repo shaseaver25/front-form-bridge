@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, DollarSign, FileText, TrendingUp } from "lucide-react";
+import { Users, Briefcase, Target, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Stats {
-  totalConstituents: number;
-  totalDonations: number;
-  activeGrants: number;
-  pendingTasks: number;
+  totalContacts: number;
+  openJobs: number;
+  placements: number;
+  pipelineItems: number;
 }
 
 export function DashboardStats() {
@@ -17,23 +17,18 @@ export function DashboardStats() {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const [constituentsResult, giftsResult, grantsResult, tasksResult] = await Promise.all([
-        supabase.from("constituents").select("id", { count: "exact", head: true }),
-        supabase.from("gifts").select("amount"),
-        supabase.from("grant_opportunities").select("id", { count: "exact", head: true }).in("status_stage", ["application_in_progress", "submitted", "awarded"]),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("assigned_to", user.id).neq("status", "completed"),
+      const [contactsResult, jobsResult, placementsResult, pipelineResult] = await Promise.all([
+        supabase.from("crm_contacts").select("id", { count: "exact", head: true }),
+        supabase.from("crm_jobs").select("id", { count: "exact", head: true }).eq("status", "open"),
+        supabase.from("crm_placements").select("id", { count: "exact", head: true }),
+        supabase.from("crm_pipeline_items").select("id", { count: "exact", head: true }),
       ]);
 
-      const totalDonations = giftsResult.data?.reduce((sum, g) => sum + (g.amount || 0), 0) || 0;
-
       setStats({
-        totalConstituents: constituentsResult.count || 0,
-        totalDonations,
-        activeGrants: grantsResult.count || 0,
-        pendingTasks: tasksResult.count || 0,
+        totalContacts: contactsResult.count || 0,
+        openJobs: jobsResult.count || 0,
+        placements: placementsResult.count || 0,
+        pipelineItems: pipelineResult.count || 0,
       });
       setLoading(false);
     };
@@ -58,32 +53,32 @@ export function DashboardStats() {
 
   const statItems = [
     {
-      label: "Constituents",
-      value: stats?.totalConstituents.toLocaleString() || "0",
+      label: "Contacts",
+      value: stats?.totalContacts.toLocaleString() || "0",
       icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
+      color: "text-primary",
+      bgColor: "bg-primary/10",
     },
     {
-      label: "Total Donations",
-      value: `$${(stats?.totalDonations || 0).toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
+      label: "Open Jobs",
+      value: stats?.openJobs.toLocaleString() || "0",
+      icon: Briefcase,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
     },
     {
-      label: "Active Grants",
-      value: stats?.activeGrants.toLocaleString() || "0",
-      icon: FileText,
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
+      label: "Placements",
+      value: stats?.placements.toLocaleString() || "0",
+      icon: Target,
+      color: "text-secondary",
+      bgColor: "bg-secondary/10",
     },
     {
-      label: "Pending Tasks",
-      value: stats?.pendingTasks.toLocaleString() || "0",
-      icon: TrendingUp,
-      color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
+      label: "Pipeline",
+      value: stats?.pipelineItems.toLocaleString() || "0",
+      icon: BarChart3,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
     },
   ];
 
