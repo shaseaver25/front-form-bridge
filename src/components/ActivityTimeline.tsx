@@ -13,7 +13,7 @@ interface ActivityTimelineProps {
 
 interface TimelineEvent {
   id: string;
-  type: "gift" | "note" | "system_event" | "record_update";
+  type: "gift" | "note" | "system_event" | "record_update" | "task";
   title: string;
   description?: string;
   amount?: number;
@@ -32,11 +32,11 @@ const ActivityTimeline = ({ constituentId }: ActivityTimelineProps) => {
   const fetchTimeline = async () => {
     setLoading(true);
 
-    // Fetch all activities
+    // Fetch activities from crm_activities
     const { data: activities, error: activitiesError } = await supabase
-      .from("activities")
+      .from("crm_activities")
       .select("*")
-      .eq("constituent_id", constituentId)
+      .eq("contact_id", constituentId)
       .order("created_at", { ascending: false });
 
     if (activitiesError) {
@@ -45,37 +45,13 @@ const ActivityTimeline = ({ constituentId }: ActivityTimelineProps) => {
       return;
     }
 
-    // Fetch gifts to add to timeline
-    const { data: gifts, error: giftsError } = await supabase
-      .from("gifts")
-      .select("*")
-      .eq("constituent_id", constituentId)
-      .order("date_received", { ascending: false });
-
-    if (giftsError) {
-      toast.error("Failed to load gift history");
-      setLoading(false);
-      return;
-    }
-
-    // Combine and sort all events
-    const allEvents: TimelineEvent[] = [
-      ...(activities || []).map((a) => ({
-        id: a.id,
-        type: a.activity_type as TimelineEvent['type'],
-        title: a.title,
-        description: a.description,
-        date: a.created_at,
-      })),
-      ...(gifts || []).map((g) => ({
-        id: g.id,
-        type: "gift" as const,
-        title: `Gift of $${typeof g.amount === 'string' ? parseFloat(g.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : g.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        description: g.notes || `${g.fund_designation.replace(/_/g, ' ')}`,
-        amount: typeof g.amount === 'string' ? parseFloat(g.amount) : g.amount,
-        date: g.date_received,
-      })),
-    ];
+    const allEvents: TimelineEvent[] = (activities || []).map((a) => ({
+      id: a.id,
+      type: (a.activity_type as TimelineEvent["type"]) || "note",
+      title: a.subject || a.activity_type,
+      description: a.body || undefined,
+      date: a.created_at || new Date().toISOString(),
+    }));
 
     allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -144,12 +120,7 @@ const ActivityTimeline = ({ constituentId }: ActivityTimelineProps) => {
           ) : events.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">No activity recorded yet</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => setNoteFormOpen(true)}
-              >
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => setNoteFormOpen(true)}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add First Note
               </Button>

@@ -90,7 +90,7 @@ const Layout = ({ children }: LayoutProps) => {
                   <Building2 className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold text-foreground leading-tight">cM CRM</h1>
+                  <h1 className="text-lg font-bold text-foreground leading-tight">AvidEdge Search</h1>
                 </div>
               </div>
 
