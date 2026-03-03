@@ -36,6 +36,8 @@ type Contact = {
   updated_at: string | null;
   primary_email?: string | null;
   primary_company_name?: string | null;
+  primary_company_id?: string | null;
+  source_id?: string | null;
 };
 
 const ConstituentList = () => {
@@ -48,16 +50,18 @@ const ConstituentList = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>({});
 
   const fetchContacts = async () => {
     setLoading(true);
 
-    // Fetch contacts from crm_contacts
     const { data: contactsData, error } = await supabase
       .from("crm_contacts")
       .select(`
         id, first_name, last_name, job_title, status, contact_type, 
-        description, created_at, updated_at,
+        description, created_at, updated_at, primary_company_id, source_id,
         crm_contact_emails(value, is_primary),
         crm_companies!crm_contacts_primary_company_id_fkey(name)
       `)
@@ -70,7 +74,6 @@ const ConstituentList = () => {
       return;
     }
 
-    // Map to a flat structure with primary email
     const mapped: Contact[] = (contactsData || []).map((c: any) => {
       const primaryEmail = c.crm_contact_emails?.find((e: any) => e.is_primary)?.value 
         || c.crm_contact_emails?.[0]?.value 
@@ -88,6 +91,8 @@ const ConstituentList = () => {
         updated_at: c.updated_at,
         primary_email: primaryEmail,
         primary_company_name: companyName,
+        primary_company_id: c.primary_company_id,
+        source_id: c.source_id,
       };
     });
 
@@ -95,8 +100,22 @@ const ConstituentList = () => {
     setLoading(false);
   };
 
+  const fetchTags = async () => {
+    const { data: tagsData } = await supabase.from("crm_tags").select("id, name").order("name");
+    setAllTags(tagsData || []);
+
+    const { data: contactTags } = await supabase.from("crm_contact_tags").select("contact_id, tag_id");
+    const map: Record<string, string[]> = {};
+    (contactTags || []).forEach((ct: any) => {
+      if (!map[ct.contact_id]) map[ct.contact_id] = [];
+      map[ct.contact_id].push(ct.tag_id);
+    });
+    setContactTagMap(map);
+  };
+
   useEffect(() => {
     fetchContacts();
+    fetchTags();
   }, []);
 
   const getDisplayName = (c: Contact) => {
@@ -107,7 +126,9 @@ const ConstituentList = () => {
     const name = getDisplayName(c).toLowerCase();
     const email = (c.primary_email || "").toLowerCase();
     const search = searchTerm.toLowerCase();
-    return name.includes(search) || email.includes(search);
+    const matchesSearch = name.includes(search) || email.includes(search);
+    const matchesTags = selectedTagIds.length === 0 || selectedTagIds.every((tagId) => (contactTagMap[c.id] || []).includes(tagId));
+    return matchesSearch && matchesTags;
   });
 
   const handleEdit = (contact: Contact) => {
@@ -144,6 +165,25 @@ const ConstituentList = () => {
 
   const handleClearFilters = () => {
     setSearchTerm("");
+    setSelectedTagIds([]);
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const tagFilterChips = selectedTagIds.map((tagId) => ({
+    id: `tag:${tagId}`,
+    label: allTags.find((t) => t.id === tagId)?.name || tagId,
+  }));
+
+  const handleFilterRemove = (filterId: string) => {
+    if (filterId.startsWith("tag:")) {
+      const tagId = filterId.replace("tag:", "");
+      setSelectedTagIds((prev) => prev.filter((id) => id !== tagId));
+    }
   };
 
   return (
@@ -176,13 +216,30 @@ const ConstituentList = () => {
             <SearchFilterBar
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
-              filters={[]}
-              onFilterRemove={() => {}}
+              filters={tagFilterChips}
+              onFilterRemove={handleFilterRemove}
               onClearAll={handleClearFilters}
               totalCount={contacts.length}
               filteredCount={filteredContacts.length}
               placeholder="Search by name or email..."
             />
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.id)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      selectedTagIds.includes(tag.id)
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:bg-accent"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {loading ? (
