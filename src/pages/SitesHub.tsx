@@ -84,9 +84,10 @@ export default function SitesHub() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Organizations</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+</h1>
             <p className="text-muted-foreground">
-              Schools and organizations we're working with
+
             </p>
           </div>
           <DropdownMenu>
@@ -118,11 +119,10 @@ export default function SitesHub() {
           <div className="flex flex-wrap gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search sites..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 w-[250px]" />
+              <Input placeholder="Search sites..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 w-[250px]" />
 
             </div>
 
