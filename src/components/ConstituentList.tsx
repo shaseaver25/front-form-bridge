@@ -153,13 +153,13 @@ const ConstituentList = () => {
     if (error) {
       toast.error("Failed to delete constituent");
     } else {
-      toast.success("Constituent deleted successfully");
+      toast.success("Contact deleted successfully");
       fetchConstituents();
     }
   };
 
   const activeFilters: FilterChip[] = lybuntFilter
-    ? [{ id: "lybunt", label: "LYBUNT Filter Active" }]
+    ? [{ id: "lybunt", label: "Returning Clients Filter Active" }]
     : [];
 
   const handleClearFilters = () => {
@@ -173,9 +173,9 @@ const ConstituentList = () => {
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle className="text-2xl">Constituents</CardTitle>
+              <CardTitle className="text-2xl">Contacts</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Manage your donor and constituent database
+                Manage your contacts and client database
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -195,7 +195,7 @@ const ConstituentList = () => {
                 }}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Constituent
+                Add Contact
               </Button>
             </div>
           </div>
@@ -216,9 +216,9 @@ const ConstituentList = () => {
             <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg border">
               <Filter className="w-4 h-4 text-muted-foreground" />
               <Label htmlFor="lybunt-filter" className="flex-1 cursor-pointer">
-                <div className="font-medium">LYBUNT Segmentation</div>
+                <div className="font-medium">Returning Clients</div>
                 <div className="text-xs text-muted-foreground">
-                  Last Year But Unfortunately Not This year (Gave ≥$1.00 last year, $0 this year)
+                  Clients who were active last year but have no activity this year
                 </div>
               </Label>
               <Switch id="lybunt-filter" checked={lybuntFilter} onCheckedChange={setLybuntFilter} />
@@ -231,7 +231,7 @@ const ConstituentList = () => {
             <EmptyState
               type={searchTerm || lybuntFilter ? "no-results" : "no-data"}
               searchTerm={searchTerm}
-              entityName="Constituent"
+              entityName="Contact"
               onAction={
                 !searchTerm && !lybuntFilter
                   ? () => {
@@ -240,7 +240,7 @@ const ConstituentList = () => {
                     }
                   : undefined
               }
-              actionLabel="Add Constituent"
+              actionLabel="Add Contact"
             />
           ) : (
             <div
