@@ -1,33 +1,32 @@
 
 
-## Plan: Copy Recruit CRM Frontend to New Project with External Supabase
+## Problem
 
-### What We're Building
-Clone the entire frontend of your [Recruit CRM](/projects/e101be08-e2c7-4342-a67b-f75bdb477698) project into this blank project and connect it to your existing Supabase instance.
+The SiteDetail page queries contacts via `crm_contacts.primary_company_id`, but that field is NULL for every contact in the database. The actual contact-company relationship is stored in `crm_career_history` (with `company_id` and `is_current` flag).
 
-### Implementation Steps
+Jobs and activities are only linked to ~10 and ~39 companies respectively, so most company pages will legitimately show empty for those tabs. But contacts should show data for many more companies.
 
-**1. Copy All Source Code**
-- Copy all pages (~100+ files), components (~60+ directories), hooks, services, utils, contexts, types, constants, config, data, and routes from the Recruit CRM project into this project
-- Copy the Supabase integration files (`client.ts` and `types.ts`) which already use environment variables for the Supabase connection
+## Plan
 
-**2. Copy Styling & Configuration**  
-- Bring over the CRM-specific design system (professional blue color scheme, dark mode, custom utility classes)
-- Update `tailwind.config.ts` if there are CRM-specific customizations
+### 1. Fix contact fetching in SiteDetail.tsx
 
-**3. Install Missing Dependencies**
-- Add packages from the source project that aren't in this one: `@supabase/supabase-js`, `@hello-pangea/dnd`, `@faker-js/faker`, `react-dropzone`, `dompurify`, `msw`
+Replace the contacts query to join through `crm_career_history`:
 
-**4. Update App Entry Point**
-- Replace `App.tsx` with the Recruit CRM version using the centralized route configuration
-- Apply the CRM's `index.css` design system
+```sql
+SELECT DISTINCT c.id, c.first_name, c.last_name, c.job_title, c.status, ch.job_title as career_title
+FROM crm_career_history ch
+JOIN crm_contacts c ON c.id = ch.contact_id
+WHERE ch.company_id = :siteId AND ch.is_current = true
+ORDER BY c.last_name
+```
 
-**5. Connect Your Supabase**
-- After copying, you'll connect your external Supabase project through Lovable's Supabase connector (Settings → Connectors → Supabase)
-- This will automatically set the `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` environment variables that the copied client code already references
+This fetches contacts who have a current career history entry at the company.
 
-### Important Notes
-- The source Supabase `types.ts` file will be copied as-is. If your new Supabase schema differs, Lovable will regenerate types once you connect your Supabase project
-- No backend/edge functions will be copied — only the frontend code
-- All Supabase queries will point to your connected Supabase instance automatically
+### 2. Update the contacts display
+
+Use `career_title` from the career history as a fallback for `job_title` display since the contact's own `job_title` may differ from their role at this specific company.
+
+### 3. Files to modify
+
+- **`src/pages/SiteDetail.tsx`** — Update the `company-contacts` query to join through `crm_career_history` instead of filtering `crm_contacts` by `primary_company_id`.
 
