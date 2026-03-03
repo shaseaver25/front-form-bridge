@@ -15,7 +15,7 @@ import { DollarSign, Plus, Pencil, Trash2, TrendingUp, Users } from "lucide-reac
 import { useConstituentGifts, useDeleteGift } from "@/hooks/constituents";
 import { CreatePledgeDialog } from "../pledges";
 
-type Gift = Database["public"]["Tables"]["gifts"]["Row"];
+type Gift = any;
 
 interface GiftsSectionProps {
   constituentId: string;

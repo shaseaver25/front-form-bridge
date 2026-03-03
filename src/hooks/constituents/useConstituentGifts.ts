@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 
-type Gift = Database['public']['Tables']['gifts']['Row'];
+type Gift = any;
 
 export function useConstituentGifts(constituentId: string | null) {
   return useQuery({

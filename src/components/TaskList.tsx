@@ -24,7 +24,7 @@ interface TaskListProps {
   showAll?: boolean;
 }
 
-type Task = Database["public"]["Tables"]["tasks"]["Row"] & {
+type Task = Record<string, any> & {
   grant_opportunities?: {
     title: string;
     organizations?: { name: string } | null;
@@ -312,7 +312,7 @@ const TaskList = ({ grantId, showAll = false }: TaskListProps) => {
           </DialogHeader>
           {editingTask && (
             <TaskForm
-              task={editingTask}
+              task={editingTask as any}
               onSuccess={() => {
                 setEditingTask(null);
                 fetchTasks();

@@ -29,21 +29,12 @@ import { DensityToggle } from "@/components/ui/density-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
 
 // Type for grant with relationships
-type GrantWithRelations = Database["public"]["Tables"]["grant_opportunities"]["Row"] & {
-  organizations?: { name: string } | null;
-  grant_deliverables: Array<{
-    id: string;
-    due_date: string | null;
-    completed_date: string | null;
-  }>;
-};
+type GrantWithRelations = any;
 
 const GrantList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [grants, setGrants] = useState<GrantWithRelations[]>([]);
-  const [organizations, setOrganizations] = useState<
-    Database["public"]["Tables"]["organizations"]["Row"][]
-  >([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);

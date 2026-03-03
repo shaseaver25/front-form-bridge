@@ -31,8 +31,8 @@ import { GiftsSection } from "./constituents/GiftsSection";
 import { LinkedGrantsSection } from "./constituents/LinkedGrantsSection";
 import { useNavigate } from "react-router-dom";
 
-type Constituent = Database["public"]["Views"]["constituents_with_ltv"]["Row"];
-type Gift = Database["public"]["Tables"]["gifts"]["Row"];
+type Constituent = any;
+type Gift = any;
 
 interface ConstituentDetailProps {
   open: boolean;
