@@ -70,7 +70,7 @@ import { toast } from "sonner";
 type CardDependency = {
   id: string;
   depends_on_card_id: string;
-  depends_on_card: { id: string; headline: string; column_id: string };
+  depends_on_card: { id: string; headline: string; column_id: string } | null;
 };
 
 interface CardModalProps {

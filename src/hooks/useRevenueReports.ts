@@ -136,10 +136,11 @@ export function useRevenueByProgram() {
       
       for (const enrollment of enrollments || []) {
         const stats = enrollmentRevenueMap.get(enrollment.id);
-        if (!stats || !enrollment.program_offerings?.programs) continue;
+        const program = (enrollment.program_offerings as any)?.programs;
+        if (!stats || !program) continue;
         
-        const programId = enrollment.program_offerings.programs.id;
-        const programName = enrollment.program_offerings.programs.name;
+        const programId = program.id;
+        const programName = program.name;
         
         const existing = programMap.get(programId) || { name: programName, revenue: 0, count: 0 };
         programMap.set(programId, {

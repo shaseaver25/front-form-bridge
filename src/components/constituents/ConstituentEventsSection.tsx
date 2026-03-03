@@ -75,7 +75,7 @@ export function ConstituentEventsSection({ constituentId, constituentEmail }: Co
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as EventRegistration[];
+      return (data || []) as unknown as EventRegistration[];
     },
     enabled: !!(constituentId || constituentEmail),
   });
@@ -111,7 +111,7 @@ export function ConstituentEventsSection({ constituentId, constituentEmail }: Co
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProgramEnrollment[];
+      return (data || []) as unknown as ProgramEnrollment[];
     },
     enabled: !!(constituentId || constituentEmail),
   });
