@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const CRELATE_BASE = "https://app.crelate.com/api3";
-const PAGE_SIZE = 200;
+const PAGE_SIZE = 100; // Crelate max is 100
 
 interface SyncResult {
   entity: string;
@@ -18,9 +18,12 @@ interface SyncResult {
   errors: string[];
 }
 
-async function crelateGet(endpoint: string, apiKey: string, skip = 0, take = PAGE_SIZE) {
-  const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&skip=${skip}&take=${take}&modified=2000-01-01T00:00:00Z`;
-  const res = await fetch(url);
+async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
+  const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&offset=${offset}&limit=${limit}`;
+  console.log(`Fetching: ${endpoint} offset=${offset} limit=${limit}`);
+  const res = await fetch(url, {
+    headers: { "x-api-key": apiKey },
+  });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Crelate API error ${res.status}: ${text}`);
@@ -30,24 +33,57 @@ async function crelateGet(endpoint: string, apiKey: string, skip = 0, take = PAG
 
 async function fetchAllPages(endpoint: string, apiKey: string): Promise<any[]> {
   const allItems: any[] = [];
-  let skip = 0;
+  let offset = 0;
   let hasMore = true;
 
   while (hasMore) {
-    const data = await crelateGet(endpoint, apiKey, skip, PAGE_SIZE);
-    const items = data.Items || data.Results || data || [];
-    if (Array.isArray(items) && items.length > 0) {
+    const data = await crelateGet(endpoint, apiKey, offset, PAGE_SIZE);
+    
+    // Crelate may return: array directly, { Items: [] }, { Results: [] }, or { records: [] }
+    let items: any[];
+    if (Array.isArray(data)) {
+      items = data;
+    } else if (data?.Items && Array.isArray(data.Items)) {
+      items = data.Items;
+    } else if (data?.Results && Array.isArray(data.Results)) {
+      items = data.Results;
+    } else if (data?.records && Array.isArray(data.records)) {
+      items = data.records;
+    } else {
+      // Log actual response shape for debugging
+      console.log(`Response shape for ${endpoint}:`, JSON.stringify(Object.keys(data || {})));
+      items = [];
+    }
+
+    console.log(`${endpoint}: got ${items.length} items at offset ${offset}`);
+    
+    if (items.length > 0) {
       allItems.push(...items);
-      skip += items.length;
-      hasMore = items.length === PAGE_SIZE;
+      offset += items.length;
+      hasMore = items.length >= PAGE_SIZE;
     } else {
       hasMore = false;
     }
-    // Rate limiting: small delay between pages
-    await new Promise((r) => setTimeout(r, 200));
+    // Rate limiting
+    await new Promise((r) => setTimeout(r, 250));
   }
 
+  console.log(`${endpoint}: total ${allItems.length} items fetched`);
   return allItems;
+}
+
+// Helper to get a field value case-insensitively
+function getField(obj: any, ...names: string[]): any {
+  for (const name of names) {
+    // Try exact
+    if (obj[name] !== undefined) return obj[name];
+    // Try camelCase variations
+    const lower = name.toLowerCase();
+    for (const key of Object.keys(obj)) {
+      if (key.toLowerCase() === lower) return obj[key];
+    }
+  }
+  return null;
 }
 
 async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> {
@@ -57,70 +93,80 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
     const contacts = await fetchAllPages("contacts", apiKey);
     result.total = contacts.length;
 
+    if (contacts.length > 0) {
+      console.log("Sample contact keys:", JSON.stringify(Object.keys(contacts[0])));
+    }
+
     for (const c of contacts) {
       try {
+        const crelateId = getField(c, "Id", "id", "ContactId");
+        if (!crelateId) {
+          result.failed++;
+          result.errors.push("Contact missing Id field");
+          continue;
+        }
+
         const contactData = {
-          crelate_id: c.Id,
-          first_name: c.FirstName || null,
-          last_name: c.LastName || "Unknown",
-          middle_name: c.MiddleName || null,
-          nick_name: c.NickName || null,
-          salutation: c.Salutation || null,
-          suffix: c.Suffix || null,
-          job_title: c.JobTitle || null,
-          description: c.Description || null,
-          status: c.Status || "active",
-          contact_type: c.ContactType || "candidate",
-          icon_attachment_url: c.IconAttachmentUrl || null,
-          salary: c.Salary || null,
-          desired_salary_min: c.DesiredSalaryMin || null,
-          desired_salary_max: c.DesiredSalaryMax || null,
-          salary_details: c.SalaryDetails || null,
+          crelate_id: crelateId,
+          first_name: getField(c, "FirstName", "firstName") || null,
+          last_name: getField(c, "LastName", "lastName") || "Unknown",
+          middle_name: getField(c, "MiddleName", "middleName") || null,
+          nick_name: getField(c, "NickName", "nickName") || null,
+          salutation: getField(c, "Salutation", "salutation") || null,
+          suffix: getField(c, "Suffix", "suffix") || null,
+          job_title: getField(c, "JobTitle", "jobTitle", "Title") || null,
+          description: getField(c, "Description", "description") || null,
+          status: getField(c, "Status", "status") || "active",
+          contact_type: getField(c, "ContactType", "contactType", "RecordType") || "candidate",
+          icon_attachment_url: getField(c, "IconAttachmentUrl", "iconAttachmentUrl") || null,
+          salary: getField(c, "Salary", "salary") || null,
+          desired_salary_min: getField(c, "DesiredSalaryMin", "desiredSalaryMin") || null,
+          desired_salary_max: getField(c, "DesiredSalaryMax", "desiredSalaryMax") || null,
+          salary_details: getField(c, "SalaryDetails", "salaryDetails") || null,
         };
 
-        // Check if exists
         const { data: existing } = await supabase
           .from("crm_contacts")
           .select("id")
-          .eq("crelate_id", c.Id)
+          .eq("crelate_id", crelateId)
           .maybeSingle();
 
         if (existing) {
-          await supabase.from("crm_contacts").update(contactData).eq("crelate_id", c.Id);
+          await supabase.from("crm_contacts").update(contactData).eq("crelate_id", crelateId);
           result.updated++;
         } else {
           await supabase.from("crm_contacts").insert(contactData);
           result.created++;
         }
 
-        // Get the contact's local ID
+        // Get local ID for sub-records
         const { data: localContact } = await supabase
           .from("crm_contacts")
           .select("id")
-          .eq("crelate_id", c.Id)
+          .eq("crelate_id", crelateId)
           .single();
 
         if (!localContact) continue;
         const contactId = localContact.id;
 
         // Sync emails
-        if (c.EmailAddresses && Array.isArray(c.EmailAddresses)) {
-          for (const email of c.EmailAddresses) {
+        const emails = getField(c, "EmailAddresses", "emailAddresses", "Emails", "emails");
+        if (emails && Array.isArray(emails)) {
+          for (const email of emails) {
+            const val = typeof email === "string" ? email : getField(email, "Value", "value", "Address", "address");
+            if (!val) continue;
+            const emailCrelateId = (typeof email === "object" && getField(email, "Id", "id")) || `${crelateId}_email_${val}`;
             const emailData = {
-              crelate_id: email.Id || `${c.Id}_email_${email.Value}`,
+              crelate_id: emailCrelateId,
               contact_id: contactId,
-              value: email.Value,
-              category: email.Category || "work",
-              is_primary: email.IsPrimary || false,
-              is_invalid: email.IsInvalid || false,
+              value: val,
+              category: (typeof email === "object" && getField(email, "Category", "category")) || "work",
+              is_primary: (typeof email === "object" && getField(email, "IsPrimary", "isPrimary")) || false,
+              is_invalid: (typeof email === "object" && getField(email, "IsInvalid", "isInvalid")) || false,
             };
-            const { data: existingEmail } = await supabase
-              .from("crm_contact_emails")
-              .select("id")
-              .eq("crelate_id", emailData.crelate_id)
-              .maybeSingle();
-            if (existingEmail) {
-              await supabase.from("crm_contact_emails").update(emailData).eq("crelate_id", emailData.crelate_id);
+            const { data: ex } = await supabase.from("crm_contact_emails").select("id").eq("crelate_id", emailCrelateId).maybeSingle();
+            if (ex) {
+              await supabase.from("crm_contact_emails").update(emailData).eq("crelate_id", emailCrelateId);
             } else {
               await supabase.from("crm_contact_emails").insert(emailData);
             }
@@ -128,23 +174,23 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
         }
 
         // Sync phones
-        if (c.PhoneNumbers && Array.isArray(c.PhoneNumbers)) {
-          for (const phone of c.PhoneNumbers) {
+        const phones = getField(c, "PhoneNumbers", "phoneNumbers", "Phones", "phones");
+        if (phones && Array.isArray(phones)) {
+          for (const phone of phones) {
+            const val = typeof phone === "string" ? phone : getField(phone, "Value", "value", "Number", "number");
+            if (!val) continue;
+            const phoneCrelateId = (typeof phone === "object" && getField(phone, "Id", "id")) || `${crelateId}_phone_${val}`;
             const phoneData = {
-              crelate_id: phone.Id || `${c.Id}_phone_${phone.Value}`,
+              crelate_id: phoneCrelateId,
               contact_id: contactId,
-              value: phone.Value,
-              category: phone.Category || "work",
-              is_primary: phone.IsPrimary || false,
-              extension: phone.Extension || null,
+              value: val,
+              category: (typeof phone === "object" && getField(phone, "Category", "category")) || "work",
+              is_primary: (typeof phone === "object" && getField(phone, "IsPrimary", "isPrimary")) || false,
+              extension: (typeof phone === "object" && getField(phone, "Extension", "extension")) || null,
             };
-            const { data: existingPhone } = await supabase
-              .from("crm_contact_phones")
-              .select("id")
-              .eq("crelate_id", phoneData.crelate_id)
-              .maybeSingle();
-            if (existingPhone) {
-              await supabase.from("crm_contact_phones").update(phoneData).eq("crelate_id", phoneData.crelate_id);
+            const { data: ex } = await supabase.from("crm_contact_phones").select("id").eq("crelate_id", phoneCrelateId).maybeSingle();
+            if (ex) {
+              await supabase.from("crm_contact_phones").update(phoneData).eq("crelate_id", phoneCrelateId);
             } else {
               await supabase.from("crm_contact_phones").insert(phoneData);
             }
@@ -152,22 +198,22 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
         }
 
         // Sync URLs
-        if (c.Urls && Array.isArray(c.Urls)) {
-          for (const url of c.Urls) {
+        const urls = getField(c, "Urls", "urls", "WebAddresses", "webAddresses");
+        if (urls && Array.isArray(urls)) {
+          for (const url of urls) {
+            const val = typeof url === "string" ? url : getField(url, "Value", "value", "Url", "url");
+            if (!val) continue;
+            const urlCrelateId = (typeof url === "object" && getField(url, "Id", "id")) || `${crelateId}_url_${val}`;
             const urlData = {
-              crelate_id: url.Id || `${c.Id}_url_${url.Value}`,
+              crelate_id: urlCrelateId,
               contact_id: contactId,
-              value: url.Value,
-              category: url.Category || "business",
-              is_primary: url.IsPrimary || false,
+              value: val,
+              category: (typeof url === "object" && getField(url, "Category", "category")) || "business",
+              is_primary: (typeof url === "object" && getField(url, "IsPrimary", "isPrimary")) || false,
             };
-            const { data: existingUrl } = await supabase
-              .from("crm_contact_urls")
-              .select("id")
-              .eq("crelate_id", urlData.crelate_id)
-              .maybeSingle();
-            if (existingUrl) {
-              await supabase.from("crm_contact_urls").update(urlData).eq("crelate_id", urlData.crelate_id);
+            const { data: ex } = await supabase.from("crm_contact_urls").select("id").eq("crelate_id", urlCrelateId).maybeSingle();
+            if (ex) {
+              await supabase.from("crm_contact_urls").update(urlData).eq("crelate_id", urlCrelateId);
             } else {
               await supabase.from("crm_contact_urls").insert(urlData);
             }
@@ -175,22 +221,14 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
         }
 
         // Sync tags
-        if (c.Tags && Array.isArray(c.Tags)) {
-          for (const tag of c.Tags) {
-            const tagName = typeof tag === "string" ? tag : tag.Name || tag.Value;
+        const tags = getField(c, "Tags", "tags");
+        if (tags && Array.isArray(tags)) {
+          for (const tag of tags) {
+            const tagName = typeof tag === "string" ? tag : getField(tag, "Name", "name", "Value", "value");
             if (!tagName) continue;
-            // Find or create tag
-            let { data: existingTag } = await supabase
-              .from("crm_tags")
-              .select("id")
-              .eq("name", tagName)
-              .maybeSingle();
+            let { data: existingTag } = await supabase.from("crm_tags").select("id").eq("name", tagName).maybeSingle();
             if (!existingTag) {
-              const { data: newTag } = await supabase
-                .from("crm_tags")
-                .insert({ name: tagName })
-                .select("id")
-                .single();
+              const { data: newTag } = await supabase.from("crm_tags").insert({ name: tagName }).select("id").single();
               existingTag = newTag;
             }
             if (existingTag) {
@@ -201,17 +239,14 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
                 .eq("tag_id", existingTag.id)
                 .maybeSingle();
               if (!existingLink) {
-                await supabase.from("crm_contact_tags").insert({
-                  contact_id: contactId,
-                  tag_id: existingTag.id,
-                });
+                await supabase.from("crm_contact_tags").insert({ contact_id: contactId, tag_id: existingTag.id });
               }
             }
           }
         }
       } catch (e) {
         result.failed++;
-        result.errors.push(`Contact ${c.Id}: ${e.message}`);
+        result.errors.push(`Contact ${c.Id || "?"}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -228,27 +263,29 @@ async function syncCompanies(apiKey: string, supabase: any): Promise<SyncResult>
     const companies = await fetchAllPages("companies", apiKey);
     result.total = companies.length;
 
+    if (companies.length > 0) {
+      console.log("Sample company keys:", JSON.stringify(Object.keys(companies[0])));
+    }
+
     for (const c of companies) {
       try {
+        const crelateId = getField(c, "Id", "id");
+        if (!crelateId) { result.failed++; continue; }
+
         const data = {
-          crelate_id: c.Id,
-          name: c.Name || "Unnamed",
-          domain: c.Domain || null,
-          company_type: c.CompanyType || "client",
-          status: c.Status || "active",
-          description: c.Description || null,
-          icon_attachment_url: c.IconAttachmentUrl || null,
-          revenue: c.Revenue || null,
+          crelate_id: crelateId,
+          name: getField(c, "Name", "name") || "Unnamed",
+          domain: getField(c, "Domain", "domain", "Website", "website") || null,
+          company_type: getField(c, "CompanyType", "companyType") || "client",
+          status: getField(c, "Status", "status") || "active",
+          description: getField(c, "Description", "description") || null,
+          icon_attachment_url: getField(c, "IconAttachmentUrl", "iconAttachmentUrl") || null,
+          revenue: getField(c, "Revenue", "revenue") || null,
         };
 
-        const { data: existing } = await supabase
-          .from("crm_companies")
-          .select("id")
-          .eq("crelate_id", c.Id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("crm_companies").select("id").eq("crelate_id", crelateId).maybeSingle();
         if (existing) {
-          await supabase.from("crm_companies").update(data).eq("crelate_id", c.Id);
+          await supabase.from("crm_companies").update(data).eq("crelate_id", crelateId);
           result.updated++;
         } else {
           await supabase.from("crm_companies").insert(data);
@@ -256,7 +293,7 @@ async function syncCompanies(apiKey: string, supabase: any): Promise<SyncResult>
         }
       } catch (e) {
         result.failed++;
-        result.errors.push(`Company ${c.Id}: ${e.message}`);
+        result.errors.push(`Company ${c.Id || "?"}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -275,44 +312,34 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
 
     for (const j of jobs) {
       try {
-        // Resolve company
+        const crelateId = getField(j, "Id", "id");
+        if (!crelateId) { result.failed++; continue; }
+
         let companyId = null;
-        if (j.CompanyId) {
-          const { data: company } = await supabase
-            .from("crm_companies")
-            .select("id")
-            .eq("crelate_id", j.CompanyId)
-            .maybeSingle();
+        const compCrelateId = getField(j, "CompanyId", "companyId");
+        if (compCrelateId) {
+          const { data: company } = await supabase.from("crm_companies").select("id").eq("crelate_id", compCrelateId).maybeSingle();
           companyId = company?.id || null;
         }
 
         const data = {
-          crelate_id: j.Id,
-          name: j.Name || j.JobTitle || "Untitled",
-          job_title: j.JobTitle || null,
-          job_type: j.JobType || null,
-          description: j.Description || null,
-          status: j.Status || "open",
-          location: j.Location || null,
-          salary_min: j.SalaryMin || null,
-          salary_max: j.SalaryMax || null,
-          hourly_rate_min: j.HourlyRateMin || null,
-          hourly_rate_max: j.HourlyRateMax || null,
-          remote_type: j.RemoteType || null,
-          number_of_openings: j.NumberOfOpenings || 1,
+          crelate_id: crelateId,
+          name: getField(j, "Name", "name") || getField(j, "JobTitle", "jobTitle") || "Untitled",
+          job_title: getField(j, "JobTitle", "jobTitle") || null,
+          job_type: getField(j, "JobType", "jobType") || null,
+          description: getField(j, "Description", "description") || null,
+          status: getField(j, "Status", "status") || "open",
+          location: getField(j, "Location", "location") || null,
+          salary_min: getField(j, "SalaryMin", "salaryMin") || null,
+          salary_max: getField(j, "SalaryMax", "salaryMax") || null,
           company_id: companyId,
-          compensation_details: j.CompensationDetails || null,
-          priority: j.Priority || null,
+          compensation_details: getField(j, "CompensationDetails", "compensationDetails") || null,
+          priority: getField(j, "Priority", "priority") || null,
         };
 
-        const { data: existing } = await supabase
-          .from("crm_jobs")
-          .select("id")
-          .eq("crelate_id", j.Id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("crm_jobs").select("id").eq("crelate_id", crelateId).maybeSingle();
         if (existing) {
-          await supabase.from("crm_jobs").update(data).eq("crelate_id", j.Id);
+          await supabase.from("crm_jobs").update(data).eq("crelate_id", crelateId);
           result.updated++;
         } else {
           await supabase.from("crm_jobs").insert(data);
@@ -320,7 +347,7 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
         }
       } catch (e) {
         result.failed++;
-        result.errors.push(`Job ${j.Id}: ${e.message}`);
+        result.errors.push(`Job ${j.Id || "?"}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -339,51 +366,39 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
 
     for (const p of placements) {
       try {
+        const crelateId = getField(p, "Id", "id");
+        if (!crelateId) { result.failed++; continue; }
+
         let jobId = null;
-        if (p.JobId) {
-          const { data: job } = await supabase
-            .from("crm_jobs")
-            .select("id")
-            .eq("crelate_id", p.JobId)
-            .maybeSingle();
+        const jobCrelateId = getField(p, "JobId", "jobId");
+        if (jobCrelateId) {
+          const { data: job } = await supabase.from("crm_jobs").select("id").eq("crelate_id", jobCrelateId).maybeSingle();
           jobId = job?.id;
         }
-        if (!jobId) {
-          result.failed++;
-          result.errors.push(`Placement ${p.Id}: no matching job`);
-          continue;
-        }
+        if (!jobId) { result.failed++; result.errors.push(`Placement ${crelateId}: no matching job`); continue; }
 
         let contactId = null;
-        if (p.ContactId) {
-          const { data: contact } = await supabase
-            .from("crm_contacts")
-            .select("id")
-            .eq("crelate_id", p.ContactId)
-            .maybeSingle();
+        const contCrelateId = getField(p, "ContactId", "contactId");
+        if (contCrelateId) {
+          const { data: contact } = await supabase.from("crm_contacts").select("id").eq("crelate_id", contCrelateId).maybeSingle();
           contactId = contact?.id || null;
         }
 
         const data = {
-          crelate_id: p.Id,
+          crelate_id: crelateId,
           job_id: jobId,
           contact_id: contactId,
-          salary: p.Salary || null,
-          fee_amount: p.FeeAmount || null,
-          fee_percent: p.FeePercent || null,
-          placement_date: p.PlacementDate || null,
-          start_date: p.StartDate || null,
-          notes: p.Notes || null,
+          salary: getField(p, "Salary", "salary") || null,
+          fee_amount: getField(p, "FeeAmount", "feeAmount") || null,
+          fee_percent: getField(p, "FeePercent", "feePercent") || null,
+          placement_date: getField(p, "PlacementDate", "placementDate") || null,
+          start_date: getField(p, "StartDate", "startDate") || null,
+          notes: getField(p, "Notes", "notes") || null,
         };
 
-        const { data: existing } = await supabase
-          .from("crm_placements")
-          .select("id")
-          .eq("crelate_id", p.Id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("crm_placements").select("id").eq("crelate_id", crelateId).maybeSingle();
         if (existing) {
-          await supabase.from("crm_placements").update(data).eq("crelate_id", p.Id);
+          await supabase.from("crm_placements").update(data).eq("crelate_id", crelateId);
           result.updated++;
         } else {
           await supabase.from("crm_placements").insert(data);
@@ -391,7 +406,7 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
         }
       } catch (e) {
         result.failed++;
-        result.errors.push(`Placement ${p.Id}: ${e.message}`);
+        result.errors.push(`Placement ${p.Id || "?"}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -405,66 +420,67 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
   const result: SyncResult = { entity: "activities", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
-    const activities = await fetchAllPages("activities", apiKey);
+    // Activities may be under /activities or /notes in v3
+    let activities: any[] = [];
+    try {
+      activities = await fetchAllPages("activities", apiKey);
+    } catch {
+      console.log("activities endpoint failed, trying notes...");
+      try {
+        activities = await fetchAllPages("notes", apiKey);
+      } catch (e2) {
+        result.errors.push(`Both activities and notes endpoints failed: ${e2.message}`);
+        return result;
+      }
+    }
     result.total = activities.length;
 
     for (const a of activities) {
       try {
+        const crelateId = getField(a, "Id", "id");
+        if (!crelateId) { result.failed++; continue; }
+
         let contactId = null;
-        if (a.ContactId) {
-          const { data: contact } = await supabase
-            .from("crm_contacts")
-            .select("id")
-            .eq("crelate_id", a.ContactId)
-            .maybeSingle();
-          contactId = contact?.id || null;
+        const contId = getField(a, "ContactId", "contactId");
+        if (contId) {
+          const { data: c } = await supabase.from("crm_contacts").select("id").eq("crelate_id", contId).maybeSingle();
+          contactId = c?.id || null;
         }
 
         let companyId = null;
-        if (a.CompanyId) {
-          const { data: company } = await supabase
-            .from("crm_companies")
-            .select("id")
-            .eq("crelate_id", a.CompanyId)
-            .maybeSingle();
-          companyId = company?.id || null;
+        const compId = getField(a, "CompanyId", "companyId");
+        if (compId) {
+          const { data: c } = await supabase.from("crm_companies").select("id").eq("crelate_id", compId).maybeSingle();
+          companyId = c?.id || null;
         }
 
         let jobId = null;
-        if (a.JobId) {
-          const { data: job } = await supabase
-            .from("crm_jobs")
-            .select("id")
-            .eq("crelate_id", a.JobId)
-            .maybeSingle();
-          jobId = job?.id || null;
+        const jId = getField(a, "JobId", "jobId");
+        if (jId) {
+          const { data: j } = await supabase.from("crm_jobs").select("id").eq("crelate_id", jId).maybeSingle();
+          jobId = j?.id || null;
         }
 
         const data = {
-          crelate_id: a.Id,
-          activity_type: a.ActivityType || a.Type || "note",
-          subject: a.Subject || null,
-          body: a.Body || a.Description || null,
+          crelate_id: crelateId,
+          activity_type: getField(a, "ActivityType", "activityType", "Type", "type") || "note",
+          subject: getField(a, "Subject", "subject") || null,
+          body: getField(a, "Body", "body", "Description", "description") || null,
           contact_id: contactId,
           company_id: companyId,
           job_id: jobId,
-          direction: a.Direction || null,
-          completed: a.Completed !== false,
-          scheduled_at: a.ScheduledAt || a.DueDate || null,
-          completed_at: a.CompletedAt || null,
-          duration_minutes: a.DurationMinutes || null,
-          location: a.Location || null,
-          is_pinned: a.IsPinned || false,
+          direction: getField(a, "Direction", "direction") || null,
+          completed: getField(a, "Completed", "completed") !== false,
+          scheduled_at: getField(a, "ScheduledAt", "scheduledAt", "DueDate", "dueDate") || null,
+          completed_at: getField(a, "CompletedAt", "completedAt") || null,
+          duration_minutes: getField(a, "DurationMinutes", "durationMinutes") || null,
+          location: getField(a, "Location", "location") || null,
+          is_pinned: getField(a, "IsPinned", "isPinned") || false,
         };
 
-        const { data: existing } = await supabase
-          .from("crm_activities")
-          .select("id")
-          .eq("crelate_id", a.Id)
-          .maybeSingle();
-
+        const { data: existing } = await supabase.from("crm_activities").select("id").eq("crelate_id", crelateId).maybeSingle();
         if (existing) {
-          await supabase.from("crm_activities").update(data).eq("crelate_id", a.Id);
+          await supabase.from("crm_activities").update(data).eq("crelate_id", crelateId);
           result.updated++;
         } else {
           await supabase.from("crm_activities").insert(data);
@@ -472,7 +488,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
         }
       } catch (e) {
         result.failed++;
-        result.errors.push(`Activity ${a.Id}: ${e.message}`);
+        result.errors.push(`Activity ${a.Id || "?"}: ${e.message}`);
       }
     }
   } catch (e) {
@@ -485,47 +501,39 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
 async function syncAddresses(apiKey: string, supabase: any): Promise<SyncResult> {
   const result: SyncResult = { entity: "addresses", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
-  // Addresses are typically nested within contacts/companies in Crelate
-  // We'll fetch contacts again and extract addresses
+  // Addresses are nested in contacts - fetch contacts and extract
   try {
     const contacts = await fetchAllPages("contacts", apiKey);
 
     for (const c of contacts) {
-      if (!c.Addresses || !Array.isArray(c.Addresses)) continue;
+      const addresses = getField(c, "Addresses", "addresses");
+      if (!addresses || !Array.isArray(addresses)) continue;
 
-      const { data: localContact } = await supabase
-        .from("crm_contacts")
-        .select("id")
-        .eq("crelate_id", c.Id)
-        .maybeSingle();
-
+      const crelateId = getField(c, "Id", "id");
+      const { data: localContact } = await supabase.from("crm_contacts").select("id").eq("crelate_id", crelateId).maybeSingle();
       if (!localContact) continue;
 
-      for (const addr of c.Addresses) {
+      for (const addr of addresses) {
         result.total++;
         try {
+          const addrCrelateId = getField(addr, "Id", "id") || `${crelateId}_addr_${result.total}`;
           const data = {
-            crelate_id: addr.Id || `${c.Id}_addr_${addr.Line1 || result.total}`,
+            crelate_id: addrCrelateId,
             contact_id: localContact.id,
-            line1: addr.Line1 || addr.Street || null,
-            line2: addr.Line2 || null,
-            city: addr.City || null,
-            state: addr.State || null,
-            zip_code: addr.ZipCode || addr.PostalCode || null,
-            country: addr.Country || "US",
-            category: addr.Category || "business",
-            is_primary: addr.IsPrimary || false,
-            location: addr.Location || null,
+            line1: getField(addr, "Line1", "line1", "Street", "street") || null,
+            line2: getField(addr, "Line2", "line2") || null,
+            city: getField(addr, "City", "city") || null,
+            state: getField(addr, "State", "state") || null,
+            zip_code: getField(addr, "ZipCode", "zipCode", "PostalCode", "postalCode") || null,
+            country: getField(addr, "Country", "country") || "US",
+            category: getField(addr, "Category", "category") || "business",
+            is_primary: getField(addr, "IsPrimary", "isPrimary") || false,
+            location: getField(addr, "Location", "location") || null,
           };
 
-          const { data: existing } = await supabase
-            .from("crm_addresses")
-            .select("id")
-            .eq("crelate_id", data.crelate_id)
-            .maybeSingle();
-
+          const { data: existing } = await supabase.from("crm_addresses").select("id").eq("crelate_id", addrCrelateId).maybeSingle();
           if (existing) {
-            await supabase.from("crm_addresses").update(data).eq("crelate_id", data.crelate_id);
+            await supabase.from("crm_addresses").update(data).eq("crelate_id", addrCrelateId);
             result.updated++;
           } else {
             await supabase.from("crm_addresses").insert(data);
@@ -550,7 +558,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -582,7 +589,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role for data operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
@@ -592,16 +598,23 @@ Deno.serve(async (req) => {
     // Test connection
     if (action === "test") {
       try {
-        const testUrl = `${CRELATE_BASE}/contacts?api_key=${crelateApiKey}&skip=0&take=1&modified=2000-01-01T00:00:00Z`;
-        const res = await fetch(testUrl);
+        const testUrl = `${CRELATE_BASE}/contacts?api_key=${crelateApiKey}&offset=0&limit=1`;
+        console.log("Testing connection...");
+        const res = await fetch(testUrl, { headers: { "x-api-key": crelateApiKey } });
+        const responseText = await res.text();
+        console.log(`Test response status: ${res.status}, body preview: ${responseText.substring(0, 500)}`);
+        
         if (!res.ok) {
-          const text = await res.text();
-          return new Response(JSON.stringify({ success: false, error: `API returned ${res.status}: ${text}` }), {
+          return new Response(JSON.stringify({ success: false, error: `API returned ${res.status}: ${responseText}` }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        await res.json();
-        return new Response(JSON.stringify({ success: true, message: "Connected to Crelate API" }), {
+        
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: "Connected to Crelate API",
+          preview: responseText.substring(0, 200),
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e) {
@@ -619,11 +632,7 @@ Deno.serve(async (req) => {
       started_at: new Date().toISOString(),
     };
 
-    const { data: logEntry } = await supabase
-      .from("crm_sync_log")
-      .insert(syncLog)
-      .select("id")
-      .single();
+    const { data: logEntry } = await supabase.from("crm_sync_log").insert(syncLog).select("id").single();
 
     const results: SyncResult[] = [];
 
@@ -640,7 +649,9 @@ Deno.serve(async (req) => {
 
     for (const entity of entitiesToSync) {
       if (syncMap[entity]) {
+        console.log(`Starting sync for: ${entity}`);
         const r = await syncMap[entity](crelateApiKey, supabase);
+        console.log(`Sync ${entity}: total=${r.total} created=${r.created} updated=${r.updated} failed=${r.failed}`);
         results.push(r);
       }
     }
@@ -676,6 +687,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
+    console.error("Edge function error:", e);
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
