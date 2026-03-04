@@ -897,6 +897,51 @@ export type Database = {
           },
         ]
       }
+      crm_sync_log: {
+        Row: {
+          completed_at: string | null
+          created_by: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          records_created: number | null
+          records_failed: number | null
+          records_synced: number | null
+          records_updated: number | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_by?: string | null
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          records_created?: number | null
+          records_failed?: number | null
+          records_synced?: number | null
+          records_updated?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_by?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          records_created?: number | null
+          records_failed?: number | null
+          records_synced?: number | null
+          records_updated?: number | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       crm_tags: {
         Row: {
           category: string | null
