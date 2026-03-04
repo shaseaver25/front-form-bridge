@@ -220,6 +220,20 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       const currentPos = c.CurrentPosition;
       const jobTitle = currentPos?.JobTitle || getField(c, "JobTitle", "jobTitle") || null;
 
+      // Map Crelate RecordType to allowed contact_type values
+      const rawType = (c.RecordType || "").toLowerCase();
+      const contactType = rawType.includes("candidate") ? "candidate"
+        : rawType.includes("client") ? "client"
+        : rawType.includes("contact") ? "contact"
+        : "other";
+
+      // Map Crelate EntityStatus to allowed status values
+      const rawStatus = (c.EntityStatus || "").toLowerCase();
+      const status = rawStatus.includes("inactive") ? "inactive"
+        : rawStatus.includes("do_not_contact") || rawStatus.includes("donotcontact") ? "do_not_contact"
+        : rawStatus.includes("archived") ? "archived"
+        : "active";
+
       contactRows.push({
         crelate_id: crelateId,
         first_name: c.FirstName || null,
@@ -230,8 +244,8 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
         suffix: null,
         job_title: jobTitle,
         description: c.Description || null,
-        status: c.EntityStatus || "active",
-        contact_type: c.RecordType || "candidate",
+        status,
+        contact_type: contactType,
         icon_attachment_url: null,
         salary: c.Salary || null,
         desired_salary_min: c.DesiredSalaryMin || null,
@@ -381,16 +395,31 @@ async function syncCompanies(apiKey: string, supabase: any): Promise<SyncResult>
 
     const rows = companies
       .filter(c => c.Id)
-      .map(c => ({
-        crelate_id: c.Id,
-        name: c.Name || "Unnamed",
-        domain: c.Domain || c.Website || null,
-        company_type: c.CompanyType || "client",
-        status: c.EntityStatus || c.Status || "active",
-        description: c.Description || null,
-        icon_attachment_url: null,
-        revenue: c.Revenue || null,
-      }));
+      .map(c => {
+        const rawType = (c.CompanyType || "").toLowerCase();
+        const companyType = rawType.includes("client") ? "client"
+          : rawType.includes("target") ? "target"
+          : rawType.includes("both") ? "both"
+          : "other";
+
+        const rawStatus = (c.EntityStatus || c.Status || "").toLowerCase();
+        const status = rawStatus.includes("inactive") ? "inactive"
+          : rawStatus.includes("prospect") ? "prospect"
+          : rawStatus.includes("client") ? "client"
+          : rawStatus.includes("archived") ? "archived"
+          : "active";
+
+        return {
+          crelate_id: c.Id,
+          name: c.Name || "Unnamed",
+          domain: c.Domain || c.Website || null,
+          company_type: companyType,
+          status,
+          description: c.Description || null,
+          icon_attachment_url: null,
+          revenue: c.Revenue || null,
+        };
+      });
 
     const r = await batchUpsert(supabase, "crm_companies", rows, "crelate_id");
     result.created = r.created;
@@ -424,19 +453,43 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
       .filter(j => j.Id)
       .map(j => {
         const compCrelateId = j.CompanyId?.Id || j.CompanyId;
+
+        const rawStatus = (j.EntityStatus || j.Status || "").toLowerCase();
+        const status = rawStatus.includes("filled") ? "filled"
+          : rawStatus.includes("closed") ? "closed"
+          : rawStatus.includes("lost") ? "lost"
+          : rawStatus.includes("hold") ? "on_hold"
+          : rawStatus.includes("draft") ? "draft"
+          : "open";
+
+        const rawJobType = (j.JobType || "").toLowerCase();
+        const jobType = rawJobType.includes("direct") ? "direct"
+          : rawJobType.includes("full") ? "full_time"
+          : rawJobType.includes("part") ? "part_time"
+          : rawJobType.includes("contract") ? "contract"
+          : rawJobType.includes("interim") ? "interim"
+          : rawJobType ? "other" : null;
+
+        const rawPriority = (j.Priority || "").toLowerCase();
+        const priority = rawPriority.includes("urgent") ? "urgent"
+          : rawPriority.includes("high") ? "high"
+          : rawPriority.includes("medium") ? "medium"
+          : rawPriority.includes("low") ? "low"
+          : null;
+
         return {
           crelate_id: j.Id,
           name: j.Name || j.JobTitle || "Untitled",
           job_title: j.JobTitle || null,
-          job_type: j.JobType || null,
+          job_type: jobType,
           description: j.Description || null,
-          status: j.EntityStatus || j.Status || "open",
+          status,
           location: j.Location || null,
           salary_min: j.SalaryMin || null,
           salary_max: j.SalaryMax || null,
           company_id: (typeof compCrelateId === "string" && compMap[compCrelateId]) || null,
           compensation_details: j.CompensationDetails || null,
-          priority: j.Priority || null,
+          priority,
         };
       });
 
