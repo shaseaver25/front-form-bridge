@@ -39,20 +39,26 @@ async function fetchAllPages(endpoint: string, apiKey: string): Promise<any[]> {
   while (hasMore) {
     const data = await crelateGet(endpoint, apiKey, offset, PAGE_SIZE);
     
-    // Crelate may return: array directly, { Items: [] }, { Results: [] }, or { records: [] }
+    // Crelate v3 returns { Data: [...] } with capital D
     let items: any[];
     if (Array.isArray(data)) {
       items = data;
+    } else if (data?.Data && Array.isArray(data.Data)) {
+      items = data.Data;
     } else if (data?.Items && Array.isArray(data.Items)) {
       items = data.Items;
     } else if (data?.Results && Array.isArray(data.Results)) {
       items = data.Results;
-    } else if (data?.records && Array.isArray(data.records)) {
-      items = data.records;
     } else {
-      // Log actual response shape for debugging
       console.log(`Response shape for ${endpoint}:`, JSON.stringify(Object.keys(data || {})));
-      items = [];
+      // Try first array-valued key as fallback
+      const arrayKey = Object.keys(data || {}).find(k => Array.isArray(data[k]));
+      if (arrayKey) {
+        console.log(`Using fallback array key: ${arrayKey}`);
+        items = data[arrayKey];
+      } else {
+        items = [];
+      }
     }
 
     console.log(`${endpoint}: got ${items.length} items at offset ${offset}`);
@@ -95,6 +101,7 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
 
     if (contacts.length > 0) {
       console.log("Sample contact keys:", JSON.stringify(Object.keys(contacts[0])));
+      console.log("Sample contact (first 2000 chars):", JSON.stringify(contacts[0]).substring(0, 2000));
     }
 
     for (const c of contacts) {
