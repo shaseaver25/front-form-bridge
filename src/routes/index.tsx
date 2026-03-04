@@ -107,6 +107,7 @@ const NotionSettings = lazy(() => import("@/pages/NotionSettings"));
 const LMSSettings = lazy(() => import("@/pages/LMSSettings"));
 const GmailSettingsPage = lazy(() => import("@/pages/GmailSettingsPage"));
 const GoogleCalendarSettingsPage = lazy(() => import("@/pages/GoogleCalendarSettingsPage"));
+const CrelateSettings = lazy(() => import("@/pages/CrelateSettings"));
 
 // Sites
 const SitesHub = lazy(() => import("@/pages/SitesHub"));
@@ -306,6 +307,7 @@ export const integrationRoutes: RouteObject[] = [
   { path: "/lms-settings", element: <LMSSettings /> },
   { path: "/settings/gmail", element: <GmailSettingsPage /> },
   { path: "/settings/google-calendar", element: <GoogleCalendarSettingsPage /> },
+  { path: "/integrations/crelate", element: <CrelateSettings /> },
   { path: "/settings/stripe", element: <StripeSettings /> },
   { path: "/meetings", element: <MeetingTranscriptsPage /> },
   { path: "/meetings/:transcriptId", element: <MeetingTranscriptsPage /> },
