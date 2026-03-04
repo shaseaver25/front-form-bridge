@@ -227,6 +227,37 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
           }
         }
 
+        // Sync addresses from flattened Crelate fields (Addresses_Business, Addresses_Home, Addresses_Other)
+        const addressCategories = ["Business", "Home", "Other"];
+        for (const cat of addressCategories) {
+          const addr = getField(c, `Addresses_${cat}`, `addresses_${cat}`);
+          if (addr && typeof addr === "object") {
+            const addrCrelateId = getField(addr, "Id", "id") || `${crelateId}_addr_${cat}`;
+            const addrData = {
+              crelate_id: addrCrelateId,
+              contact_id: contactId,
+              line1: getField(addr, "Line1", "line1", "Street", "street") || null,
+              line2: getField(addr, "Line2", "line2") || null,
+              city: getField(addr, "City", "city") || null,
+              state: getField(addr, "State", "state") || null,
+              zip_code: getField(addr, "ZipCode", "zipCode", "PostalCode", "postalCode", "Zip") || null,
+              country: getField(addr, "Country", "country") || "US",
+              category: cat.toLowerCase(),
+              is_primary: getField(addr, "IsPrimary", "isPrimary") || false,
+              location: getField(addr, "Location", "location") || null,
+            };
+            // Only insert if there's meaningful data
+            if (addrData.city || addrData.state || addrData.line1) {
+              const { data: ex } = await supabase.from("crm_addresses").select("id").eq("crelate_id", addrCrelateId).maybeSingle();
+              if (ex) {
+                await supabase.from("crm_addresses").update(addrData).eq("crelate_id", addrCrelateId);
+              } else {
+                await supabase.from("crm_addresses").insert(addrData);
+              }
+            }
+          }
+        }
+
         // Sync tags
         const tags = getField(c, "Tags", "tags");
         if (tags && Array.isArray(tags)) {
@@ -505,59 +536,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
   return result;
 }
 
-async function syncAddresses(apiKey: string, supabase: any): Promise<SyncResult> {
-  const result: SyncResult = { entity: "addresses", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
-
-  // Addresses are nested in contacts - fetch contacts and extract
-  try {
-    const contacts = await fetchAllPages("contacts", apiKey);
-
-    for (const c of contacts) {
-      const addresses = getField(c, "Addresses", "addresses");
-      if (!addresses || !Array.isArray(addresses)) continue;
-
-      const crelateId = getField(c, "Id", "id");
-      const { data: localContact } = await supabase.from("crm_contacts").select("id").eq("crelate_id", crelateId).maybeSingle();
-      if (!localContact) continue;
-
-      for (const addr of addresses) {
-        result.total++;
-        try {
-          const addrCrelateId = getField(addr, "Id", "id") || `${crelateId}_addr_${result.total}`;
-          const data = {
-            crelate_id: addrCrelateId,
-            contact_id: localContact.id,
-            line1: getField(addr, "Line1", "line1", "Street", "street") || null,
-            line2: getField(addr, "Line2", "line2") || null,
-            city: getField(addr, "City", "city") || null,
-            state: getField(addr, "State", "state") || null,
-            zip_code: getField(addr, "ZipCode", "zipCode", "PostalCode", "postalCode") || null,
-            country: getField(addr, "Country", "country") || "US",
-            category: getField(addr, "Category", "category") || "business",
-            is_primary: getField(addr, "IsPrimary", "isPrimary") || false,
-            location: getField(addr, "Location", "location") || null,
-          };
-
-          const { data: existing } = await supabase.from("crm_addresses").select("id").eq("crelate_id", addrCrelateId).maybeSingle();
-          if (existing) {
-            await supabase.from("crm_addresses").update(data).eq("crelate_id", addrCrelateId);
-            result.updated++;
-          } else {
-            await supabase.from("crm_addresses").insert(data);
-            result.created++;
-          }
-        } catch (e) {
-          result.failed++;
-          result.errors.push(`Address: ${e.message}`);
-        }
-      }
-    }
-  } catch (e) {
-    result.errors.push(`Fetch addresses failed: ${e.message}`);
-  }
-
-  return result;
-}
+// Addresses are now synced as part of syncContacts (extracted from flattened Crelate fields)
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -649,7 +628,6 @@ Deno.serve(async (req) => {
       jobs: syncJobs,
       placements: syncPlacements,
       activities: syncActivities,
-      addresses: syncAddresses,
     };
 
     const entitiesToSync = entityType === "all" ? Object.keys(syncMap) : [entityType];
