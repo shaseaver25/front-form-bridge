@@ -1,54 +1,56 @@
 
 
-## CRM Data Audit: What Exists in Supabase but Is Not Shown
+## Crelate API Integration Plan
 
-Here is every `crm_` table, its row count, and whether the CRM UI currently surfaces it:
+### What We Know
+- Your database already has `crelate_id` columns on every `crm_` table, meaning data was previously migrated from Crelate
+- Crelate uses a simple API key auth: `https://app.crelate.com/api3/{endpoint}?api_key={key}`
+- No edge functions or Crelate secret exist yet
 
-```text
-Table                   Rows    Shown in UI?   Where / Notes
-─────────────────────── ─────── ────────────── ──────────────────────────────────
-crm_contacts            3,062   YES            Constituents page, detail view
-crm_companies           2,220   YES            Sites/Companies pages
-crm_career_history      6,010   PARTIAL        Only used to link contacts→companies
-crm_contact_emails      3,194   PARTIAL        Shown in ConstituentDetail only
-crm_contact_phones      2,049   PARTIAL        Shown in ConstituentDetail only
-crm_activities          2,970   YES            ActivityTimeline, SiteDetail
-crm_jobs                   27   YES            Jobs page, SiteDetail
-crm_contact_urls        4,920   NO ❌          Not displayed anywhere
-crm_contact_tags        2,540   NO ❌          Not displayed anywhere
-crm_tags                   15   NO ❌          Not displayed anywhere
-crm_addresses           2,135   NO ❌          Not displayed anywhere
-crm_contact_sources        42   NO ❌          Not displayed anywhere
-crm_pipeline_items        110   COUNT ONLY ❌  Only a count on dashboard stats
-crm_placements              6   COUNT ONLY ❌  Only a count on dashboard stats
-crm_migration_log           0   N/A            Empty, internal migration tracking
-```
+### What We'll Build
 
-### Data Not Being Shown
+**1. Store the Crelate API key securely**
+- Add a `CRELATE_API_KEY` secret to Supabase
+- You'll need to get your API key from Crelate: Settings → My Settings & Preferences → API Access → Generate Key
 
-1. **Contact URLs** (`crm_contact_urls` — 4,920 rows): LinkedIn profiles, portfolio sites, etc. Not shown on contact detail or anywhere.
+**2. Create a `crelate-sync` edge function**
+- A single edge function that pulls data from Crelate's API and upserts into your existing `crm_` tables using `crelate_id` as the match key
+- Endpoints to sync:
+  - `GET /api3/contacts` → `crm_contacts`, `crm_contact_emails`, `crm_contact_phones`, `crm_contact_urls`, `crm_contact_tags`
+  - `GET /api3/companies` → `crm_companies`
+  - `GET /api3/jobs` → `crm_jobs`
+  - `GET /api3/placements` → `crm_placements`
+  - `GET /api3/addresses` → `crm_addresses`
+  - `GET /api3/activities` → `crm_activities`
+- Handles pagination (Crelate returns pages of results)
+- Uses `crelate_id` to upsert (update existing, insert new)
+- Tracks sync results (counts of created/updated records)
 
-2. **Tags** (`crm_tags` + `crm_contact_tags` — 15 tags, 2,540 assignments): Contact tags exist but are never displayed or filterable. This is a significant missing feature for segmentation.
+**3. Create a `crm_sync_log` table**
+- Stores sync history: timestamp, entity type, records synced, errors, status
 
-3. **Addresses** (`crm_addresses` — 2,135 rows): Physical addresses for contacts and companies. Not shown on contact detail or company detail pages.
+**4. Add a Crelate integration settings page**
+- New page at `/integrations/crelate` with:
+  - Connection status (checks if API key is configured)
+  - Test connection button
+  - Sync controls (full sync, per-entity sync)
+  - Sync history log
+- Add to the integrations page navigation
 
-4. **Contact Sources** (`crm_contact_sources` — 42 rows): How contacts were sourced (referral, job board, etc.). Not displayed anywhere.
+**5. Wire up the frontend**
+- Hook to invoke the edge function with sync type parameter
+- Display sync progress and results via toasts
+- Show last sync time and record counts
 
-5. **Pipeline Items** (`crm_pipeline_items` — 110 rows): Candidate-to-job pipeline stages. Only a count appears on the dashboard. No dedicated pipeline view showing candidates per job, their status, ratings, or stage progression.
+### Technical Details
 
-6. **Placements** (`crm_placements` — 6 rows): Completed placements with salary, fee, and date data. Only a count on the dashboard. No detail view or list.
+- **Auth**: Crelate API key passed as query param `?api_key=...`
+- **Base URL**: `https://app.crelate.com/api3`
+- **Upsert strategy**: Use Supabase `.upsert()` with `onConflict: 'crelate_id'` where unique constraints exist, otherwise match-and-update logic
+- **Pagination**: Crelate API uses `skip` and `take` params; we'll page through all records
+- **Rate limiting**: Add delays between API calls to respect Crelate's limits
 
-7. **Career History detail** (`crm_career_history` — 6,010 rows): Only `is_current` entries are used to link contacts to companies. Past positions, education entries, descriptions, and date ranges are not displayed on contact profiles.
-
-### Summary of What to Build
-
-| Priority | Feature | Table(s) |
-|----------|---------|----------|
-| High | Pipeline board (candidates per job with stages) | `crm_pipeline_items`, `crm_jobs`, `crm_contacts` |
-| High | Tags display and filtering on contacts | `crm_tags`, `crm_contact_tags` |
-| High | Contact URLs on detail page (LinkedIn, etc.) | `crm_contact_urls` |
-| Medium | Addresses on contact and company detail pages | `crm_addresses` |
-| Medium | Placements list/detail view | `crm_placements` |
-| Medium | Full career history on contact profile | `crm_career_history` |
-| Low | Contact sources display/filter | `crm_contact_sources` |
+### Required from You
+1. Your Crelate API key (I'll prompt you to add it as a secret)
+2. Confirmation that API access is enabled in your Crelate org settings
 
