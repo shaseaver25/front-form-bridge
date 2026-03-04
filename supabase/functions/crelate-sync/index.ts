@@ -221,14 +221,14 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       const jobTitle = currentPos?.JobTitle || getField(c, "JobTitle", "jobTitle") || null;
 
       // Map Crelate RecordType to allowed contact_type values
-      const rawType = (c.RecordType || "").toLowerCase();
+      const rawType = String(c.RecordType || "").toLowerCase();
       const contactType = rawType.includes("candidate") ? "candidate"
         : rawType.includes("client") ? "client"
         : rawType.includes("contact") ? "contact"
-        : "other";
+        : "contact";
 
       // Map Crelate EntityStatus to allowed status values
-      const rawStatus = (c.EntityStatus || "").toLowerCase();
+      const rawStatus = String(c.EntityStatus || "").toLowerCase();
       const status = rawStatus.includes("inactive") ? "inactive"
         : rawStatus.includes("do_not_contact") || rawStatus.includes("donotcontact") ? "do_not_contact"
         : rawStatus.includes("archived") ? "archived"
@@ -396,13 +396,13 @@ async function syncCompanies(apiKey: string, supabase: any): Promise<SyncResult>
     const rows = companies
       .filter(c => c.Id)
       .map(c => {
-        const rawType = (c.CompanyType || "").toLowerCase();
+        const rawType = String(c.CompanyType || "").toLowerCase();
         const companyType = rawType.includes("client") ? "client"
           : rawType.includes("target") ? "target"
           : rawType.includes("both") ? "both"
           : "other";
 
-        const rawStatus = (c.EntityStatus || c.Status || "").toLowerCase();
+        const rawStatus = String(c.EntityStatus || c.Status || "").toLowerCase();
         const status = rawStatus.includes("inactive") ? "inactive"
           : rawStatus.includes("prospect") ? "prospect"
           : rawStatus.includes("client") ? "client"
@@ -454,7 +454,7 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
       .map(j => {
         const compCrelateId = j.CompanyId?.Id || j.CompanyId;
 
-        const rawStatus = (j.EntityStatus || j.Status || "").toLowerCase();
+        const rawStatus = String(j.EntityStatus || j.Status || "").toLowerCase();
         const status = rawStatus.includes("filled") ? "filled"
           : rawStatus.includes("closed") ? "closed"
           : rawStatus.includes("lost") ? "lost"
@@ -462,7 +462,7 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
           : rawStatus.includes("draft") ? "draft"
           : "open";
 
-        const rawJobType = (j.JobType || "").toLowerCase();
+        const rawJobType = String(j.JobType || "").toLowerCase();
         const jobType = rawJobType.includes("direct") ? "direct"
           : rawJobType.includes("full") ? "full_time"
           : rawJobType.includes("part") ? "part_time"
@@ -470,7 +470,7 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
           : rawJobType.includes("interim") ? "interim"
           : rawJobType ? "other" : null;
 
-        const rawPriority = (j.Priority || "").toLowerCase();
+        const rawPriority = String(j.Priority || "").toLowerCase();
         const priority = rawPriority.includes("urgent") ? "urgent"
           : rawPriority.includes("high") ? "high"
           : rawPriority.includes("medium") ? "medium"
