@@ -18,7 +18,6 @@ const ENTITY_TYPES = [
   { key: "jobs", label: "Jobs", icon: Briefcase, description: "Job postings" },
   { key: "placements", label: "Placements", icon: Award, description: "Placement records" },
   { key: "activities", label: "Activities", icon: MessageSquare, description: "Notes, calls, meetings" },
-  { key: "addresses", label: "Addresses", icon: MapPin, description: "Contact addresses" },
 ];
 
 export default function CrelateSettings() {

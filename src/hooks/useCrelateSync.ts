@@ -20,6 +20,27 @@ export function useCrelateSync() {
 
   const runSync = useMutation({
     mutationFn: async (entityType: string = "all") => {
+      if (entityType === "all") {
+        // Sync entities one at a time to avoid WORKER_LIMIT
+        const entities = ["contacts", "companies", "jobs", "placements", "activities"];
+        const allResults: any[] = [];
+        for (const entity of entities) {
+          const { data, error } = await supabase.functions.invoke("crelate-sync", {
+            body: { action: "sync", entity_type: entity },
+          });
+          if (error) throw error;
+          if (data?.results) allResults.push(...data.results);
+        }
+        const summary = allResults.reduce(
+          (acc, r) => ({
+            created: acc.created + (r.created || 0),
+            updated: acc.updated + (r.updated || 0),
+            failed: acc.failed + (r.failed || 0),
+          }),
+          { created: 0, updated: 0, failed: 0 }
+        );
+        return { success: true, results: allResults, summary };
+      }
       const { data, error } = await supabase.functions.invoke("crelate-sync", {
         body: { action: "sync", entity_type: entityType },
       });
