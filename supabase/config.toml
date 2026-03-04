@@ -1,1 +1,4 @@
 project_id = "rzhcefyigmkavddjjxvg"
+
+[functions.crelate-sync]
+verify_jwt = false

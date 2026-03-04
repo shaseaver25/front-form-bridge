@@ -288,6 +288,16 @@ export default function Integrations() {
       href: "/settings/google-calendar",
       color: "blue",
     },
+    {
+      id: "crelate",
+      name: "Crelate",
+      description: "Sync contacts, companies, jobs, and placements from Crelate ATS/CRM",
+      category: "Data",
+      icon: Database,
+      status: "available" as const,
+      href: "/integrations/crelate",
+      color: "purple",
+    },
   ];
 
   const connectedCount = integrations.filter(i => i.status === "connected").length;
