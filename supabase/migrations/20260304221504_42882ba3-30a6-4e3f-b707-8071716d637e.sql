@@ -1,0 +1,1 @@
+UPDATE crm_sync_log SET status = 'failed', error_message = 'Timed out (WORKER_LIMIT)', completed_at = now() WHERE status = 'running';
