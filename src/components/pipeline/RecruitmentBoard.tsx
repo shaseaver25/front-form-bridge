@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ const stageColors: Record<string, string> = {
 
 export function RecruitmentBoard() {
   const [selectedJobId, setSelectedJobId] = useState<string>("all");
+  const navigate = useNavigate();
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -160,9 +162,13 @@ export function RecruitmentBoard() {
                       <div className="flex items-start gap-2">
                         <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/constituents?contact=${item.contact?.id}`); }}
+                            className="text-sm font-medium truncate text-primary hover:underline text-left"
+                          >
                             {item.contact?.first_name} {item.contact?.last_name}
-                          </p>
+                          </button>
                           {item.contact?.job_title && (
                             <p className="text-xs text-muted-foreground truncate">{item.contact.job_title}</p>
                           )}
