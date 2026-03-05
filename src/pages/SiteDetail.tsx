@@ -273,7 +273,7 @@ export default function SiteDetail() {
                       <div
                         key={contact.id}
                         className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => navigate(`/constituents/${contact.id}`)}
+                        onClick={() => navigate(`/constituents`)}
                       >
                         <div>
                           <p className="font-medium">

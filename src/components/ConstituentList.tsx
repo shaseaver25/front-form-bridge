@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,7 @@ type Contact = {
   primary_phone?: string | null;
   primary_company_name?: string | null;
   primary_company_id?: string | null;
+  career_company_id?: string | null;
   source_id?: string | null;
   city?: string | null;
   state?: string | null;
@@ -47,6 +49,7 @@ type Contact = {
 };
 
 const ConstituentList = () => {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,10 +119,14 @@ const ConstituentList = () => {
     });
 
     const companyMap: Record<string, string> = {};
+    const companyIdMap: Record<string, string> = {};
     (careerRes.data || []).forEach((ch: any) => {
       const name = ch.company_name || ch.crm_companies?.name;
       if (name && !companyMap[ch.contact_id]) {
         companyMap[ch.contact_id] = name;
+      }
+      if (ch.company_id && !companyIdMap[ch.contact_id]) {
+        companyIdMap[ch.contact_id] = ch.company_id;
       }
     });
 
@@ -141,6 +148,7 @@ const ConstituentList = () => {
         primary_phone: phoneMap[c.id] || null,
         primary_company_name: companyMap[c.id] || null,
         primary_company_id: c.primary_company_id,
+        career_company_id: companyIdMap[c.id] || null,
         source_id: c.source_id,
         city: addressMap[c.id]?.city || null,
         state: addressMap[c.id]?.state || null,
@@ -351,7 +359,14 @@ const ConstituentList = () => {
                         {getDisplayName(contact)}
                       </h3>
                       {contact.primary_company_name && (
-                        <p className="text-sm font-medium text-foreground truncate flex items-center gap-1">
+                        <p
+                          className="text-sm font-medium text-foreground truncate flex items-center gap-1 hover:text-primary cursor-pointer transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const companyId = contact.career_company_id || contact.primary_company_id;
+                            if (companyId) navigate(`/sites/${companyId}`);
+                          }}
+                        >
                           <Building2 className="w-3 h-3 shrink-0" />
                           {contact.primary_company_name}
                         </p>
