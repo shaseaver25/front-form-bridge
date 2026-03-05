@@ -17,6 +17,8 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ContactNotes from "./ContactNotes";
+import ContactDocuments from "./ContactDocuments";
 
 interface ConstituentDetailProps {
   open: boolean;
@@ -77,6 +79,7 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
         .order("started_at", { ascending: false })
         .then(({ data }) => setCareerHistory(data || []));
 
+      // Get company from career_history (is_current) since primary_company_id is often null
       if (constituent.primary_company_id) {
         supabase
           .from("crm_companies")
@@ -85,7 +88,20 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
           .single()
           .then(({ data }) => setCompany(data));
       } else {
-        setCompany(null);
+        // Fallback: get company from current career history
+        supabase
+          .from("crm_career_history")
+          .select("company_name, company_id")
+          .eq("contact_id", constituent.id)
+          .eq("is_current", true)
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0 && data[0].company_name) {
+              setCompany({ name: data[0].company_name, domain: null });
+            } else {
+              setCompany(null);
+            }
+          });
       }
 
       if (constituent.source_id) {
@@ -325,6 +341,12 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
               </CardContent>
             </Card>
           )}
+
+          {/* Notes */}
+          <ContactNotes contactId={constituent.id} />
+
+          {/* Documents */}
+          <ContactDocuments contactId={constituent.id} />
 
           {/* Record Information */}
           <Card>
