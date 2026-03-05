@@ -306,13 +306,24 @@ const ConstituentList = () => {
                         {contact.primary_email || "No email"}
                       </p>
 
-                      {density === "comfortable" && (
-                        <div className="mt-2">
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                            {contact.contact_type}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+                          {contact.contact_type}
+                        </span>
+                        {(contactTagMap[contact.id] || []).slice(0, density === "compact" ? 2 : 3).map((tagId) => {
+                          const tag = allTags.find((t) => t.id === tagId);
+                          return tag ? (
+                            <span key={tagId} className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">
+                              {tag.name}
+                            </span>
+                          ) : null;
+                        })}
+                        {(contactTagMap[contact.id] || []).length > (density === "compact" ? 2 : 3) && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            +{(contactTagMap[contact.id] || []).length - (density === "compact" ? 2 : 3)}
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </ListCard>
