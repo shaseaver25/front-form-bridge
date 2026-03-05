@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, Calendar, User, Briefcase } from "lucide-react";
 
 export default function Placements() {
+  const navigate = useNavigate();
   const { data: placements, isLoading } = useQuery({
     queryKey: ["placements"],
     queryFn: async () => {
@@ -86,9 +88,13 @@ export default function Placements() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
-                          <p className="font-medium">
+                          <button
+                            type="button"
+                            onClick={() => p.contact?.id && navigate(`/constituents?contact=${p.contact.id}`)}
+                            className="font-medium text-primary hover:underline text-left"
+                          >
                             {p.contact ? `${p.contact.first_name || ""} ${p.contact.last_name || ""}`.trim() : "Unknown Contact"}
-                          </p>
+                          </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <Briefcase className="h-4 w-4 text-muted-foreground" />
