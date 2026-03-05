@@ -24,6 +24,7 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 // CRM Core
 const Constituents = lazy(() => import("@/pages/Constituents"));
 const Jobs = lazy(() => import("@/pages/Jobs"));
+const JobDetail = lazy(() => import("@/pages/JobDetail"));
 const Donations = lazy(() => import("@/pages/Donations"));
 const DonationCampaigns = lazy(() => import("@/pages/DonationCampaigns"));
 const MajorGifts = lazy(() => import("@/pages/MajorGifts"));
@@ -186,6 +187,14 @@ export const crmRoutes: RouteObject[] = [
     element: (
       <TierGate feature="grants">
         <Jobs />
+      </TierGate>
+    ),
+  },
+  {
+    path: "/jobs/:jobId",
+    element: (
+      <TierGate feature="grants">
+        <JobDetail />
       </TierGate>
     ),
   },

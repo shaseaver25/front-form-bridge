@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,6 @@ import { ListCard } from "@/components/ui/list-card";
 import {
   MapPin,
   Building2,
-  Calendar,
   DollarSign,
   Users,
 } from "lucide-react";
@@ -42,7 +41,51 @@ export function JobsList() {
     },
   });
 
-  const filtered = (jobs || []).filter((j) => {
+  // Fetch pipeline candidate counts per job
+  const { data: pipelineData } = useQuery({
+    queryKey: ["jobs-candidate-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_pipeline_items")
+        .select("job_id, contact_id");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch placement counts per job
+  const { data: placementData } = useQuery({
+    queryKey: ["jobs-placement-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_placements")
+        .select("job_id");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const enrichedJobs = useMemo(() => {
+    if (!jobs) return [];
+
+    const candidateCountMap: Record<string, number> = {};
+    (pipelineData || []).forEach((p: any) => {
+      candidateCountMap[p.job_id] = (candidateCountMap[p.job_id] || 0) + 1;
+    });
+
+    const placementCountMap: Record<string, number> = {};
+    (placementData || []).forEach((p: any) => {
+      placementCountMap[p.job_id] = (placementCountMap[p.job_id] || 0) + 1;
+    });
+
+    return jobs.map((job) => ({
+      ...job,
+      candidateCount: candidateCountMap[job.id] || 0,
+      placementCount: placementCountMap[job.id] || 0,
+    }));
+  }, [jobs, pipelineData, placementData]);
+
+  const filtered = enrichedJobs.filter((j) => {
     const term = searchTerm.toLowerCase();
     return (
       j.name.toLowerCase().includes(term) ||
@@ -77,7 +120,7 @@ export function JobsList() {
           <SearchFilterBar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            totalCount={jobs?.length ?? 0}
+            totalCount={enrichedJobs.length}
             filteredCount={filtered.length}
             placeholder="Search by title, company, or location..."
           />
@@ -105,7 +148,7 @@ export function JobsList() {
                 <ListCard
                   key={job.id}
                   className={`cursor-pointer ${density === "compact" ? "p-4" : ""}`}
-                  onClick={() => navigate(`/grants/${job.id}`)}
+                  onClick={() => navigate(`/jobs/${job.id}`)}
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex-1 min-w-0">
@@ -149,28 +192,33 @@ export function JobsList() {
                               <p className="font-medium">{salary || "—"}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Openings</p>
-                              <div className="flex items-center gap-1">
-                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {job.number_of_placements}/{job.number_of_openings}
-                                </span>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Pipeline</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {job.candidateCount} candidates
+                                </Badge>
                               </div>
                             </div>
                           </div>
 
-                          {job.job_type && (
-                            <div className="mt-2 flex items-center gap-2">
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {job.job_type && (
                               <Badge variant="outline" className="text-xs capitalize">
                                 {job.job_type.replace(/_/g, " ")}
                               </Badge>
-                              {job.remote_type && (
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {job.remote_type.replace(/_/g, " ")}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
+                            )}
+                            {job.remote_type && (
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {job.remote_type.replace(/_/g, " ")}
+                              </Badge>
+                            )}
+                            {job.placementCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {job.placementCount} placed
+                              </Badge>
+                            )}
+                          </div>
                         </>
                       )}
 
@@ -178,6 +226,12 @@ export function JobsList() {
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           {job.company?.name && <span>{job.company.name}</span>}
                           {job.location && <span>{job.location}</span>}
+                          {job.candidateCount > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Users className="h-3 w-3 mr-1" />
+                              {job.candidateCount}
+                            </Badge>
+                          )}
                           {salary && <span>{salary}</span>}
                         </div>
                       )}
