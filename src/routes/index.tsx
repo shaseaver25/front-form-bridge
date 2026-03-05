@@ -66,14 +66,6 @@ const EmailTemplateLibrary = lazy(() => import("@/pages/EmailTemplateLibrary"));
 const EmailSettingsPage = lazy(() => import("@/pages/EmailSettingsPage"));
 const EmailLogPage = lazy(() => import("@/pages/EmailLogPage"));
 const EmailTaskSuggestionsPage = lazy(() => import("@/pages/EmailTaskSuggestionsPage"));
-const MailchimpSettings = lazy(() => import("@/pages/MailchimpSettings"));
-const MailchimpCallback = lazy(() => import("@/pages/MailchimpCallback"));
-const MailchimpSetup = lazy(() => import("@/pages/MailchimpSetup"));
-const MailchimpImportWizard = lazy(() => import("@/pages/MailchimpImportWizard"));
-const MailchimpCampaignBuilder = lazy(() => import("@/pages/MailchimpCampaignBuilder"));
-const MailchimpCampaignList = lazy(() => import("@/pages/MailchimpCampaignList"));
-const MailchimpCampaignComposer = lazy(() => import("@/pages/MailchimpCampaignComposer"));
-const MailchimpCampaignReport = lazy(() => import("@/pages/MailchimpCampaignReport"));
 
 // Events & Programs
 const EventsPage = lazy(() => import("@/pages/EventsPage"));
@@ -284,16 +276,10 @@ export const emailRoutes: RouteObject[] = [
   { path: "/campaigns/new", element: <CampaignComposer /> },
   { path: "/campaigns/:id", element: <CampaignComposer /> },
   { path: "/email-marketing", element: <EmailMarketingDashboard /> },
-  { path: "/email-marketing/campaigns", element: <MailchimpCampaignList /> },
-  { path: "/email-marketing/campaigns/new", element: <MailchimpCampaignComposer /> },
-  { path: "/email-marketing/campaigns/:id/edit", element: <MailchimpCampaignComposer /> },
-  { path: "/email-marketing/campaigns/:id/report", element: <MailchimpCampaignReport /> },
   { path: "/email-marketing/templates", element: <EmailTemplateLibrary /> },
   { path: "/email-templates", element: <EmailTemplates /> },
   { path: "/settings/email-templates", element: <EmailTemplates /> },
   { path: "/email-campaigns", element: <EmailCampaigns /> },
-  { path: "/email-campaigns/new", element: <MailchimpCampaignBuilder /> },
-  { path: "/email-campaigns/:id", element: <MailchimpCampaignBuilder /> },
   { path: "/settings/email", element: <EmailSettingsPage /> },
   { path: "/communications/email-log", element: <EmailLogPage /> },
 ];
@@ -303,10 +289,6 @@ export const integrationRoutes: RouteObject[] = [
   { path: "/integrations", element: <Integrations /> },
   { path: "/settings/salesforce", element: <SalesforceSettings /> },
   { path: "/salesforce-import", element: <SalesforceImportWizard /> },
-  { path: "/mailchimp-settings", element: <MailchimpSettings /> },
-  { path: "/mailchimp/callback", element: <MailchimpCallback /> },
-  { path: "/mailchimp-settings/setup", element: <MailchimpSetup /> },
-  { path: "/mailchimp-import", element: <MailchimpImportWizard /> },
   { path: "/quickbooks/callback", element: <QuickBooksCallback /> },
   { path: "/quickbooks-settings", element: <QuickBooksSettings /> },
   { path: "/integrations/quickbooks", element: <QuickBooksIntegrationPage /> },
