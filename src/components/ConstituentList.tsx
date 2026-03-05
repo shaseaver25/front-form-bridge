@@ -95,7 +95,7 @@ const ConstituentList = () => {
         .in("contact_id", contactIds),
       supabase
         .from("crm_career_history")
-        .select("contact_id, company_name, company_id")
+        .select("contact_id, company_name, company_id, crm_companies(name)")
         .eq("is_current", true)
         .in("contact_id", contactIds),
     ]);
@@ -117,8 +117,9 @@ const ConstituentList = () => {
 
     const companyMap: Record<string, string> = {};
     (careerRes.data || []).forEach((ch: any) => {
-      if (ch.company_name && !companyMap[ch.contact_id]) {
-        companyMap[ch.contact_id] = ch.company_name;
+      const name = ch.company_name || ch.crm_companies?.name;
+      if (name && !companyMap[ch.contact_id]) {
+        companyMap[ch.contact_id] = name;
       }
     });
 

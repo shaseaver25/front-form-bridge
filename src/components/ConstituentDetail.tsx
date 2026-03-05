@@ -91,13 +91,18 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
         // Fallback: get company from current career history
         supabase
           .from("crm_career_history")
-          .select("company_name, company_id")
+          .select("company_name, company_id, crm_companies(name)")
           .eq("contact_id", constituent.id)
           .eq("is_current", true)
           .limit(1)
           .then(({ data }) => {
-            if (data && data.length > 0 && data[0].company_name) {
-              setCompany({ name: data[0].company_name, domain: null });
+            if (data && data.length > 0) {
+              const name = data[0].company_name || (data[0] as any).crm_companies?.name;
+              if (name) {
+                setCompany({ name, domain: null });
+              } else {
+                setCompany(null);
+              }
             } else {
               setCompany(null);
             }
