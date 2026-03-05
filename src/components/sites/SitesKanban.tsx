@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { Globe, GripVertical } from "lucide-react";
+import { Globe, GripVertical, Users } from "lucide-react";
 import { toast } from "sonner";
 
 const kanbanColumns = [
@@ -38,19 +38,21 @@ function KanbanCard({ site }: { site: any }) {
         <div className="flex items-start gap-2">
           <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-grab shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0 space-y-1">
-            <h4 className="font-medium text-sm truncate">{site.name}</h4>
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="font-medium text-sm truncate">{site.name}</h4>
+              {site.contactCount > 0 && (
+                <Badge variant="secondary" className="text-xs shrink-0">
+                  <Users className="h-3 w-3 mr-1" />
+                  {site.contactCount}
+                </Badge>
+              )}
+            </div>
             
-            {site.domain && (
+            {site.websiteUrl && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Globe className="h-3 w-3 shrink-0" />
-                <span className="truncate">{site.domain}</span>
+                <span className="truncate">{site.websiteUrl}</span>
               </p>
-            )}
-
-            {site.company_type && (
-              <Badge variant="outline" className="text-xs">
-                {site.company_type.replace(/_/g, " ")}
-              </Badge>
             )}
           </div>
         </div>

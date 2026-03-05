@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -65,6 +65,84 @@ export default function SitesHub() {
     }
   });
 
+  // Fetch contact counts per company
+  const { data: careerData } = useQuery({
+    queryKey: ["sites-contact-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_career_history")
+        .select("company_id, contact_id")
+        .eq("is_current", true)
+        .not("company_id", "is", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch company URLs
+  const { data: urlData } = useQuery({
+    queryKey: ["sites-urls"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_contact_urls")
+        .select("company_id, value, category")
+        .not("company_id", "is", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch company addresses
+  const { data: addressData } = useQuery({
+    queryKey: ["sites-addresses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_addresses")
+        .select("company_id, city, state")
+        .not("company_id", "is", null);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Merge enriched data into sites
+  const enrichedSites = useMemo(() => {
+    if (!sites) return [];
+
+    // Build contact count map
+    const contactCountMap: Record<string, Set<string>> = {};
+    (careerData || []).forEach((ch: any) => {
+      if (!contactCountMap[ch.company_id]) {
+        contactCountMap[ch.company_id] = new Set();
+      }
+      contactCountMap[ch.company_id].add(ch.contact_id);
+    });
+
+    // Build URL map (first URL per company)
+    const urlMap: Record<string, string> = {};
+    (urlData || []).forEach((u: any) => {
+      if (!urlMap[u.company_id]) {
+        urlMap[u.company_id] = u.value;
+      }
+    });
+
+    // Build address map (first address per company)
+    const addressMap: Record<string, string> = {};
+    (addressData || []).forEach((a: any) => {
+      if (!addressMap[a.company_id]) {
+        const parts = [a.city, a.state].filter(Boolean);
+        if (parts.length) addressMap[a.company_id] = parts.join(", ");
+      }
+    });
+
+    return sites.map((site) => ({
+      ...site,
+      contactCount: contactCountMap[site.id]?.size || 0,
+      websiteUrl: urlMap[site.id] || site.domain || null,
+      location: addressMap[site.id] || null,
+    }));
+  }, [sites, careerData, urlData, addressData]);
+
   const handleAddSite = (status?: string) => {
     setDefaultStatus(status);
     setShowAddDialog(true);
@@ -114,7 +192,6 @@ export default function SitesHub() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 w-[250px]" />
-
             </div>
 
             <Select value={filterType} onValueChange={setFilterType}>
@@ -163,24 +240,21 @@ export default function SitesHub() {
         {/* Views */}
         {view === "list" &&
         <SitesList
-          sites={sites || []}
+          sites={enrichedSites}
           isLoading={isLoading}
           onAddSite={() => handleAddSite()} />
-
         }
         {view === "pipeline" &&
         <SitesPipeline
-          sites={sites || []}
+          sites={enrichedSites}
           isLoading={isLoading}
           onAddSite={handleAddSite} />
-
         }
         {view === "kanban" &&
         <SitesKanban
-          sites={sites || []}
+          sites={enrichedSites}
           isLoading={isLoading}
           onAddSite={handleAddSite} />
-
         }
 
         <AddSiteDialog
@@ -188,12 +262,9 @@ export default function SitesHub() {
           onOpenChange={setShowAddDialog}
           defaultStatus={defaultStatus} />
 
-
         <BulkImportSites
           open={showImportDialog}
           onOpenChange={setShowImportDialog} />
-
       </div>
     </Layout>);
-
 }

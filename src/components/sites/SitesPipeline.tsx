@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Globe } from "lucide-react";
+import { Globe, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -60,19 +60,21 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
                   onClick={() => navigate(`/sites/${company.id}`)}
                 >
                   <CardContent className="p-3 space-y-2">
-                    <h4 className="font-medium text-sm line-clamp-1">{company.name}</h4>
+                    <div className="flex items-start justify-between gap-2">
+                      <h4 className="font-medium text-sm line-clamp-1">{company.name}</h4>
+                      {company.contactCount > 0 && (
+                        <Badge variant="secondary" className="text-xs shrink-0">
+                          <Users className="h-3 w-3 mr-1" />
+                          {company.contactCount}
+                        </Badge>
+                      )}
+                    </div>
                     
-                    {company.domain && (
+                    {company.websiteUrl && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Globe className="h-3 w-3 shrink-0" />
-                        {company.domain}
+                        <span className="truncate">{company.websiteUrl}</span>
                       </p>
-                    )}
-                    
-                    {company.company_type && (
-                      <Badge variant="secondary" className="text-xs">
-                        {company.company_type.replace(/_/g, " ")}
-                      </Badge>
                     )}
                   </CardContent>
                 </Card>
