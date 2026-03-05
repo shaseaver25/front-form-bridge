@@ -16,8 +16,18 @@ export function useSuperAdmin() {
           return;
         }
 
-        // Simple email-based super admin check since user_profiles table doesn't exist
-        setIsSuperAdmin(user.email === "shannon@tailoredu.org");
+        // Server-side admin check using the has_role database function
+        const { data, error } = await supabase.rpc("has_role", {
+          _user_id: user.id,
+          _role: "admin",
+        });
+
+        if (error) {
+          console.error("Error checking admin role:", error);
+          setIsSuperAdmin(false);
+        } else {
+          setIsSuperAdmin(!!data);
+        }
       } catch (error) {
         console.error("Error in useSuperAdmin:", error);
         setIsSuperAdmin(false);
