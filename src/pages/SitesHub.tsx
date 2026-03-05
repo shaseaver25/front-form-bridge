@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, LayoutGrid, List, Kanban, Upload, ChevronDown } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Upload, ChevronDown } from "lucide-react";
 import Layout from "@/components/Layout";
 import { SitesList } from "@/components/sites/SitesList";
-import { SitesPipeline } from "@/components/sites/SitesPipeline";
 import { SitesKanban } from "@/components/sites/SitesKanban";
 import { AddSiteDialog } from "@/components/sites/AddSiteDialog";
 import { SiteQuickStats } from "@/components/sites/SiteQuickStats";
@@ -33,7 +32,7 @@ const statusOptions = [
 
 
 export default function SitesHub() {
-  const [view, setView] = useState<string>("pipeline");
+  const [view, setView] = useState<string>("kanban");
   const [search, setSearch] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -222,10 +221,6 @@ export default function SitesHub() {
           </div>
 
           <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v)}>
-            <ToggleGroupItem value="pipeline" aria-label="Pipeline view">
-              <Kanban className="h-4 w-4 mr-1" />
-              Pipeline
-            </ToggleGroupItem>
             <ToggleGroupItem value="kanban" aria-label="Kanban view">
               <LayoutGrid className="h-4 w-4 mr-1" />
               Kanban
@@ -243,12 +238,6 @@ export default function SitesHub() {
           sites={enrichedSites}
           isLoading={isLoading}
           onAddSite={() => handleAddSite()} />
-        }
-        {view === "pipeline" &&
-        <SitesPipeline
-          sites={enrichedSites}
-          isLoading={isLoading}
-          onAddSite={handleAddSite} />
         }
         {view === "kanban" &&
         <SitesKanban
