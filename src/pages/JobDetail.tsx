@@ -246,7 +246,7 @@ export default function JobDetail() {
                   <Card
                     key={item.id}
                     className="cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => navigate(`/constituents?id=${item.contact_id}`)}
+                    onClick={() => navigate(`/constituents`)}
                   >
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
