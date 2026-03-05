@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Phone, MapPin, Building2, Clock } from "lucide-react";
 import ConstituentForm from "./ConstituentForm";
 import ConstituentDetail from "./ConstituentDetail";
 import {
@@ -23,6 +23,7 @@ import { SkeletonCard } from "@/components/ui/skeleton-card";
 import { SearchFilterBar } from "@/components/ui/search-filter-bar";
 import { DensityToggle } from "@/components/ui/density-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
+import { formatDistanceToNow } from "date-fns";
 
 type Contact = {
   id: string;
@@ -35,9 +36,14 @@ type Contact = {
   created_at: string | null;
   updated_at: string | null;
   primary_email?: string | null;
+  primary_phone?: string | null;
   primary_company_name?: string | null;
   primary_company_id?: string | null;
   source_id?: string | null;
+  city?: string | null;
+  state?: string | null;
+  last_activity_date?: string | null;
+  average_rating?: number | null;
 };
 
 const ConstituentList = () => {
@@ -57,13 +63,14 @@ const ConstituentList = () => {
   const fetchContacts = async () => {
     setLoading(true);
 
+    // Fetch contacts with emails
     const { data: contactsData, error } = await supabase
       .from("crm_contacts")
       .select(`
         id, first_name, last_name, job_title, status, contact_type, 
         description, created_at, updated_at, primary_company_id, source_id,
-        crm_contact_emails(value, is_primary),
-        crm_companies!crm_contacts_primary_company_id_fkey(name)
+        last_activity_date, average_rating,
+        crm_contact_emails(value, is_primary)
       `)
       .order("created_at", { ascending: false });
 
@@ -74,11 +81,51 @@ const ConstituentList = () => {
       return;
     }
 
+    const contactIds = (contactsData || []).map((c: any) => c.id);
+
+    // Fetch phones, addresses, and career history (for company) in parallel
+    const [phonesRes, addressesRes, careerRes] = await Promise.all([
+      supabase
+        .from("crm_contact_phones")
+        .select("contact_id, value, is_primary")
+        .in("contact_id", contactIds),
+      supabase
+        .from("crm_addresses")
+        .select("contact_id, city, state, is_primary")
+        .in("contact_id", contactIds),
+      supabase
+        .from("crm_career_history")
+        .select("contact_id, company_name, company_id")
+        .eq("is_current", true)
+        .in("contact_id", contactIds),
+    ]);
+
+    // Build lookup maps
+    const phoneMap: Record<string, string> = {};
+    (phonesRes.data || []).forEach((p: any) => {
+      if (!phoneMap[p.contact_id] || p.is_primary) {
+        phoneMap[p.contact_id] = p.value;
+      }
+    });
+
+    const addressMap: Record<string, { city: string | null; state: string | null }> = {};
+    (addressesRes.data || []).forEach((a: any) => {
+      if (!addressMap[a.contact_id] || a.is_primary) {
+        addressMap[a.contact_id] = { city: a.city, state: a.state };
+      }
+    });
+
+    const companyMap: Record<string, string> = {};
+    (careerRes.data || []).forEach((ch: any) => {
+      if (ch.company_name && !companyMap[ch.contact_id]) {
+        companyMap[ch.contact_id] = ch.company_name;
+      }
+    });
+
     const mapped: Contact[] = (contactsData || []).map((c: any) => {
       const primaryEmail = c.crm_contact_emails?.find((e: any) => e.is_primary)?.value 
         || c.crm_contact_emails?.[0]?.value 
         || null;
-      const companyName = c.crm_companies?.name || null;
       return {
         id: c.id,
         first_name: c.first_name,
@@ -90,9 +137,14 @@ const ConstituentList = () => {
         created_at: c.created_at,
         updated_at: c.updated_at,
         primary_email: primaryEmail,
-        primary_company_name: companyName,
+        primary_phone: phoneMap[c.id] || null,
+        primary_company_name: companyMap[c.id] || null,
         primary_company_id: c.primary_company_id,
         source_id: c.source_id,
+        city: addressMap[c.id]?.city || null,
+        state: addressMap[c.id]?.state || null,
+        last_activity_date: c.last_activity_date,
+        average_rating: c.average_rating,
       };
     });
 
@@ -122,11 +174,16 @@ const ConstituentList = () => {
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown";
   };
 
+  const getLocation = (c: Contact) => {
+    return [c.city, c.state].filter(Boolean).join(", ");
+  };
+
   const filteredContacts = contacts.filter((c) => {
     const name = getDisplayName(c).toLowerCase();
     const email = (c.primary_email || "").toLowerCase();
+    const company = (c.primary_company_name || "").toLowerCase();
     const search = searchTerm.toLowerCase();
-    const matchesSearch = name.includes(search) || email.includes(search);
+    const matchesSearch = name.includes(search) || email.includes(search) || company.includes(search);
     const matchesTags = selectedTagIds.length === 0 || selectedTagIds.every((tagId) => (contactTagMap[c.id] || []).includes(tagId));
     return matchesSearch && matchesTags;
   });
@@ -221,7 +278,7 @@ const ConstituentList = () => {
               onClearAll={handleClearFilters}
               totalCount={contacts.length}
               filteredCount={filteredContacts.length}
-              placeholder="Search by name or email..."
+              placeholder="Search by name, email, or company..."
             />
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
@@ -298,18 +355,37 @@ const ConstituentList = () => {
                         </p>
                       )}
                       {contact.primary_company_name && (
-                        <p className="text-sm text-muted-foreground truncate">
+                        <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                          <Building2 className="w-3 h-3 shrink-0" />
                           {contact.primary_company_name}
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground truncate">
                         {contact.primary_email || "No email"}
                       </p>
+                      {contact.primary_phone && (
+                        <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                          <Phone className="w-3 h-3 shrink-0" />
+                          {contact.primary_phone}
+                        </p>
+                      )}
+                      {getLocation(contact) && (
+                        <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          {getLocation(contact)}
+                        </p>
+                      )}
 
                       <div className="mt-2 flex flex-wrap gap-1">
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                           {contact.status}
                         </span>
+                        {contact.last_activity_date && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatDistanceToNow(new Date(contact.last_activity_date), { addSuffix: true })}
+                          </span>
+                        )}
                         {(contactTagMap[contact.id] || []).slice(0, density === "compact" ? 2 : 3).map((tagId) => {
                           const tag = allTags.find((t) => t.id === tagId);
                           return tag ? (

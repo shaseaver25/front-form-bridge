@@ -329,6 +329,47 @@ export type Database = {
           },
         ]
       }
+      crm_contact_documents: {
+        Row: {
+          contact_id: string
+          created_at: string | null
+          file_name: string
+          file_size_bytes: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contact_documents_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_contact_emails: {
         Row: {
           category: string
@@ -363,6 +404,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_contact_emails_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contact_notes: {
+        Row: {
+          contact_id: string
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_pinned: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id: string
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_pinned?: boolean
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contact_notes_contact_id_fkey"
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
