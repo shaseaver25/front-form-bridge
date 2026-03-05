@@ -308,7 +308,7 @@ const ConstituentList = () => {
 
                       <div className="mt-2 flex flex-wrap gap-1">
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
-                          {contact.contact_type}
+                          {contact.status}
                         </span>
                         {(contactTagMap[contact.id] || []).slice(0, density === "compact" ? 2 : 3).map((tagId) => {
                           const tag = allTags.find((t) => t.id === tagId);
