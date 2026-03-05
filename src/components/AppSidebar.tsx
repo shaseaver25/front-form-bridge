@@ -22,7 +22,6 @@ import {
   FileText,
   TrendingUp,
   Calendar,
-  Kanban,
   Mail,
   Settings,
   HelpCircle,
@@ -60,13 +59,13 @@ const mainNavItems: NavItem[] = [
   { title: "Companies", url: "/sites", icon: Building2 },
   { title: "Jobs", url: "/grants", icon: FileText, tierRequired: "professional" },
   { title: "Pipeline", url: "/pipeline", icon: TrendingUp },
-  { title: "Recruiting", url: "/recruitment-pipeline", icon: Kanban },
+  
   { title: "Placements", url: "/placements", icon: ClipboardCheck },
 ];
 
 const workItems: NavItem[] = [
   { title: "Calendar", url: "/calendar", icon: Calendar },
-  { title: "Projects", url: "/projects", icon: Kanban, pro: "boards" },
+  { title: "Projects", url: "/projects", icon: FolderOpen, pro: "boards" },
   { title: "Tasks", url: "/tasks", icon: ClipboardCheck },
   {
     title: "Voice Notes",

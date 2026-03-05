@@ -114,9 +114,8 @@ const CrelateSettings = lazy(() => import("@/pages/CrelateSettings"));
 const SitesHub = lazy(() => import("@/pages/SitesHub"));
 const SiteDetail = lazy(() => import("@/pages/SiteDetail"));
 
-// Placements & Pipeline
+// Placements
 const Placements = lazy(() => import("@/pages/Placements"));
-const RecruitmentPipeline = lazy(() => import("@/pages/RecruitmentPipeline"));
 
 // Talent Pool
 const TalentPool = lazy(() => import("@/pages/TalentPool"));
@@ -346,7 +345,6 @@ export const sitesRoutes: RouteObject[] = [
   { path: "/sites/:siteId", element: <SiteDetail /> },
   { path: "/sites/:siteId/edit", element: <SiteEdit /> },
   { path: "/placements", element: <Placements /> },
-  { path: "/recruitment-pipeline", element: <RecruitmentPipeline /> },
 ];
 
 // Talent Pool routes
