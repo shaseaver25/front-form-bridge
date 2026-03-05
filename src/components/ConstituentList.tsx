@@ -349,15 +349,15 @@ const ConstituentList = () => {
                       >
                         {getDisplayName(contact)}
                       </h3>
-                      {contact.job_title && (
-                        <p className="text-sm font-medium text-muted-foreground truncate">
-                          {contact.job_title}
-                        </p>
-                      )}
                       {contact.primary_company_name && (
-                        <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                        <p className="text-sm font-medium text-foreground truncate flex items-center gap-1">
                           <Building2 className="w-3 h-3 shrink-0" />
                           {contact.primary_company_name}
+                        </p>
+                      )}
+                      {contact.job_title && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {contact.job_title}
                         </p>
                       )}
                       <p className="text-sm text-muted-foreground truncate">
