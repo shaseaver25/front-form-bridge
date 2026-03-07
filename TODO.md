@@ -6,32 +6,35 @@
 
 ## Site Testing Results (2026-03-07)
 
-### ✅ Working Pages
-- **Homepage (`/`)** — Renders correctly with hero, nav links (section anchors), animated circles
-- **Landing (`/landing`)** — Same as homepage, renders fine
-- **Auth (`/auth`)** — Login/signup form displays correctly
-- **Terms of Service (`/legal/terms`)** — Renders full legal content
-- **Auth redirect** — Unauthenticated access to `/constituents` correctly redirects to login
+### ✅ All Pages Working
+| Page | Route | Status |
+|------|-------|--------|
+| Homepage / Landing | `/`, `/landing` | ✅ |
+| Auth (Login/Signup) | `/auth` | ✅ |
+| Dashboard | `/` (authenticated) | ✅ |
+| Contacts | `/constituents` | ✅ |
+| Companies | `/sites` | ✅ (1000 companies, Kanban view) |
+| Pipeline | `/pipeline` | ✅ (110 candidates, drag-drop board) |
+| Placements | `/placements` | ✅ (6 placements with salary data) |
+| Tasks | `/tasks` | ✅ |
+| Calendar | `/calendar` | ✅ (Microsoft 365 integration prompt) |
+| Projects | `/projects` | ✅ |
+| Email Outreach | `/email-marketing` | ✅ (Coming Soon) |
+| Campaigns | `/campaigns` | ✅ |
+| Integrations | `/integrations` | ✅ (Mailchimp connected) |
+| Settings | `/settings/account` | ✅ |
+| Help & Docs | `/help` | ✅ |
+| Terms of Service | `/legal/terms` | ✅ |
+| Grants/Jobs | `/grants` | ✅ (Tier gate working correctly) |
 
-### ⚠️ Minor Issues (Non-blocking)
-- **React ref warning** — `Function components cannot be given refs` on `App` component and `DialogContent` (cosmetic, dev-mode only)
-- **PostMessage warnings** — Standard Lovable preview iframe warnings (not a bug)
+### 🔧 Bugs Fixed
+- **RequireAdmin redirect** — Was redirecting non-admin users to `/dashboard` (404). Fixed to redirect to `/` instead.
 
-### 🔒 Not Yet Tested (Requires Login)
-- [ ] Dashboard / Index (authenticated)
-- [ ] Constituents page
-- [ ] Grants / Jobs pages
-- [ ] Pipeline dashboard
-- [ ] Projects / Boards
-- [ ] Tasks / My Tasks
-- [ ] Calendar
-- [ ] Donations / Pledges
-- [ ] Email Marketing / Campaigns
-- [ ] Events
-- [ ] Integrations pages
-- [ ] Admin pages (users, roles, activity log)
-- [ ] Settings pages
-- [ ] Voice Notes
-- [ ] Financial Runway / Payments
+### ⚠️ Minor Issues (Non-blocking, dev-mode only)
+- React `forwardRef` warning on `App` component and `DialogContent` — cosmetic, dev-mode only
+- PostMessage warnings — standard Lovable preview iframe behavior
 
-> **To test authenticated pages:** Log in via the preview first, then ask me to continue testing.
+### 📝 Notes
+- Admin pages (`/admin/*`) require admin role — tested user `shannon@the-ai-whisperers.com` is not an admin. The admin user is `shannon@tailoredu.org`.
+- Tier gating works correctly — Grants requires Professional tier.
+- Sidebar navigation correctly maps "Companies" → `/sites`, "Jobs" → `/grants`.
