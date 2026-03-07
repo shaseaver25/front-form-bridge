@@ -13,13 +13,10 @@ import {
 import { MeetingsThisWeekWidget } from "@/components/calendar";
 import { TailoredUCustomersWidget } from "@/components/dashboard/TailoredUCustomersWidget";
 import { UpcomingEventsWidget } from "@/components/dashboard/UpcomingEventsWidget";
-import { Settings2, X } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [setupComplete, setSetupComplete] = useState<boolean | null>(true);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
