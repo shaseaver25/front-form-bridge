@@ -1048,6 +1048,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          department: string | null
+          email: string
+          expires_at: string
+          first_name: string
+          id: string
+          invited_by: string | null
+          job_title: string | null
+          last_name: string
+          organization_name: string | null
+          phone: string | null
+          role: string
+          status: string
+          token: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          department?: string | null
+          email: string
+          expires_at: string
+          first_name: string
+          id?: string
+          invited_by?: string | null
+          job_title?: string | null
+          last_name: string
+          organization_name?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          token: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          expires_at?: string
+          first_name?: string
+          id?: string
+          invited_by?: string | null
+          job_title?: string | null
+          last_name?: string
+          organization_name?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          token?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
