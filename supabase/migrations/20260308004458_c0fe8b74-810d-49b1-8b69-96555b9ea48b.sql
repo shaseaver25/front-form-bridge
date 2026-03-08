@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anyone can verify invitation tokens" ON public.user_invitations;
