@@ -791,38 +791,52 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
       return raw || "note";
     };
 
+    // Helper to parse Crelate JSON reference fields (they come as JSON strings)
+    const parseRef = (val: any): string | null => {
+      if (!val) return null;
+      if (typeof val === "object" && val.Id) return val.Id;
+      if (typeof val === "string") {
+        // Could be a JSON string like {"EntityName":"Contacts","Id":"..."}
+        if (val.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(val);
+            if (parsed?.Id) return parsed.Id;
+          } catch {}
+        }
+        // Or just a plain ID string
+        return val;
+      }
+      return null;
+    };
+
     const rows = activities
       .filter(a => a.Id)
       .map(a => {
-        // Try many possible field names for contact reference
-        const contId = a.ContactId?.Id || a.ContactId 
-          || a.RegardingContactId?.Id || a.RegardingContactId
-          || a.RegardingId?.Id || a.RegardingId
-          || a.ParentId?.Id || a.ParentId
-          || a.EntityId?.Id || a.EntityId
-          || a.RelatedContactId?.Id || a.RelatedContactId
-          || a.WhoId?.Id || a.WhoId
-          || a.PersonId?.Id || a.PersonId
-          || getField(a, "ContactId", "RegardingContactId", "RegardingId", "ParentId", "EntityId", "RelatedContactId", "WhoId", "PersonId");
-        // Handle case where contId is an object with Id
-        const resolvedContId = typeof contId === "object" && contId?.Id ? contId.Id : contId;
-        const compId = a.CompanyId?.Id || a.CompanyId;
-        const jId = a.JobId?.Id || a.JobId;
+        // ParentId is the main contact/entity reference in Crelate activities
+        // It's a JSON string like {"EntityName":"Contacts","Id":"...","Title":"..."}
+        const parentRef = parseRef(a.ParentId);
+        const regardingRef = parseRef(a.RegardingId);
+        const contactRef = parseRef(a.ContactId);
+        // Use first matching contact
+        const resolvedContId = contactRef || parentRef || regardingRef;
+        
+        const compId = parseRef(a.CompanyId);
+        const jId = parseRef(a.JobId);
         return {
           crelate_id: a.Id,
           activity_type: getActivityType(a),
-          subject: a.Subject || a.Title || a.Name || null,
-          body: getBody(a),
+          subject: a.Subject || null,
+          body: a.Html || a.Body || a.Description || a.Content || a.Note || a.Text || null,
           contact_id: (resolvedContId && contactMap[resolvedContId]) || null,
           company_id: (compId && compMap[compId]) || null,
           job_id: (jId && jobMap[jId]) || null,
           direction: a.Direction || null,
           completed: a.Completed !== false,
-          scheduled_at: a.ScheduledAt || a.DueDate || a.StartDate || null,
-          completed_at: a.CompletedAt || null,
-          duration_minutes: a.DurationMinutes || null,
+          scheduled_at: a.When || a.ScheduledAt || a.DueDate || null,
+          completed_at: a.CompletedOn || a.CompletedAt || null,
+          duration_minutes: a.Duration || a.DurationMinutes || null,
           location: a.Location || null,
-          is_pinned: a.IsPinned || false,
+          is_pinned: a.Pinned || false,
         };
       });
 
