@@ -785,7 +785,18 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     const rows = activities
       .filter(a => a.Id)
       .map(a => {
-        const contId = a.ContactId?.Id || a.ContactId;
+        // Try many possible field names for contact reference
+        const contId = a.ContactId?.Id || a.ContactId 
+          || a.RegardingContactId?.Id || a.RegardingContactId
+          || a.RegardingId?.Id || a.RegardingId
+          || a.ParentId?.Id || a.ParentId
+          || a.EntityId?.Id || a.EntityId
+          || a.RelatedContactId?.Id || a.RelatedContactId
+          || a.WhoId?.Id || a.WhoId
+          || a.PersonId?.Id || a.PersonId
+          || getField(a, "ContactId", "RegardingContactId", "RegardingId", "ParentId", "EntityId", "RelatedContactId", "WhoId", "PersonId");
+        // Handle case where contId is an object with Id
+        const resolvedContId = typeof contId === "object" && contId?.Id ? contId.Id : contId;
         const compId = a.CompanyId?.Id || a.CompanyId;
         const jId = a.JobId?.Id || a.JobId;
         return {
@@ -793,7 +804,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
           activity_type: getActivityType(a),
           subject: a.Subject || a.Title || a.Name || null,
           body: getBody(a),
-          contact_id: (contId && contactMap[contId]) || null,
+          contact_id: (resolvedContId && contactMap[resolvedContId]) || null,
           company_id: (compId && compMap[compId]) || null,
           job_id: (jId && jobMap[jId]) || null,
           direction: a.Direction || null,
