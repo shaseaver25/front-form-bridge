@@ -832,11 +832,11 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
           job_id: (jId && jobMap[jId]) || null,
           direction: a.Direction || null,
           completed: a.Completed !== false,
-          scheduled_at: a.ScheduledAt || a.DueDate || a.StartDate || null,
-          completed_at: a.CompletedAt || null,
-          duration_minutes: a.DurationMinutes || null,
+          scheduled_at: a.When || a.ScheduledAt || a.DueDate || null,
+          completed_at: a.CompletedOn || a.CompletedAt || null,
+          duration_minutes: a.Duration || a.DurationMinutes || null,
           location: a.Location || null,
-          is_pinned: a.IsPinned || false,
+          is_pinned: a.Pinned || false,
         };
       });
 
