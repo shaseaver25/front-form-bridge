@@ -582,8 +582,12 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
         const url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
         const res = await fetch(url, { headers: { "x-api-key": apiKey } });
         if (!res.ok) {
-          // 404 means no attachments, skip silently
           if (res.status === 404) continue;
+          if (res.status === 429) {
+            console.warn(`Rate limited on attachments list, waiting 5s...`);
+            await new Promise(r => setTimeout(r, 5000));
+            continue;
+          }
           console.warn(`Attachments list failed for contact ${contact.crelate_id}: ${res.status}`);
           continue;
         }
@@ -618,7 +622,12 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
             const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
             if (!dlRes.ok) {
-              console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
+              if (dlRes.status === 429) {
+                console.warn(`Rate limited on attachment download, waiting 5s...`);
+                await new Promise(r => setTimeout(r, 5000));
+              } else {
+                console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
+              }
               result.failed++;
               continue;
             }
@@ -663,15 +672,15 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             result.failed++;
           }
 
-          // Rate limit
-          await new Promise(r => setTimeout(r, 100));
+          // Rate limit between attachments
+          await new Promise(r => setTimeout(r, 500));
         }
       } catch (contactErr) {
         console.warn(`Error fetching attachments for contact ${contact.crelate_id}: ${contactErr.message}`);
       }
 
-      // Rate limit between contacts
-      await new Promise(r => setTimeout(r, 150));
+      // Rate limit between contacts - 1 second
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     result.total = totalAttachments;
@@ -715,17 +724,29 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     }
     result.total = activities.length;
 
-    // Log first activity's keys for debugging field names
+    // Log first activity's ALL keys and values for field discovery
     if (activities.length > 0) {
       console.log(`Sample activity keys: ${Object.keys(activities[0]).join(", ")}`);
-      // Log first activity with content for field discovery
-      const withContent = activities.find(a => {
+      // Log all ID-like and reference fields from first 3 activities
+      for (let i = 0; i < Math.min(3, activities.length); i++) {
+        const a = activities[i];
+        const refFields: Record<string, any> = {};
         for (const k of Object.keys(a)) {
           const v = a[k];
-          if (typeof v === "string" && v.length > 20 && !k.includes("Id") && !k.includes("Date")) return true;
+          if (v === null || v === undefined) continue;
+          // Log ID fields, object fields, and string fields
+          if (k.toLowerCase().includes("id") || k.toLowerCase().includes("contact") 
+              || k.toLowerCase().includes("regard") || k.toLowerCase().includes("parent")
+              || k.toLowerCase().includes("entity") || k.toLowerCase().includes("related")
+              || k.toLowerCase().includes("who") || k.toLowerCase().includes("person")
+              || typeof v === "object") {
+            refFields[k] = typeof v === "object" ? JSON.stringify(v).substring(0, 200) : String(v).substring(0, 100);
+          }
         }
-        return false;
-      });
+        console.log(`Activity[${i}] ref fields: ${JSON.stringify(refFields)}`);
+      }
+      // Also log all keys with non-null string values > 10 chars from first activity with content
+      const withContent = activities.find(a => Object.values(a).some(v => typeof v === "string" && v.length > 20));
       if (withContent) {
         const contentFields: Record<string, string> = {};
         for (const k of Object.keys(withContent)) {
@@ -773,7 +794,18 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     const rows = activities
       .filter(a => a.Id)
       .map(a => {
-        const contId = a.ContactId?.Id || a.ContactId;
+        // Try many possible field names for contact reference
+        const contId = a.ContactId?.Id || a.ContactId 
+          || a.RegardingContactId?.Id || a.RegardingContactId
+          || a.RegardingId?.Id || a.RegardingId
+          || a.ParentId?.Id || a.ParentId
+          || a.EntityId?.Id || a.EntityId
+          || a.RelatedContactId?.Id || a.RelatedContactId
+          || a.WhoId?.Id || a.WhoId
+          || a.PersonId?.Id || a.PersonId
+          || getField(a, "ContactId", "RegardingContactId", "RegardingId", "ParentId", "EntityId", "RelatedContactId", "WhoId", "PersonId");
+        // Handle case where contId is an object with Id
+        const resolvedContId = typeof contId === "object" && contId?.Id ? contId.Id : contId;
         const compId = a.CompanyId?.Id || a.CompanyId;
         const jId = a.JobId?.Id || a.JobId;
         return {
@@ -781,7 +813,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
           activity_type: getActivityType(a),
           subject: a.Subject || a.Title || a.Name || null,
           body: getBody(a),
-          contact_id: (contId && contactMap[contId]) || null,
+          contact_id: (resolvedContId && contactMap[resolvedContId]) || null,
           company_id: (compId && compMap[compId]) || null,
           job_id: (jId && jobMap[jId]) || null,
           direction: a.Direction || null,
