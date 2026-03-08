@@ -34,6 +34,7 @@ type GrantWithRelations = any;
 
 const GrantList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isReady } = useAuthReady();
   const [grants, setGrants] = useState<GrantWithRelations[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
