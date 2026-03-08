@@ -50,6 +50,7 @@ type Contact = {
 
 const ConstituentList = () => {
   const navigate = useNavigate();
+  const { isReady } = useAuthReady();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
