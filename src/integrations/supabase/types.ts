@@ -333,6 +333,7 @@ export type Database = {
         Row: {
           contact_id: string
           created_at: string | null
+          crelate_id: string | null
           file_name: string
           file_size_bytes: number | null
           file_type: string | null
@@ -343,6 +344,7 @@ export type Database = {
         Insert: {
           contact_id: string
           created_at?: string | null
+          crelate_id?: string | null
           file_name: string
           file_size_bytes?: number | null
           file_type?: string | null
@@ -353,6 +355,7 @@ export type Database = {
         Update: {
           contact_id?: string
           created_at?: string | null
+          crelate_id?: string | null
           file_name?: string
           file_size_bytes?: number | null
           file_type?: string | null
