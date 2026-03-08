@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPER_ADMIN_DOMAIN = "tailoredu.org";
+
 export function useSuperAdmin() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -11,6 +13,14 @@ export function useSuperAdmin() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
+          setIsSuperAdmin(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Super admin = has admin role AND is from the TailoredU domain
+        const emailDomain = user.email?.split("@")[1]?.toLowerCase();
+        if (emailDomain !== SUPER_ADMIN_DOMAIN) {
           setIsSuperAdmin(false);
           setIsLoading(false);
           return;
