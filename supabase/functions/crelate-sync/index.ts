@@ -582,8 +582,12 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
         const url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
         const res = await fetch(url, { headers: { "x-api-key": apiKey } });
         if (!res.ok) {
-          // 404 means no attachments, skip silently
           if (res.status === 404) continue;
+          if (res.status === 429) {
+            console.warn(`Rate limited on attachments list, waiting 5s...`);
+            await new Promise(r => setTimeout(r, 5000));
+            continue;
+          }
           console.warn(`Attachments list failed for contact ${contact.crelate_id}: ${res.status}`);
           continue;
         }
@@ -618,7 +622,12 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
             const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
             if (!dlRes.ok) {
-              console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
+              if (dlRes.status === 429) {
+                console.warn(`Rate limited on attachment download, waiting 5s...`);
+                await new Promise(r => setTimeout(r, 5000));
+              } else {
+                console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
+              }
               result.failed++;
               continue;
             }
@@ -663,15 +672,15 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             result.failed++;
           }
 
-          // Rate limit
-          await new Promise(r => setTimeout(r, 100));
+          // Rate limit between attachments
+          await new Promise(r => setTimeout(r, 500));
         }
       } catch (contactErr) {
         console.warn(`Error fetching attachments for contact ${contact.crelate_id}: ${contactErr.message}`);
       }
 
-      // Rate limit between contacts
-      await new Promise(r => setTimeout(r, 150));
+      // Rate limit between contacts - 1 second
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     result.total = totalAttachments;
