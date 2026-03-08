@@ -147,7 +147,7 @@ const GrantForm = ({ open, onOpenChange, onSuccess, grant }: GrantFormProps) => 
           .eq("id", grant.id);
 
         if (error) throw error;
-        toast.success("Grant opportunity updated successfully");
+        toast.success("Job updated successfully");
       } else {
         const { error } = await supabase
           .from("grant_opportunities")
