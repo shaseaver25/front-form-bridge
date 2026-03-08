@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 
 const MajorGiftList = () => {
   const [majorGifts, setMajorGifts] = useState<any[]>([]);
+  const { isReady } = useAuthReady();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);
