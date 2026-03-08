@@ -64,7 +64,6 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="prospect">Prospect</SelectItem>
                   <SelectItem value="partner">Partner</SelectItem>
                   <SelectItem value="vendor">Vendor</SelectItem>
                 </SelectContent>
