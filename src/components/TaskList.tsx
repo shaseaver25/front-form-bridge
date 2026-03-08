@@ -77,8 +77,9 @@ const TaskList = ({ grantId, showAll = false }: TaskListProps) => {
   }, [grantId, showAll]);
 
   useEffect(() => {
+    if (!isReady) return;
     fetchTasks();
-  }, [fetchTasks]);
+  }, [fetchTasks, isReady]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     const { error } = await supabase.from("tasks").update({ status: newStatus }).eq("id", taskId);
