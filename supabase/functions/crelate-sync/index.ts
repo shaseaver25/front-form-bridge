@@ -834,7 +834,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
           completed: a.Completed !== false,
           scheduled_at: a.When || a.ScheduledAt || a.DueDate || null,
           completed_at: a.CompletedOn || a.CompletedAt || null,
-          duration_minutes: a.Duration || a.DurationMinutes || null,
+          duration_minutes: a.Duration ? Math.round(Number(a.Duration)) : (a.DurationMinutes ? Math.round(Number(a.DurationMinutes)) : null),
           location: a.Location || null,
           is_pinned: a.Pinned || false,
         };
