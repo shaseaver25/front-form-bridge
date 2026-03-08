@@ -39,6 +39,16 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const [newNote, setNewNote] = useState("");
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (noteKey: string) => {
+    setExpandedNotes(prev => {
+      const next = new Set(prev);
+      if (next.has(noteKey)) next.delete(noteKey);
+      else next.add(noteKey);
+      return next;
+    });
+  };
 
   const fetchNotes = async () => {
     setLoading(true);
