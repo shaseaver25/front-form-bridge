@@ -125,7 +125,7 @@ export function CreatePledgeDialog({ constituentId, constituentName, trigger }: 
           )}
           {constituentId && constituentName && (
             <div className="space-y-2">
-              <Label>Constituent</Label>
+              <Label>Contact</Label>
               <Input value={constituentName} disabled />
             </div>
           )}

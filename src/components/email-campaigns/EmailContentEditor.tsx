@@ -26,10 +26,10 @@ const MERGE_TAGS = [
 ];
 
 const DONOR_MERGE_TAGS = [
-  { tag: '{{total_giving}}', label: 'Total Giving', description: 'Lifetime donation total' },
-  { tag: '{{last_gift_amount}}', label: 'Last Gift Amount', description: 'Most recent donation' },
-  { tag: '{{last_gift_date}}', label: 'Last Gift Date', description: 'Date of last donation' },
-  { tag: '{{giving_level}}', label: 'Giving Level', description: "Donor's giving tier" },
+  { tag: '{{total_giving}}', label: 'Total Billing', description: 'Lifetime billing total' },
+  { tag: '{{last_gift_amount}}', label: 'Last Invoice Amount', description: 'Most recent invoice' },
+  { tag: '{{last_gift_date}}', label: 'Last Invoice Date', description: 'Date of last invoice' },
+  { tag: '{{giving_level}}', label: 'Client Tier', description: "Client's engagement tier" },
 ];
 
 export function EmailContentEditor({
