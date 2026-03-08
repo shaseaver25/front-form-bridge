@@ -23,7 +23,7 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
   const navigate = useNavigate();
 
   const getSitesByStage = (stage: string) =>
-    sites.filter((s) => (s.status || "prospect") === stage);
+    sites.filter((s) => (s.status || "identified") === stage);
 
   if (isLoading) {
     return (
