@@ -23,6 +23,7 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 
 // CRM Core
 const Constituents = lazy(() => import("@/pages/Constituents"));
+const ContactDetail = lazy(() => import("@/pages/ContactDetail"));
 const Jobs = lazy(() => import("@/pages/Jobs"));
 const JobDetail = lazy(() => import("@/pages/JobDetail"));
 const Donations = lazy(() => import("@/pages/Donations"));
@@ -173,6 +174,7 @@ export const coreRoutes: RouteObject[] = [
 // CRM routes
 export const crmRoutes: RouteObject[] = [
   { path: "/constituents", element: <Constituents /> },
+  { path: "/contacts/:id", element: <ContactDetail /> },
   {
     path: "/grants",
     element: (

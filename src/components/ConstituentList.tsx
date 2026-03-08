@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Loader2, Phone, MapPin, Building2, Clock } from "lucide-react";
 import ConstituentForm from "./ConstituentForm";
-import ConstituentDetail from "./ConstituentDetail";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +53,6 @@ const ConstituentList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -203,8 +201,7 @@ const ConstituentList = () => {
   };
 
   const handleView = (contact: Contact) => {
-    setSelectedContact(contact);
-    setDetailOpen(true);
+    navigate(`/contacts/${contact.id}`);
   };
 
   const handleDeleteClick = (contact: Contact) => {
@@ -432,11 +429,6 @@ const ConstituentList = () => {
         constituent={selectedContact}
       />
 
-      <ConstituentDetail
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        constituent={selectedContact}
-      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
