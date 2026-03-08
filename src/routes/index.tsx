@@ -23,6 +23,7 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 
 // CRM Core
 const Constituents = lazy(() => import("@/pages/Constituents"));
+const ContactDetail = lazy(() => import("@/pages/ContactDetail"));
 const Jobs = lazy(() => import("@/pages/Jobs"));
 const JobDetail = lazy(() => import("@/pages/JobDetail"));
 const Donations = lazy(() => import("@/pages/Donations"));
