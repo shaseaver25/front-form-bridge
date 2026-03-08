@@ -74,11 +74,11 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
     });
     
     sites?.forEach((site) => {
-      const status = site.status || "prospect";
+      const status = site.status || "identified";
       if (grouped[status]) {
         grouped[status].push(site);
       } else {
-        grouped["prospect"].push(site);
+        grouped["identified"].push(site);
       }
     });
     
