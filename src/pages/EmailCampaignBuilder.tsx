@@ -232,7 +232,7 @@ export default function EmailCampaignBuilder() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Create Campaign</h1>
-            <p className="text-muted-foreground">Send targeted emails to your constituents</p>
+            <p className="text-muted-foreground">Send targeted emails to your contacts</p>
           </div>
         </div>
 

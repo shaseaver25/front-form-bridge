@@ -68,8 +68,8 @@ export function SiteCard({ site, compact = false }: SiteCardProps) {
               </p>
             )}
           </div>
-          <Badge className={statusColors[site.status || "prospect"]}>
-            {(site.status || "prospect").replace(/_/g, " ")}
+          <Badge className={statusColors[site.status || "identified"]}>
+            {(site.status || "identified").replace(/_/g, " ")}
           </Badge>
         </div>
       </CardHeader>
