@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ type Contact = {
 
 const ConstituentList = () => {
   const navigate = useNavigate();
+  const { isReady } = useAuthReady();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -173,9 +175,10 @@ const ConstituentList = () => {
   };
 
   useEffect(() => {
+    if (!isReady) return;
     fetchContacts();
     fetchTags();
-  }, []);
+  }, [isReady]);
 
   const getDisplayName = (c: Contact) => {
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown";

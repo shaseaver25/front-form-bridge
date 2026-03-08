@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { Label } from "@/components/ui/label";
 
 const MajorGiftList = () => {
   const [majorGifts, setMajorGifts] = useState<any[]>([]);
+  const { isReady } = useAuthReady();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -30,9 +32,10 @@ const MajorGiftList = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    if (!isReady) return;
     fetchMajorGifts();
     checkAdminRole();
-  }, [showArchived]);
+  }, [showArchived, isReady]);
 
   const checkAdminRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();

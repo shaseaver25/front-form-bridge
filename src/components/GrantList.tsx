@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -33,6 +34,7 @@ type GrantWithRelations = any;
 
 const GrantList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isReady } = useAuthReady();
   const [grants, setGrants] = useState<GrantWithRelations[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +80,10 @@ const GrantList = () => {
   };
 
   useEffect(() => {
+    if (!isReady) return;
     fetchGrants();
     fetchOrganizations();
-  }, []);
+  }, [isReady]);
 
   // Auto-open grant form when navigating with ?id= parameter
   useEffect(() => {

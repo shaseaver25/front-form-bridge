@@ -1,36 +1,48 @@
 
 
-## Problem
+## Pipeline Page Rework
 
-Juliet (and potentially other users) see an empty contact list after logging in. The root cause is a **race condition**: the `ConstituentList` component fires its Supabase queries immediately on mount (`useEffect([], [])`), but the Supabase client may not have its auth token fully set yet. When queries hit `crm_contacts` with no auth token, the RLS policy `auth.uid() IS NOT NULL` returns zero rows silently — no error, just empty data.
+### The Problem
 
-This same pattern exists in other components that fetch data on mount without verifying the session is ready.
+The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
 
-## Fix
+1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
+2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
 
-**1. Create a `useAuthReady` hook** that provides a stable `isReady` flag and `user` object, based on `getSession()` completing first.
+Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
 
-**2. Update `ConstituentList`** to await session readiness before fetching contacts. Add `getSession()` call at the start of `fetchContacts` to ensure the token is set, and re-trigger fetch when session becomes available.
+### Recommendation
 
-**3. Review other list components** (`GrantList`, `MajorGiftList`, `TaskList`, etc.) for the same pattern and apply the same fix.
+**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
 
-## Technical Details
+1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
+   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
+   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
 
-### New file: `src/hooks/useAuthReady.ts`
-- Calls `supabase.auth.getSession()` on mount → sets `isReady = true` and captures `user`
-- Listens to `onAuthStateChange` for subsequent changes
-- Returns `{ user, isReady }`
+2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
 
-### Changes to `src/components/ConstituentList.tsx`
-- Import and use `useAuthReady`
-- Gate `fetchContacts()` and `fetchTags()` calls on `isReady && !!user`
-- Add `isReady` to the `useEffect` dependency array
+3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
 
-### Same pattern applied to:
-- `src/components/GrantList.tsx`
-- `src/components/MajorGiftList.tsx`  
-- `src/components/TaskList.tsx`
-- Any other components using raw `useEffect` + Supabase queries on mount
+### What the new Pipeline Analytics tab will show (from real data)
 
-This ensures no data-fetching query fires until the Supabase client has a valid auth token, eliminating the empty-list race condition.
+- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
+- **Stage distribution**: Count per stage with visual bars
+- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
+- **Recent activity**: Latest stage changes
+
+### Technical approach
+
+- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
+- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
+- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
+- Remove `RecruitmentPipeline.tsx` and its route
+- Update sidebar to remove the "Recruiting" entry
+- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
+
+### Files to modify
+- `src/pages/PipelineDashboard.tsx` — full rewrite
+- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
+- `src/components/AppSidebar.tsx` — remove Recruiting nav item
+- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
+- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
 

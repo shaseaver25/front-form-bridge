@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const TaskList = ({ grantId, showAll = false }: TaskListProps) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   const { members, getDisplayName, getMemberById } = useTeamMembers();
+  const { isReady } = useAuthReady();
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
@@ -75,8 +77,9 @@ const TaskList = ({ grantId, showAll = false }: TaskListProps) => {
   }, [grantId, showAll]);
 
   useEffect(() => {
+    if (!isReady) return;
     fetchTasks();
-  }, [fetchTasks]);
+  }, [fetchTasks, isReady]);
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     const { error } = await supabase.from("tasks").update({ status: newStatus }).eq("id", taskId);
