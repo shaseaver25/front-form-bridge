@@ -88,7 +88,7 @@ export function RecentActivity() {
         return <DollarSign className="w-4 h-4 text-green-500" />;
       case "grant":
         return <FileText className="w-4 h-4 text-purple-500" />;
-      case "constituent":
+      case "contact":
         return <User className="w-4 h-4 text-blue-500" />;
     }
   };

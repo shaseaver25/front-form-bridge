@@ -15,10 +15,10 @@ export function QuickLinks() {
   const navigate = useNavigate();
 
   const links = [
-    { label: "Add Constituent", icon: Users, path: "/" },
-    { label: "View Grants", icon: FileText, path: "/grants" },
-    { label: "Record Donation", icon: DollarSign, path: "/donations" },
-    { label: "Email Marketing", icon: Mail, path: "/email-marketing" },
+    { label: "Add Contact", icon: Users, path: "/" },
+    { label: "View Jobs", icon: FileText, path: "/grants" },
+    { label: "Record Placement", icon: DollarSign, path: "/placements" },
+    { label: "Email Outreach", icon: Mail, path: "/email-marketing" },
     { label: "Calendar", icon: Calendar, path: "/calendar" },
     { label: "Projects", icon: Kanban, path: "/projects" },
     { label: "Pipeline", icon: TrendingUp, path: "/pipeline" },

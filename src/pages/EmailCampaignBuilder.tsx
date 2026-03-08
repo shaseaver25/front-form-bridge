@@ -65,12 +65,12 @@ const steps: { key: Step; label: string }[] = [
 ];
 
 const prebuiltSegments = [
-  { id: 'all_subscribed', label: 'All Active Subscribers', description: 'All constituents with active email subscriptions' },
-  { id: 'major_donors', label: 'Major Donors ($1,000+)', description: 'Constituents with total giving over $1,000' },
-  { id: 'lybunt', label: 'LYBUNT', description: 'Last Year But Unfortunately Not This Year donors' },
-  { id: 'sybunt', label: 'SYBUNT', description: 'Some Year But Unfortunately Not This Year donors' },
-  { id: 'monthly_donors', label: 'Monthly Donors', description: 'Constituents with active recurring gifts' },
-  { id: 'new_donors', label: 'New Donors (Last 30 Days)', description: 'First-time donors from the past month' },
+  { id: 'all_subscribed', label: 'All Active Subscribers', description: 'All contacts with active email subscriptions' },
+  { id: 'major_donors', label: 'Top Clients ($1,000+)', description: 'Contacts with total billing over $1,000' },
+  { id: 'lybunt', label: 'Returning Clients', description: 'Clients active last year but not this year' },
+  { id: 'sybunt', label: 'Past Clients', description: 'Clients active in prior years but not recently' },
+  { id: 'monthly_donors', label: 'Recurring Clients', description: 'Contacts with active recurring engagements' },
+  { id: 'new_donors', label: 'New Clients (Last 30 Days)', description: 'First-time clients from the past month' },
 ];
 
 export default function EmailCampaignBuilder() {
