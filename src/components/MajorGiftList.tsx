@@ -32,9 +32,10 @@ const MajorGiftList = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    if (!isReady) return;
     fetchMajorGifts();
     checkAdminRole();
-  }, [showArchived]);
+  }, [showArchived, isReady]);
 
   const checkAdminRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();

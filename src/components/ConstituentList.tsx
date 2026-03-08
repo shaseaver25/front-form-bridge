@@ -175,9 +175,10 @@ const ConstituentList = () => {
   };
 
   useEffect(() => {
+    if (!isReady) return;
     fetchContacts();
     fetchTags();
-  }, []);
+  }, [isReady]);
 
   const getDisplayName = (c: Contact) => {
     return [c.first_name, c.last_name].filter(Boolean).join(" ") || "Unknown";

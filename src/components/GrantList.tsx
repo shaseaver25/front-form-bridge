@@ -80,9 +80,10 @@ const GrantList = () => {
   };
 
   useEffect(() => {
+    if (!isReady) return;
     fetchGrants();
     fetchOrganizations();
-  }, []);
+  }, [isReady]);
 
   // Auto-open grant form when navigating with ?id= parameter
   useEffect(() => {
