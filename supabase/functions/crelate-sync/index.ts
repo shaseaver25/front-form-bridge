@@ -715,6 +715,29 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     }
     result.total = activities.length;
 
+    // Log first activity's keys for debugging field names
+    if (activities.length > 0) {
+      console.log(`Sample activity keys: ${Object.keys(activities[0]).join(", ")}`);
+      // Log first activity with content for field discovery
+      const withContent = activities.find(a => {
+        for (const k of Object.keys(a)) {
+          const v = a[k];
+          if (typeof v === "string" && v.length > 20 && !k.includes("Id") && !k.includes("Date")) return true;
+        }
+        return false;
+      });
+      if (withContent) {
+        const contentFields: Record<string, string> = {};
+        for (const k of Object.keys(withContent)) {
+          const v = withContent[k];
+          if (typeof v === "string" && v.length > 10) {
+            contentFields[k] = v.substring(0, 100);
+          }
+        }
+        console.log(`Activity content fields sample: ${JSON.stringify(contentFields)}`);
+      }
+    }
+
     // Get lookup maps
     const { data: contacts } = await supabase.from("crm_contacts").select("id, crelate_id").not("crelate_id", "is", null);
     const contactMap: Record<string, string> = {};
@@ -728,6 +751,25 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     const jobMap: Record<string, string> = {};
     for (const j of (jobs || [])) if (j.crelate_id) jobMap[j.crelate_id] = j.id;
 
+    // Try many possible field names for body content
+    const getBody = (a: any): string | null => {
+      return a.Body || a.Description || a.Content || a.Note || a.Text 
+        || a.HtmlBody || a.Html || a.RichTextBody || a.PlainTextBody
+        || a.Notes || a.Comment || a.Details || a.Message
+        || getField(a, "Body", "Description", "Content", "Note", "Text", "Notes", "Comment", "Details", "Message", "HtmlBody")
+        || null;
+    };
+
+    const getActivityType = (a: any): string => {
+      const raw = String(a.ActivityType || a.Type || a.Category || "").toLowerCase();
+      if (raw.includes("email")) return "email";
+      if (raw.includes("meeting")) return "meeting";
+      if (raw.includes("call") || raw.includes("phone")) return "call";
+      if (raw.includes("task")) return "task";
+      if (raw.includes("interview")) return "interview";
+      return raw || "note";
+    };
+
     const rows = activities
       .filter(a => a.Id)
       .map(a => {
@@ -736,15 +778,15 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
         const jId = a.JobId?.Id || a.JobId;
         return {
           crelate_id: a.Id,
-          activity_type: a.ActivityType || a.Type || "note",
-          subject: a.Subject || null,
-          body: a.Body || a.Description || null,
+          activity_type: getActivityType(a),
+          subject: a.Subject || a.Title || a.Name || null,
+          body: getBody(a),
           contact_id: (contId && contactMap[contId]) || null,
           company_id: (compId && compMap[compId]) || null,
           job_id: (jId && jobMap[jId]) || null,
           direction: a.Direction || null,
           completed: a.Completed !== false,
-          scheduled_at: a.ScheduledAt || a.DueDate || null,
+          scheduled_at: a.ScheduledAt || a.DueDate || a.StartDate || null,
           completed_at: a.CompletedAt || null,
           duration_minutes: a.DurationMinutes || null,
           location: a.Location || null,
@@ -756,6 +798,40 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     result.created = r.created;
     result.failed = r.failed;
     result.errors.push(...r.errors);
+
+    // Also populate crm_contact_notes from activities that have content and a contact_id
+    const noteRows = rows
+      .filter(r => r.contact_id && (r.body || r.subject))
+      .map(r => ({
+        contact_id: r.contact_id,
+        content: [r.subject, r.body].filter(Boolean).join("\n\n"),
+        is_pinned: r.is_pinned,
+        created_at: r.scheduled_at || r.completed_at || new Date().toISOString(),
+      }));
+
+    if (noteRows.length > 0) {
+      console.log(`Populating ${noteRows.length} contact notes from activities...`);
+      // Clear existing auto-generated notes and re-insert
+      // Use insert (not upsert) since crm_contact_notes has no crelate_id yet for dedup
+      // First check if notes already exist
+      const { data: existingNotes } = await supabase
+        .from("crm_contact_notes")
+        .select("id")
+        .limit(1);
+      
+      if (!existingNotes || existingNotes.length === 0) {
+        for (let i = 0; i < noteRows.length; i += 500) {
+          const chunk = noteRows.slice(i, i + 500);
+          const { error } = await supabase.from("crm_contact_notes").insert(chunk);
+          if (error) {
+            console.warn(`Contact notes insert chunk ${i} error: ${error.message}`);
+          }
+        }
+        console.log(`Inserted ${noteRows.length} contact notes`);
+      } else {
+        console.log("Contact notes already exist, skipping population to avoid duplicates");
+      }
+    }
   } catch (e) {
     result.errors.push(`Activities sync failed: ${e.message}`);
   }
