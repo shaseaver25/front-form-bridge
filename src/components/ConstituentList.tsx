@@ -202,8 +202,7 @@ const ConstituentList = () => {
   };
 
   const handleView = (contact: Contact) => {
-    setSelectedContact(contact);
-    setDetailOpen(true);
+    navigate(`/contacts/${contact.id}`);
   };
 
   const handleDeleteClick = (contact: Contact) => {
