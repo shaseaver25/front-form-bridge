@@ -27,12 +27,12 @@ interface TerminologyEntry {
 }
 
 const TERM_KEYS = [
-  { key: "constituent_label", label: "Constituent Label", description: "What to call individual contacts" },
-  { key: "organization_label", label: "Organization Label", description: "What to call companies/orgs" },
+  { key: "constituent_label", label: "Contact Label", description: "What to call individual contacts" },
+  { key: "organization_label", label: "Company Label", description: "What to call companies/orgs" },
   { key: "pipeline_label", label: "Pipeline Label", description: "The main pipeline name" },
   { key: "opportunity_label", label: "Opportunity Label", description: "What to call pipeline items" },
   { key: "account_label", label: "Account Label", description: "What to call account records" },
-  { key: "site_label", label: "Site Label", description: "What to call physical locations" },
+  { key: "site_label", label: "Company Label", description: "What to call company locations" },
 ];
 
 const ICON_MAP = {
