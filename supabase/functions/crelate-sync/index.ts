@@ -715,17 +715,29 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     }
     result.total = activities.length;
 
-    // Log first activity's keys for debugging field names
+    // Log first activity's ALL keys and values for field discovery
     if (activities.length > 0) {
       console.log(`Sample activity keys: ${Object.keys(activities[0]).join(", ")}`);
-      // Log first activity with content for field discovery
-      const withContent = activities.find(a => {
+      // Log all ID-like and reference fields from first 3 activities
+      for (let i = 0; i < Math.min(3, activities.length); i++) {
+        const a = activities[i];
+        const refFields: Record<string, any> = {};
         for (const k of Object.keys(a)) {
           const v = a[k];
-          if (typeof v === "string" && v.length > 20 && !k.includes("Id") && !k.includes("Date")) return true;
+          if (v === null || v === undefined) continue;
+          // Log ID fields, object fields, and string fields
+          if (k.toLowerCase().includes("id") || k.toLowerCase().includes("contact") 
+              || k.toLowerCase().includes("regard") || k.toLowerCase().includes("parent")
+              || k.toLowerCase().includes("entity") || k.toLowerCase().includes("related")
+              || k.toLowerCase().includes("who") || k.toLowerCase().includes("person")
+              || typeof v === "object") {
+            refFields[k] = typeof v === "object" ? JSON.stringify(v).substring(0, 200) : String(v).substring(0, 100);
+          }
         }
-        return false;
-      });
+        console.log(`Activity[${i}] ref fields: ${JSON.stringify(refFields)}`);
+      }
+      // Also log all keys with non-null string values > 10 chars from first activity with content
+      const withContent = activities.find(a => Object.values(a).some(v => typeof v === "string" && v.length > 20));
       if (withContent) {
         const contentFields: Record<string, string> = {};
         for (const k of Object.keys(withContent)) {
