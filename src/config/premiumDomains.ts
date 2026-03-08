@@ -1,7 +1,8 @@
 export const PREMIUM_ALLOWED_DOMAINS = [
   'creatempls.org',
   'tailoredu.org',
-  'kamenimpactconsulting.com'
+  'kamenimpactconsulting.com',
+  'avidedgesearch.com'
 ] as const;
 
 export type PremiumDomain = typeof PREMIUM_ALLOWED_DOMAINS[number];
