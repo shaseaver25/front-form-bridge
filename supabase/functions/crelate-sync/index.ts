@@ -552,6 +552,152 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
   return result;
 }
 
+async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult> {
+  const result: SyncResult = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
+
+  try {
+    // Get all contacts with crelate_ids
+    const { data: contacts } = await supabase
+      .from("crm_contacts")
+      .select("id, crelate_id")
+      .not("crelate_id", "is", null);
+
+    if (!contacts || contacts.length === 0) {
+      console.log("No contacts found for document sync");
+      return result;
+    }
+
+    // Get already-synced document crelate_ids to skip
+    const { data: existingDocs } = await supabase
+      .from("crm_contact_documents")
+      .select("crelate_id")
+      .not("crelate_id", "is", null);
+    const existingSet = new Set((existingDocs || []).map((d: any) => d.crelate_id));
+
+    let totalAttachments = 0;
+
+    for (const contact of contacts) {
+      try {
+        // List attachments for this contact
+        const url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
+        const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+        if (!res.ok) {
+          // 404 means no attachments, skip silently
+          if (res.status === 404) continue;
+          console.warn(`Attachments list failed for contact ${contact.crelate_id}: ${res.status}`);
+          continue;
+        }
+
+        const attachData = await res.json();
+        let attachments: any[] = [];
+        if (Array.isArray(attachData)) {
+          attachments = attachData;
+        } else if (attachData?.Data && Array.isArray(attachData.Data)) {
+          attachments = attachData.Data;
+        } else {
+          const arrKey = Object.keys(attachData || {}).find(k => Array.isArray(attachData[k]));
+          attachments = arrKey ? attachData[arrKey] : [];
+        }
+
+        if (attachments.length === 0) continue;
+
+        for (const att of attachments) {
+          const attId = att.Id || att.id;
+          if (!attId) continue;
+
+          const crelateDocId = `${contact.crelate_id}_${attId}`;
+          if (existingSet.has(crelateDocId)) continue;
+
+          totalAttachments++;
+
+          const fileName = att.FileName || att.Name || att.Title || `attachment_${attId}`;
+          const fileType = att.ContentType || att.MimeType || guessContentType(fileName);
+
+          try {
+            // Download the attachment content
+            const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
+            const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            if (!dlRes.ok) {
+              console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
+              result.failed++;
+              continue;
+            }
+
+            const fileBlob = await dlRes.blob();
+            const storagePath = `${contact.id}/${crelateDocId}_${fileName}`;
+
+            // Upload to Supabase storage
+            const { error: uploadError } = await supabase.storage
+              .from("contact-documents")
+              .upload(storagePath, fileBlob, {
+                contentType: fileType,
+                upsert: true,
+              });
+
+            if (uploadError) {
+              console.warn(`Upload failed for ${fileName}: ${uploadError.message}`);
+              result.failed++;
+              continue;
+            }
+
+            // Insert record into crm_contact_documents
+            const { error: insertError } = await supabase
+              .from("crm_contact_documents")
+              .upsert({
+                crelate_id: crelateDocId,
+                contact_id: contact.id,
+                file_name: fileName,
+                file_url: storagePath,
+                file_type: fileType,
+                file_size_bytes: fileBlob.size || null,
+              }, { onConflict: "crelate_id" });
+
+            if (insertError) {
+              console.warn(`DB insert failed for ${fileName}: ${insertError.message}`);
+              result.failed++;
+            } else {
+              result.created++;
+            }
+          } catch (dlErr) {
+            console.warn(`Error processing attachment ${attId}: ${dlErr.message}`);
+            result.failed++;
+          }
+
+          // Rate limit
+          await new Promise(r => setTimeout(r, 100));
+        }
+      } catch (contactErr) {
+        console.warn(`Error fetching attachments for contact ${contact.crelate_id}: ${contactErr.message}`);
+      }
+
+      // Rate limit between contacts
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    result.total = totalAttachments;
+    console.log(`Document sync complete: ${result.total} attachments found, ${result.created} uploaded, ${result.failed} failed`);
+  } catch (e) {
+    result.errors.push(`Documents sync failed: ${e.message}`);
+  }
+
+  return result;
+}
+
+function guessContentType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    txt: "text/plain",
+    rtf: "application/rtf",
+  };
+  return map[ext || ""] || "application/octet-stream";
+}
+
 async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult> {
   const result: SyncResult = { entity: "activities", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
