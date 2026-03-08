@@ -7,7 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {
   id: string;
-  type: "gift" | "grant" | "constituent";
+  type: "gift" | "grant" | "contact";
   title: string;
   description: string;
   timestamp: string;
