@@ -22,7 +22,7 @@ export function useCrelateSync() {
     mutationFn: async (entityType: string = "all") => {
       if (entityType === "all") {
         // Sync entities one at a time to avoid WORKER_LIMIT
-        const entities = ["contacts", "companies", "jobs", "placements", "activities"];
+        const entities = ["contacts", "companies", "jobs", "placements", "activities", "documents"];
         const allResults: any[] = [];
         for (const entity of entities) {
           const { data, error } = await supabase.functions.invoke("crelate-sync", {
