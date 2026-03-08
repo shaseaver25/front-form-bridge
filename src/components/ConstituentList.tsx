@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Loader2, Phone, MapPin, Building2, Clock } from "lucide-react";
 import ConstituentForm from "./ConstituentForm";
-import ConstituentDetail from "./ConstituentDetail";
 import {
   AlertDialog,
   AlertDialogAction,
