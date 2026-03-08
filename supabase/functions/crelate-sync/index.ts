@@ -858,6 +858,7 @@ Deno.serve(async (req) => {
       jobs: syncJobs,
       placements: syncPlacements,
       activities: syncActivities,
+      documents: syncDocuments,
     };
 
     const entitiesToSync = entityType === "all" ? Object.keys(syncMap) : [entityType];
