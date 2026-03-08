@@ -174,6 +174,7 @@ export const coreRoutes: RouteObject[] = [
 // CRM routes
 export const crmRoutes: RouteObject[] = [
   { path: "/constituents", element: <Constituents /> },
+  { path: "/contacts/:id", element: <ContactDetail /> },
   {
     path: "/grants",
     element: (
