@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.accept-invitation]
 verify_jwt = false
+
+[functions.chip-tts]
+verify_jwt = false
