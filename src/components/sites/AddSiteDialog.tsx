@@ -23,8 +23,8 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
   const navigate = useNavigate();
   const { createSite } = useSites();
   const [name, setName] = useState("");
-  const [companyType, setCompanyType] = useState("prospect");
-  const [status, setStatus] = useState(defaultStatus || "active");
+  const [companyType, setCompanyType] = useState("client");
+  const [status, setStatus] = useState(defaultStatus || "identified");
   const [domain, setDomain] = useState("");
   const [description, setDescription] = useState("");
 
