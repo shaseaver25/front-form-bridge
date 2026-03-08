@@ -65,10 +65,10 @@ export function RecentActivity() {
 
       (constituentsResult.data ?? []).forEach((c: { id: string; full_legal_name: string; created_at: string }) => {
         activityList.push({
-          id: `constituent-${c.id}`,
-          type: "constituent",
+          id: `contact-${c.id}`,
+          type: "contact",
           title: c.full_legal_name,
-          description: "New constituent added",
+          description: "New contact added",
           timestamp: c.created_at,
         });
       });
