@@ -47,7 +47,7 @@ export function RecentActivity() {
         activityList.push({
           id: `gift-${g.id}`,
           type: "gift",
-          title: `$${g.amount?.toLocaleString()} donation`,
+          title: `$${g.amount?.toLocaleString()} placement fee`,
           description: `From ${constituentName || "Unknown"}`,
           timestamp: g.date_received || "",
         });
