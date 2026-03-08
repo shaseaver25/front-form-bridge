@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Pin, PinOff, Trash2, Plus, Loader2, StickyNote, Mail, Phone, Calendar, MessageSquare } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Pin, PinOff, Trash2, Plus, Loader2, StickyNote, Mail, Phone, Calendar, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
