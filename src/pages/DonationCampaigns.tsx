@@ -255,7 +255,7 @@ export default function DonationCampaigns() {
                         }
                       />
                       <Label htmlFor="wall" className="font-normal">
-                        Show donor wall (with permission)
+                        Show client wall (with permission)
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
