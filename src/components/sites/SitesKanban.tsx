@@ -134,7 +134,7 @@ export function SitesKanban({ sites, isLoading, onAddSite }: SitesKanbanProps) {
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {kanbanColumns.map((column) => (
         <div key={column.key} className="space-y-3">
           <div className="flex items-center justify-between">

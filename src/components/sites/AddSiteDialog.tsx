@@ -74,10 +74,12 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="prospect">Prospect</SelectItem>
-                  <SelectItem value="former">Former</SelectItem>
+                  <SelectItem value="identified">Identified</SelectItem>
+                  <SelectItem value="screening">Screening</SelectItem>
+                  <SelectItem value="presented">Presented to Client</SelectItem>
+                  <SelectItem value="interview">Interview</SelectItem>
+                  <SelectItem value="offer">Offer Extended</SelectItem>
+                  <SelectItem value="placed">Placed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
