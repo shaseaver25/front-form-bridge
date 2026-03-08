@@ -41,6 +41,7 @@ const TaskList = ({ grantId, showAll = false }: TaskListProps) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
 
   const { members, getDisplayName, getMemberById } = useTeamMembers();
+  const { isReady } = useAuthReady();
 
   const fetchTasks = useCallback(async () => {
     setLoading(true);
