@@ -15,3 +15,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     autoRefreshToken: true,
   }
 });
+
+// Handle stale refresh tokens: clear invalid session so user can re-login
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'TOKEN_REFRESHED') return;
+  if (event === 'SIGNED_OUT') {
+    // Clear any stale tokens from storage
+    localStorage.removeItem('sb-rzhcefyigmkavddjjxvg-auth-token');
+  }
+});

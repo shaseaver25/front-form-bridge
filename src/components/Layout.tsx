@@ -33,7 +33,7 @@ const Layout = ({ children }: LayoutProps) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED" && !session) {
         setUser(null);
         setLoading(false);
         navigate("/auth");
