@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
