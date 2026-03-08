@@ -154,7 +154,7 @@ const GrantForm = ({ open, onOpenChange, onSuccess, grant }: GrantFormProps) => 
           .insert([{ ...dataToSubmit, created_by: user?.id }]);
 
         if (error) throw error;
-        toast.success("Grant opportunity created successfully");
+        toast.success("Job created successfully");
       }
 
       onSuccess();
