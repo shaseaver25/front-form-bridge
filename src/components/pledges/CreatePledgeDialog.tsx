@@ -113,10 +113,10 @@ export function CreatePledgeDialog({ constituentId, constituentName, trigger }: 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Constituent Selection */}
+          {/* Contact Selection */}
           {!constituentId && (
             <div className="space-y-2">
-              <Label>Constituent *</Label>
+              <Label>Contact *</Label>
               <ConstituentAutocomplete
                 value={selectedConstituentId}
                 onSelect={(id) => setSelectedConstituentId(id)}
