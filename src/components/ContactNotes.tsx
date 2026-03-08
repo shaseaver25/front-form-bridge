@@ -182,28 +182,48 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
         ) : notes.length === 0 ? (
           <p className="text-sm text-muted-foreground">No notes or activity yet</p>
         ) : (
-          notes.map((note) => (
-            <div
-              key={`${note.source}-${note.id}`}
-              className={`p-3 rounded-lg border text-sm space-y-1 ${
-                note.is_pinned ? "border-primary/30 bg-primary/5" : "border-border"
-              }`}
-            >
-              {note.source === "activity" && note.activity_type && (
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Badge variant="secondary" className="text-xs gap-1">
-                    {activityTypeIcon(note.activity_type)}
-                    {note.activity_type}
-                  </Badge>
-                </div>
-              )}
-              <p className="whitespace-pre-line text-foreground">{note.content}</p>
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
-                </span>
+          notes.map((note) => {
+            const noteKey = `${note.source}-${note.id}`;
+            const isExpanded = expandedNotes.has(noteKey);
+            const isLong = note.content.length > 120;
+
+            return (
+              <div
+                key={noteKey}
+                className={`rounded-lg border text-sm transition-colors ${
+                  note.is_pinned ? "border-primary/30 bg-primary/5" : "border-border hover:border-primary/20"
+                }`}
+              >
+                <button
+                  type="button"
+                  className="w-full text-left p-3 space-y-1 cursor-pointer"
+                  onClick={() => toggleExpand(noteKey)}
+                >
+                  <div className="flex items-center gap-2">
+                    {isLong && (
+                      isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    )}
+                    {note.source === "activity" && note.activity_type && (
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        {activityTypeIcon(note.activity_type)}
+                        {note.activity_type}
+                      </Badge>
+                    )}
+                    {note.is_pinned && (
+                      <Pin className="w-3 h-3 text-primary shrink-0" />
+                    )}
+                  </div>
+                  <p className={`whitespace-pre-line text-foreground ${!isExpanded && isLong ? "line-clamp-2" : ""}`}>
+                    {note.content}
+                  </p>
+                  <span className="text-xs text-muted-foreground block pt-1">
+                    {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                  </span>
+                </button>
                 {note.source === "note" && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-end gap-1 px-3 pb-2">
                     <Button
                       size="icon"
                       variant="ghost"
@@ -224,8 +244,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   </div>
                 )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </CardContent>
     </Card>
