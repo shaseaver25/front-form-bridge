@@ -430,11 +430,6 @@ const ConstituentList = () => {
         constituent={selectedContact}
       />
 
-      <ConstituentDetail
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        constituent={selectedContact}
-      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
