@@ -185,7 +185,6 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
           notes.map((note) => {
             const noteKey = `${note.source}-${note.id}`;
             const isExpanded = expandedNotes.has(noteKey);
-            const isLong = note.content.length > 120;
 
             return (
               <div
@@ -200,11 +199,10 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   onClick={() => toggleExpand(noteKey)}
                 >
                   <div className="flex items-center gap-2">
-                    {isLong && (
-                      isExpanded
-                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    )}
+                    {isExpanded
+                      ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    }
                     {note.source === "activity" && note.activity_type && (
                       <Badge variant="secondary" className="text-xs gap-1">
                         {activityTypeIcon(note.activity_type)}
