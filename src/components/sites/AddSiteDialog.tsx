@@ -23,8 +23,8 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
   const navigate = useNavigate();
   const { createSite } = useSites();
   const [name, setName] = useState("");
-  const [companyType, setCompanyType] = useState("prospect");
-  const [status, setStatus] = useState(defaultStatus || "active");
+  const [companyType, setCompanyType] = useState("client");
+  const [status, setStatus] = useState(defaultStatus || "identified");
   const [domain, setDomain] = useState("");
   const [description, setDescription] = useState("");
 
@@ -64,7 +64,6 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="prospect">Prospect</SelectItem>
                   <SelectItem value="partner">Partner</SelectItem>
                   <SelectItem value="vendor">Vendor</SelectItem>
                 </SelectContent>
@@ -75,10 +74,12 @@ export function AddSiteDialog({ open, onOpenChange, defaultStatus }: AddSiteDial
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="prospect">Prospect</SelectItem>
-                  <SelectItem value="former">Former</SelectItem>
+                  <SelectItem value="identified">Identified</SelectItem>
+                  <SelectItem value="screening">Screening</SelectItem>
+                  <SelectItem value="presented">Presented to Client</SelectItem>
+                  <SelectItem value="interview">Interview</SelectItem>
+                  <SelectItem value="offer">Offer Extended</SelectItem>
+                  <SelectItem value="placed">Placed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

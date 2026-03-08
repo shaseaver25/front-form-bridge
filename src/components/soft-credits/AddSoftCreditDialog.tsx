@@ -98,10 +98,10 @@ export function AddSoftCreditDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            {/* Constituent Selector */}
+            {/* Contact Selector */}
             <div className="space-y-2">
               <Label htmlFor="constituent">
-                Constituent <span className="text-destructive">*</span>
+                Contact <span className="text-destructive">*</span>
               </Label>
               <ConstituentAutocomplete
                 value={constituentId}

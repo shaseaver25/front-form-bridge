@@ -131,9 +131,9 @@ const GrantList = () => {
     setDeleteDialogOpen(false);
 
     if (error) {
-      toast.error("Failed to delete grant opportunity");
+      toast.error("Failed to delete job");
     } else {
-      toast.success("Grant opportunity deleted successfully");
+      toast.success("Job deleted successfully");
       fetchGrants();
     }
   };

@@ -7,7 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 
 interface ActivityItem {
   id: string;
-  type: "gift" | "grant" | "constituent";
+  type: "gift" | "grant" | "contact";
   title: string;
   description: string;
   timestamp: string;
@@ -47,7 +47,7 @@ export function RecentActivity() {
         activityList.push({
           id: `gift-${g.id}`,
           type: "gift",
-          title: `$${g.amount?.toLocaleString()} donation`,
+          title: `$${g.amount?.toLocaleString()} placement fee`,
           description: `From ${constituentName || "Unknown"}`,
           timestamp: g.date_received || "",
         });
@@ -65,10 +65,10 @@ export function RecentActivity() {
 
       (constituentsResult.data ?? []).forEach((c: { id: string; full_legal_name: string; created_at: string }) => {
         activityList.push({
-          id: `constituent-${c.id}`,
-          type: "constituent",
+          id: `contact-${c.id}`,
+          type: "contact",
           title: c.full_legal_name,
-          description: "New constituent added",
+          description: "New contact added",
           timestamp: c.created_at,
         });
       });
@@ -88,7 +88,7 @@ export function RecentActivity() {
         return <DollarSign className="w-4 h-4 text-green-500" />;
       case "grant":
         return <FileText className="w-4 h-4 text-purple-500" />;
-      case "constituent":
+      case "contact":
         return <User className="w-4 h-4 text-blue-500" />;
     }
   };

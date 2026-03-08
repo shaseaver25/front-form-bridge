@@ -4,10 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Globe, Users, MapPin, ExternalLink } from "lucide-react";
 
 const statusColors: Record<string, string> = {
+  identified: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+  screening: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  presented: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  interview: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  offer: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  placed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
   inactive: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  prospect: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  former: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
 interface SiteCardProps {
@@ -64,8 +68,8 @@ export function SiteCard({ site, compact = false }: SiteCardProps) {
               </p>
             )}
           </div>
-          <Badge className={statusColors[site.status || "prospect"]}>
-            {(site.status || "prospect").replace(/_/g, " ")}
+          <Badge className={statusColors[site.status || "identified"]}>
+            {(site.status || "identified").replace(/_/g, " ")}
           </Badge>
         </div>
       </CardHeader>

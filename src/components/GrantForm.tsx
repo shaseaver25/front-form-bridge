@@ -147,14 +147,14 @@ const GrantForm = ({ open, onOpenChange, onSuccess, grant }: GrantFormProps) => 
           .eq("id", grant.id);
 
         if (error) throw error;
-        toast.success("Grant opportunity updated successfully");
+        toast.success("Job updated successfully");
       } else {
         const { error } = await supabase
           .from("grant_opportunities")
           .insert([{ ...dataToSubmit, created_by: user?.id }]);
 
         if (error) throw error;
-        toast.success("Grant opportunity created successfully");
+        toast.success("Job created successfully");
       }
 
       onSuccess();

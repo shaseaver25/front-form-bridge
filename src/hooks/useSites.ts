@@ -36,7 +36,7 @@ export function useSites() {
         .insert({
           name: input.name,
           description: input.description || null,
-          company_type: input.company_type || 'prospect',
+          company_type: input.company_type || 'client',
           status: input.status || 'active',
           domain: input.domain || null,
           revenue: input.revenue || null,

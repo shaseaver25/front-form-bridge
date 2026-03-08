@@ -255,7 +255,7 @@ export default function DonationCampaigns() {
                         }
                       />
                       <Label htmlFor="wall" className="font-normal">
-                        Show donor wall (with permission)
+                        Show client wall (with permission)
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -358,7 +358,7 @@ export default function DonationCampaigns() {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        <span>{campaign.donor_count || 0} donors</span>
+                        <span>{campaign.donor_count || 0} clients</span>
                       </div>
                       {campaign.end_date && (
                         <div className="flex items-center gap-1">

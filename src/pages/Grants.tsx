@@ -8,7 +8,7 @@ const Grants = () => {
     <Layout>
       <Tabs defaultValue="grants" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="grants">Grant Opportunities</TabsTrigger>
+          <TabsTrigger value="grants">Job Openings</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
         <TabsContent value="grants">

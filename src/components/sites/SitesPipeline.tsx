@@ -5,10 +5,12 @@ import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const pipelineStages = [
-  { key: "prospect", label: "Prospects", color: "bg-gray-500" },
-  { key: "active", label: "Active", color: "bg-green-500" },
-  { key: "inactive", label: "Inactive", color: "bg-yellow-500" },
-  { key: "former", label: "Former", color: "bg-red-500" },
+  { key: "identified", label: "Identified", color: "bg-gray-500" },
+  { key: "screening", label: "Screening", color: "bg-blue-500" },
+  { key: "presented", label: "Presented to Client", color: "bg-yellow-500" },
+  { key: "interview", label: "Interview", color: "bg-orange-500" },
+  { key: "offer", label: "Offer Extended", color: "bg-purple-500" },
+  { key: "placed", label: "Placed", color: "bg-green-500" },
 ];
 
 interface SitesPipelineProps {
@@ -21,7 +23,7 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
   const navigate = useNavigate();
 
   const getSitesByStage = (stage: string) =>
-    sites.filter((s) => (s.status || "prospect") === stage);
+    sites.filter((s) => (s.status || "identified") === stage);
 
   if (isLoading) {
     return (
@@ -37,7 +39,7 @@ export function SitesPipeline({ sites, isLoading, onAddSite }: SitesPipelineProp
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {pipelineStages.map((stage) => {
         const stageSites = getSitesByStage(stage.key);
         return (
