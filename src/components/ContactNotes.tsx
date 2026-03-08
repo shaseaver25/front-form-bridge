@@ -193,10 +193,12 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   note.is_pinned ? "border-primary/30 bg-primary/5" : "border-border hover:border-primary/20"
                 }`}
               >
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   className="w-full text-left p-3 space-y-1 cursor-pointer"
                   onClick={() => toggleExpand(noteKey)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleExpand(noteKey); }}
                 >
                   <div className="flex items-center gap-2">
                     {isExpanded
@@ -219,7 +221,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   <span className="text-xs text-muted-foreground block pt-1">
                     {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                   </span>
-                </button>
+                </div>
                 {note.source === "note" && (
                   <div className="flex items-center justify-end gap-1 px-3 pb-2">
                     <Button
