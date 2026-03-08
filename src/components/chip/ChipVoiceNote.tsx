@@ -130,8 +130,8 @@ function useSpeechRecognition() {
   return { startListening, stopListening };
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://qetgwhxwjvifgnfqcddm.supabase.co";
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFldGd3aHh3anZpZmduZnFjZGRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ0NDc3ODgsImV4cCI6MjA4MDAyMzc4OH0.NNpo0hn1IxFO_aige5HRblWt-jJqW4POttiQGBP-OKs";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://rzhcefyigmkavddjjxvg.supabase.co";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aGNlZnlpZ21rYXZkZGpqeHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mzg0NTYsImV4cCI6MjA4ODExNDQ1Nn0.Suwc7GAfTxv7pxVu90JEsRqI7rT5W9784RHZxmdpnFc";
 
 // Persistent AudioContext to bypass autoplay restrictions after first user gesture
 let audioContextInstance: AudioContext | null = null;
