@@ -164,7 +164,7 @@ export function RecruitmentBoard() {
                         <div className="flex-1 min-w-0">
                           <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/constituents?contact=${item.contact?.id}`); }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/contacts/${item.contact?.id}`); }}
                             className="text-sm font-medium truncate text-primary hover:underline text-left"
                           >
                             {item.contact?.first_name} {item.contact?.last_name}
