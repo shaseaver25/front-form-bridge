@@ -585,16 +585,13 @@ export default function ContactDetail() {
                 </CardHeader>
                 <CardContent>
                   {editing ? (
-                    <Textarea
-                      value={editData.description}
-                      onChange={(e) => updateField("description", e.target.value)}
+                    <RichTextEditor
+                      content={editData.description}
+                      onChange={(html) => updateField("description", html)}
                       placeholder="Description / notes about this contact..."
-                      rows={4}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                      {contact.description}
-                    </p>
+                    <RichTextDisplay content={contact.description} />
                   )}
                 </CardContent>
               </Card>
