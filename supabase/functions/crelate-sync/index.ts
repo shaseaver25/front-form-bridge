@@ -645,18 +645,29 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
   return result;
 }
 
-async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult> {
-  const result: SyncResult = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
+async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 50): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
+  const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
-    // Get all contacts with crelate_ids
-    const { data: contacts } = await supabase
+    // Get all contacts with crelate_ids, ordered for consistent pagination
+    const { data: allContacts } = await supabase
       .from("crm_contacts")
       .select("id, crelate_id")
-      .not("crelate_id", "is", null);
+      .not("crelate_id", "is", null)
+      .order("created_at", { ascending: true });
 
-    if (!contacts || contacts.length === 0) {
+    if (!allContacts || allContacts.length === 0) {
       console.log("No contacts found for document sync");
+      return result;
+    }
+
+    // Paginate: only process a batch of contacts per call
+    const contacts = allContacts.slice(cursorOffset, cursorOffset + batchSize);
+    const hasMore = cursorOffset + batchSize < allContacts.length;
+    
+    console.log(`Document sync batch: contacts ${cursorOffset}-${cursorOffset + contacts.length} of ${allContacts.length}`);
+
+    if (contacts.length === 0) {
       return result;
     }
 
@@ -671,7 +682,6 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
 
     for (const contact of contacts) {
       try {
-        // List attachments for this contact
         const url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
         const res = await fetch(url, { headers: { "x-api-key": apiKey } });
         if (!res.ok) {
@@ -681,7 +691,6 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             await new Promise(r => setTimeout(r, 5000));
             continue;
           }
-          console.warn(`Attachments list failed for contact ${contact.crelate_id}: ${res.status}`);
           continue;
         }
 
@@ -706,20 +715,16 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
           if (existingSet.has(crelateDocId)) continue;
 
           totalAttachments++;
-
           const fileName = att.FileName || att.Name || att.Title || `attachment_${attId}`;
           const fileType = att.ContentType || att.MimeType || guessContentType(fileName);
 
           try {
-            // Download the attachment content
             const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
             const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
                 await new Promise(r => setTimeout(r, 5000));
-              } else {
-                console.warn(`Failed to download attachment ${attId}: ${dlRes.status}`);
               }
               result.failed++;
               continue;
@@ -728,7 +733,6 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
             const fileBlob = await dlRes.blob();
             const storagePath = `${contact.id}/${crelateDocId}_${fileName}`;
 
-            // Upload to Supabase storage
             const { error: uploadError } = await supabase.storage
               .from("contact-documents")
               .upload(storagePath, fileBlob, {
@@ -742,7 +746,6 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
               continue;
             }
 
-            // Insert record into crm_contact_documents
             const { error: insertError } = await supabase
               .from("crm_contact_documents")
               .upsert({
@@ -755,29 +758,27 @@ async function syncDocuments(apiKey: string, supabase: any): Promise<SyncResult>
               }, { onConflict: "crelate_id" });
 
             if (insertError) {
-              console.warn(`DB insert failed for ${fileName}: ${insertError.message}`);
               result.failed++;
             } else {
               result.created++;
             }
           } catch (dlErr) {
-            console.warn(`Error processing attachment ${attId}: ${dlErr.message}`);
             result.failed++;
           }
 
-          // Rate limit between attachments
           await new Promise(r => setTimeout(r, 500));
         }
       } catch (contactErr) {
         console.warn(`Error fetching attachments for contact ${contact.crelate_id}: ${contactErr.message}`);
       }
 
-      // Rate limit between contacts - 1 second
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 300));
     }
 
     result.total = totalAttachments;
-    console.log(`Document sync complete: ${result.total} attachments found, ${result.created} uploaded, ${result.failed} failed`);
+    result.hasMore = hasMore;
+    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    console.log(`Document sync batch complete: ${result.created} uploaded, ${result.failed} failed, hasMore=${hasMore}`);
   } catch (e) {
     result.errors.push(`Documents sync failed: ${e.message}`);
   }
