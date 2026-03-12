@@ -138,8 +138,10 @@ export default function ContactDetail() {
   }, [id]);
 
   useEffect(() => {
-    fetchContact();
-  }, [fetchContact]);
+    if (isReady) {
+      fetchContact();
+    }
+  }, [fetchContact, isReady]);
 
   const {
     editing,
