@@ -686,14 +686,15 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     for (const contact of contacts) {
       try {
         // Use Crelate v2 document list endpoint (POST)
-        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}`;
+        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${apiKey}`;
         if (debugCount < 3) {
-          console.log(`Fetching attachments from: ${listUrl}`);
+          console.log(`Fetching attachments from: ${listUrl.replace(apiKey, '***')}`);
         }
         const res = await fetch(listUrl, {
           method: "POST",
           headers: {
             "X-Api-Key": apiKey,
+            "x-api-key": apiKey,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ Types: [0, 1, 2] }),
@@ -707,6 +708,12 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             debugCount++;
           } else {
             await res.text(); // consume body
+          }
+          if (res.status === 401) {
+            // Auth failure - log once and abort entire sync (key is wrong or v2 not enabled)
+            console.error(`401 Unauthorized on document list API - aborting document sync`);
+            result.errors.push("401 Unauthorized from Crelate document API");
+            break;
           }
           if (res.status === 404) continue;
           if (res.status === 429) {
@@ -746,8 +753,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
-            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const dlRes = await fetch(dlUrl, { headers: { "X-Api-Key": apiKey } });
+            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${apiKey}`;
+            const dlRes = await fetch(dlUrl, { headers: { "X-Api-Key": apiKey, "x-api-key": apiKey } });
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
