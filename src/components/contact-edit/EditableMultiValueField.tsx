@@ -4,13 +4,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2 } from "lucide-react";
 
-interface Item {
+export interface MultiValueItem {
   id?: string;
   value: string;
   category: string;
   is_primary: boolean;
   extension?: string;
   _deleted?: boolean;
+  [key: string]: any;
 }
 
 interface EditableMultiValueFieldProps {
