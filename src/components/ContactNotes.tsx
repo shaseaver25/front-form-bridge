@@ -102,7 +102,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   }, [contactId]);
 
   const addNote = async () => {
-    if (!newNote.trim()) return;
+    const stripped = newNote.replace(/<[^>]*>/g, "").trim();
+    if (!stripped) return;
     setAdding(true);
 
     const { data: { user } } = await supabase.auth.getUser();
