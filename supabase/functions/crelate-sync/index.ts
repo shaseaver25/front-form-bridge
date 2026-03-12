@@ -1196,10 +1196,12 @@ Deno.serve(async (req) => {
     const { data: logEntry } = await supabase.from("crm_sync_log").insert(syncLog).select("id").single();
 
     const syncMap: Record<string, (ak: string, sb: any) => Promise<SyncResult>> = {
+      sources: syncSources,
       contacts: syncContacts,
       companies: syncCompanies,
       jobs: syncJobs,
       placements: syncPlacements,
+      pipeline_items: syncPipelineItems,
       activities: syncActivities,
       documents: syncDocuments,
     };
