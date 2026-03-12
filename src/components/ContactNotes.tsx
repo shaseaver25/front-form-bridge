@@ -159,11 +159,11 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
       <CardContent className="space-y-3">
         {showForm && (
           <div className="space-y-2 border border-border rounded-lg p-3">
-            <Textarea
+            <RichTextEditor
+              content={newNote}
+              onChange={setNewNote}
               placeholder="Write a note..."
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              rows={3}
+              minHeight="80px"
             />
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setNewNote(""); }}>
