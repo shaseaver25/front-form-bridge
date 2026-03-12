@@ -15,8 +15,8 @@ export interface MultiValueItem {
 }
 
 interface EditableMultiValueFieldProps {
-  items: Item[];
-  onChange: (items: Item[]) => void;
+  items: MultiValueItem[];
+  onChange: (items: MultiValueItem[]) => void;
   categories: string[];
   placeholder?: string;
   showExtension?: boolean;
