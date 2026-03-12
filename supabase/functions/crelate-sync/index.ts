@@ -749,8 +749,14 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           const fileType = att.ContentType || att.MimeType || guessContentType(fileName);
 
           try {
-            const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
-            const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            // Try v1 endpoint for downloading individual attachment
+            let dlUrl = `https://app.crelate.com/api/pub/v1/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
+            let dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            if (!dlRes.ok) {
+              // Fall back to v3
+              dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
+              dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            }
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
