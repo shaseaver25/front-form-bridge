@@ -746,8 +746,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
-            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${apiKey}`;
-            const dlRes = await fetch(dlUrl, { headers: { "X-Api-Key": apiKey, "x-api-key": apiKey } });
+            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
+            const dlRes = await fetch(dlUrl, { headers: { "X-Api-Key": apiKey } });
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
