@@ -1214,7 +1214,12 @@ Deno.serve(async (req) => {
     for (const entity of entitiesToSync) {
       if (syncMap[entity]) {
         console.log(`Starting sync for: ${entity}`);
-        const r = await syncMap[entity](crelateApiKey, supabase);
+        let r: SyncResult & { nextCursor?: number; hasMore?: boolean };
+        if (entity === "documents") {
+          r = await syncDocuments(crelateApiKey, supabase, cursorOffset);
+        } else {
+          r = await syncMap[entity](crelateApiKey, supabase);
+        }
         console.log(`Sync ${entity}: total=${r.total} created=${r.created} failed=${r.failed}`);
         results.push(r);
       }
