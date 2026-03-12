@@ -653,6 +653,7 @@ export default function ContactDetail() {
 
           {/* Right column */}
           <div className="space-y-6">
+            <ContactResumes contactId={contact.id} />
             <ContactNotes contactId={contact.id} />
             <ContactDocuments contactId={contact.id} />
 

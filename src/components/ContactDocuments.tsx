@@ -31,6 +31,7 @@ const ContactDocuments = ({ contactId }: ContactDocumentsProps) => {
       .from("crm_contact_documents")
       .select("*")
       .eq("contact_id", contactId)
+      .is("crelate_id", null)
       .order("created_at", { ascending: false });
 
     if (!error) setDocuments(data || []);
