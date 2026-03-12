@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,10 +22,17 @@ import {
   Tag,
   History,
   GraduationCap,
+  Pencil,
+  X,
+  Loader2,
+  Save,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ContactNotes from "@/components/ContactNotes";
 import ContactDocuments from "@/components/ContactDocuments";
+import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
+import EditableAddresses from "@/components/contact-edit/EditableAddresses";
+import { useContactEdit } from "@/hooks/useContactEdit";
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,93 +49,116 @@ export default function ContactDetail() {
   const [careerHistory, setCareerHistory] = useState<any[]>([]);
   const [source, setSource] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchContact = useCallback(async () => {
     if (!id) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("crm_contacts")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-    const fetchContact = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("crm_contacts")
-        .select("*")
-        .eq("id", id)
-        .single();
+    if (error || !data) {
+      setLoading(false);
+      return;
+    }
 
-      if (error || !data) {
-        setLoading(false);
-        return;
-      }
+    setContact(data);
 
-      setContact(data);
-
-      // Fetch related data in parallel
-      const [emailsRes, phonesRes, urlsRes, tagsRes, addressesRes, careerRes] =
-        await Promise.all([
-          supabase.from("crm_contact_emails").select("*").eq("contact_id", id),
-          supabase.from("crm_contact_phones").select("*").eq("contact_id", id),
-          supabase.from("crm_contact_urls").select("*").eq("contact_id", id),
-          supabase
-            .from("crm_contact_tags")
-            .select("tag_id, crm_tags(id, name, category)")
-            .eq("contact_id", id),
-          supabase.from("crm_addresses").select("*").eq("contact_id", id),
-          supabase
-            .from("crm_career_history")
-            .select("*")
-            .eq("contact_id", id)
-            .order("is_current", { ascending: false })
-            .order("started_at", { ascending: false }),
-        ]);
-
-      setEmails(emailsRes.data || []);
-      setPhones(phonesRes.data || []);
-      setUrls(urlsRes.data || []);
-      setTags(
-        (tagsRes.data || []).map((row: any) => row.crm_tags).filter(Boolean)
-      );
-      setAddresses(addressesRes.data || []);
-      setCareerHistory(careerRes.data || []);
-
-      // Get company
-      if (data.primary_company_id) {
+    const [emailsRes, phonesRes, urlsRes, tagsRes, addressesRes, careerRes] =
+      await Promise.all([
+        supabase.from("crm_contact_emails").select("*").eq("contact_id", id),
+        supabase.from("crm_contact_phones").select("*").eq("contact_id", id),
+        supabase.from("crm_contact_urls").select("*").eq("contact_id", id),
         supabase
-          .from("crm_companies")
-          .select("id, name, domain")
-          .eq("id", data.primary_company_id)
-          .single()
-          .then(({ data: co }) => setCompany(co));
-      } else {
+          .from("crm_contact_tags")
+          .select("tag_id, crm_tags(id, name, category)")
+          .eq("contact_id", id),
+        supabase.from("crm_addresses").select("*").eq("contact_id", id),
         supabase
           .from("crm_career_history")
-          .select("company_name, company_id, crm_companies(id, name)")
+          .select("*")
           .eq("contact_id", id)
-          .eq("is_current", true)
-          .limit(1)
-          .then(({ data: ch }) => {
-            if (ch && ch.length > 0) {
-              const name =
-                ch[0].company_name || (ch[0] as any).crm_companies?.name;
-              const companyId =
-                ch[0].company_id || (ch[0] as any).crm_companies?.id;
-              if (name) setCompany({ id: companyId, name, domain: null });
-            }
-          });
-      }
+          .order("is_current", { ascending: false })
+          .order("started_at", { ascending: false }),
+      ]);
 
-      // Get source
-      if (data.source_id) {
-        supabase
-          .from("crm_contact_sources")
-          .select("name")
-          .eq("id", data.source_id)
-          .single()
-          .then(({ data: s }) => setSource(s?.name || null));
-      }
+    setEmails(emailsRes.data || []);
+    setPhones(phonesRes.data || []);
+    setUrls(urlsRes.data || []);
+    setTags(
+      (tagsRes.data || []).map((row: any) => row.crm_tags).filter(Boolean)
+    );
+    setAddresses(addressesRes.data || []);
+    setCareerHistory(careerRes.data || []);
 
-      setLoading(false);
-    };
+    if (data.primary_company_id) {
+      supabase
+        .from("crm_companies")
+        .select("id, name, domain")
+        .eq("id", data.primary_company_id)
+        .single()
+        .then(({ data: co }) => setCompany(co));
+    } else {
+      supabase
+        .from("crm_career_history")
+        .select("company_name, company_id, crm_companies(id, name)")
+        .eq("contact_id", id)
+        .eq("is_current", true)
+        .limit(1)
+        .then(({ data: ch }) => {
+          if (ch && ch.length > 0) {
+            const name =
+              ch[0].company_name || (ch[0] as any).crm_companies?.name;
+            const companyId =
+              ch[0].company_id || (ch[0] as any).crm_companies?.id;
+            if (name) setCompany({ id: companyId, name, domain: null });
+            else setCompany(null);
+          } else {
+            setCompany(null);
+          }
+        });
+    }
 
-    fetchContact();
+    if (data.source_id) {
+      supabase
+        .from("crm_contact_sources")
+        .select("name")
+        .eq("id", data.source_id)
+        .single()
+        .then(({ data: s }) => setSource(s?.name || null));
+    } else {
+      setSource(null);
+    }
+
+    setLoading(false);
   }, [id]);
+
+  useEffect(() => {
+    fetchContact();
+  }, [fetchContact]);
+
+  const {
+    editing,
+    saving,
+    editData,
+    setEditData,
+    editEmails,
+    setEditEmails,
+    editPhones,
+    setEditPhones,
+    editUrls,
+    setEditUrls,
+    editAddresses,
+    setEditAddresses,
+    startEditing,
+    cancelEditing,
+    save,
+  } = useContactEdit(id || "", fetchContact);
+
+  const handleStartEdit = () => {
+    startEditing(contact, emails, phones, urls, addresses);
+  };
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -138,6 +171,10 @@ export default function ContactDetail() {
     [addr.line1, addr.line2, addr.city, addr.state, addr.zip_code, addr.country]
       .filter(Boolean)
       .join(", ");
+
+  const updateField = (field: string, value: string) => {
+    setEditData((prev) => ({ ...prev, [field]: value }));
+  };
 
   if (loading) {
     return (
@@ -172,11 +209,36 @@ export default function ContactDetail() {
   return (
     <Layout>
       <div className="space-y-6 max-w-4xl mx-auto">
-        {/* Back button */}
-        <Button variant="ghost" onClick={() => navigate("/constituents")}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Contacts
-        </Button>
+        {/* Top bar */}
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => navigate("/constituents")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Contacts
+          </Button>
+          <div className="flex items-center gap-2">
+            {editing ? (
+              <>
+                <Button variant="ghost" onClick={cancelEditing} disabled={saving}>
+                  <X className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+                <Button onClick={save} disabled={saving}>
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-1" />
+                  )}
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={handleStartEdit}>
+                <Pencil className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
@@ -185,48 +247,125 @@ export default function ContactDetail() {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-primary" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  {displayName}
-                </h1>
-                {contact.job_title && (
-                  <p className="text-lg text-muted-foreground">
-                    {contact.job_title}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="capitalize">
-                {contact.contact_type}
-              </Badge>
-              <Badge variant="outline" className="capitalize">
-                {contact.status}
-              </Badge>
-              {source && (
-                <Badge variant="outline" className="text-xs">
-                  Source: {source}
-                </Badge>
+              {editing ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editData.salutation}
+                      onChange={(e) => updateField("salutation", e.target.value)}
+                      placeholder="Salutation"
+                      className="w-24"
+                    />
+                    <Input
+                      value={editData.first_name}
+                      onChange={(e) => updateField("first_name", e.target.value)}
+                      placeholder="First Name"
+                      className="w-40"
+                    />
+                    <Input
+                      value={editData.middle_name}
+                      onChange={(e) => updateField("middle_name", e.target.value)}
+                      placeholder="Middle"
+                      className="w-28"
+                    />
+                    <Input
+                      value={editData.last_name}
+                      onChange={(e) => updateField("last_name", e.target.value)}
+                      placeholder="Last Name *"
+                      className="w-40"
+                    />
+                    <Input
+                      value={editData.suffix}
+                      onChange={(e) => updateField("suffix", e.target.value)}
+                      placeholder="Suffix"
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editData.job_title}
+                      onChange={(e) => updateField("job_title", e.target.value)}
+                      placeholder="Job Title"
+                      className="w-64"
+                    />
+                    <Input
+                      value={editData.nick_name}
+                      onChange={(e) => updateField("nick_name", e.target.value)}
+                      placeholder="Nickname"
+                      className="w-40"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={editData.contact_type} onValueChange={(v) => updateField("contact_type", v)}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["candidate", "contact", "client", "lead"].map((t) => (
+                          <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={editData.status} onValueChange={(v) => updateField("status", v)}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["active", "inactive", "archived", "do_not_contact"].map((s) => (
+                          <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, " ")}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">
+                    {displayName}
+                  </h1>
+                  {contact.job_title && (
+                    <p className="text-lg text-muted-foreground">
+                      {contact.job_title}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {tags.map((tag: any) => (
-                  <Badge key={tag.id} variant="secondary" className="text-xs">
-                    <Tag className="w-3 h-3 mr-1" />
-                    {tag.name}
+            {!editing && (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="capitalize">
+                    {contact.contact_type}
                   </Badge>
-                ))}
-              </div>
+                  <Badge variant="outline" className="capitalize">
+                    {contact.status}
+                  </Badge>
+                  {source && (
+                    <Badge variant="outline" className="text-xs">
+                      Source: {source}
+                    </Badge>
+                  )}
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag: any) => (
+                      <Badge key={tag.id} variant="secondary" className="text-xs">
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column — main content */}
+          {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Company */}
-            {company && (
+            {company && !editing && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -242,9 +381,7 @@ export default function ContactDetail() {
                     {company.name}
                   </p>
                   {company.domain && (
-                    <p className="text-sm text-muted-foreground">
-                      {company.domain}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{company.domain}</p>
                   )}
                 </CardContent>
               </Card>
@@ -259,79 +396,110 @@ export default function ContactDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {emails.length > 0 ? (
-                  emails.map((email: any) => (
-                    <div key={email.id} className="flex items-center gap-3">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm">{email.value}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {email.category}
-                          {email.is_primary ? " • Primary" : ""}
-                        </p>
-                      </div>
+                {editing ? (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium mb-2">Emails</p>
+                      <EditableMultiValueField
+                        items={editEmails}
+                        onChange={setEditEmails}
+                        categories={["work", "personal", "other"]}
+                        placeholder="Email address"
+                      />
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No email addresses
-                  </p>
-                )}
-
-                {phones.length > 0 && (
-                  <>
                     <Separator />
-                    {phones.map((phone: any) => (
-                      <div key={phone.id} className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm">
-                            {phone.value}
-                            {phone.extension ? ` x${phone.extension}` : ""}
-                          </p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {phone.category}
-                            {phone.is_primary ? " • Primary" : ""}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    <div>
+                      <p className="text-sm font-medium mb-2">Phones</p>
+                      <EditableMultiValueField
+                        items={editPhones}
+                        onChange={setEditPhones}
+                        categories={["work", "mobile", "home", "other"]}
+                        placeholder="Phone number"
+                        showExtension
+                      />
+                    </div>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium mb-2">URLs</p>
+                      <EditableMultiValueField
+                        items={editUrls}
+                        onChange={setEditUrls}
+                        categories={["business", "linkedin", "personal", "other"]}
+                        placeholder="URL"
+                      />
+                    </div>
                   </>
-                )}
-
-                {urls.length > 0 && (
+                ) : (
                   <>
-                    <Separator />
-                    {urls.map((url: any) => (
-                      <div key={url.id} className="flex items-center gap-3">
-                        <Globe className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <a
-                            href={
-                              url.value.startsWith("http")
-                                ? url.value
-                                : `https://${url.value}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline"
-                          >
-                            {url.value}
-                          </a>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {url.category}
-                            {url.is_primary ? " • Primary" : ""}
-                          </p>
+                    {emails.length > 0 ? (
+                      emails.map((email: any) => (
+                        <div key={email.id} className="flex items-center gap-3">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm">{email.value}</p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {email.category}
+                              {email.is_primary ? " • Primary" : ""}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No email addresses</p>
+                    )}
+
+                    {phones.length > 0 && (
+                      <>
+                        <Separator />
+                        {phones.map((phone: any) => (
+                          <div key={phone.id} className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm">
+                                {phone.value}
+                                {phone.extension ? ` x${phone.extension}` : ""}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {phone.category}
+                                {phone.is_primary ? " • Primary" : ""}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+
+                    {urls.length > 0 && (
+                      <>
+                        <Separator />
+                        {urls.map((url: any) => (
+                          <div key={url.id} className="flex items-center gap-3">
+                            <Globe className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <a
+                                href={url.value.startsWith("http") ? url.value : `https://${url.value}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline"
+                              >
+                                {url.value}
+                              </a>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {url.category}
+                                {url.is_primary ? " • Primary" : ""}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </>
                 )}
               </CardContent>
             </Card>
 
             {/* Addresses */}
-            {addresses.length > 0 && (
+            {(editing || addresses.length > 0) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -339,24 +507,30 @@ export default function ContactDetail() {
                     Addresses
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {addresses.map((addr: any) => (
-                    <div key={addr.id} className="flex items-start gap-3">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm">{formatAddress(addr)}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {addr.category}
-                          {addr.is_primary ? " • Primary" : ""}
-                        </p>
-                      </div>
+                <CardContent>
+                  {editing ? (
+                    <EditableAddresses addresses={editAddresses} onChange={setEditAddresses} />
+                  ) : (
+                    <div className="space-y-3">
+                      {addresses.map((addr: any) => (
+                        <div key={addr.id} className="flex items-start gap-3">
+                          <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-sm">{formatAddress(addr)}</p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              {addr.category}
+                              {addr.is_primary ? " • Primary" : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Career History */}
+            {/* Career History (view only for now) */}
             {careerHistory.length > 0 && (
               <Card>
                 <CardHeader>
@@ -367,10 +541,7 @@ export default function ContactDetail() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {careerHistory.map((entry: any) => (
-                    <div
-                      key={entry.id}
-                      className="border-l-2 border-border pl-4 space-y-1"
-                    >
+                    <div key={entry.id} className="border-l-2 border-border pl-4 space-y-1">
                       <div className="flex items-center gap-2">
                         {entry.entry_type === "education" ? (
                           <GraduationCap className="w-4 h-4 text-muted-foreground" />
@@ -381,9 +552,7 @@ export default function ContactDetail() {
                           {entry.job_title || entry.degree || "Position"}
                         </p>
                         {entry.is_current && (
-                          <Badge variant="secondary" className="text-xs">
-                            Current
-                          </Badge>
+                          <Badge variant="secondary" className="text-xs">Current</Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -391,21 +560,12 @@ export default function ContactDetail() {
                       </p>
                       {(entry.started_at || entry.ended_at) && (
                         <p className="text-xs text-muted-foreground">
-                          {entry.started_at
-                            ? new Date(entry.started_at).toLocaleDateString()
-                            : "?"}{" "}
-                          —{" "}
-                          {entry.is_current
-                            ? "Present"
-                            : entry.ended_at
-                              ? new Date(entry.ended_at).toLocaleDateString()
-                              : "?"}
+                          {entry.started_at ? new Date(entry.started_at).toLocaleDateString() : "?"} —{" "}
+                          {entry.is_current ? "Present" : entry.ended_at ? new Date(entry.ended_at).toLocaleDateString() : "?"}
                         </p>
                       )}
                       {entry.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-3">
-                          {entry.description}
-                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-3">{entry.description}</p>
                       )}
                     </div>
                   ))}
@@ -414,29 +574,85 @@ export default function ContactDetail() {
             )}
 
             {/* Description */}
-            {contact.description && (
+            {(editing || contact.description) && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Briefcase className="w-5 h-5" />
-                    Notes
+                    Description
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
-                    {contact.description}
-                  </p>
+                  {editing ? (
+                    <Textarea
+                      value={editData.description}
+                      onChange={(e) => updateField("description", e.target.value)}
+                      placeholder="Description / notes about this contact..."
+                      rows={4}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {contact.description}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Salary info (editing only or if has data) */}
+            {editing && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Compensation</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Current Salary</label>
+                      <Input
+                        value={editData.salary}
+                        onChange={(e) => updateField("salary", e.target.value)}
+                        placeholder="$"
+                        type="number"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Desired Min</label>
+                      <Input
+                        value={editData.desired_salary_min}
+                        onChange={(e) => updateField("desired_salary_min", e.target.value)}
+                        placeholder="$"
+                        type="number"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Desired Max</label>
+                      <Input
+                        value={editData.desired_salary_max}
+                        onChange={(e) => updateField("desired_salary_max", e.target.value)}
+                        placeholder="$"
+                        type="number"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Salary Details</label>
+                    <Input
+                      value={editData.salary_details}
+                      onChange={(e) => updateField("salary_details", e.target.value)}
+                      placeholder="Compensation notes..."
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
           </div>
 
-          {/* Right column — notes, documents, record info */}
+          {/* Right column */}
           <div className="space-y-6">
             <ContactNotes contactId={contact.id} />
             <ContactDocuments contactId={contact.id} />
 
-            {/* Record Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -448,9 +664,7 @@ export default function ContactDetail() {
                 {contact.created_at && (
                   <div>
                     <p className="text-sm font-medium">Created</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(contact.created_at)}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{formatDate(contact.created_at)}</p>
                   </div>
                 )}
                 {contact.updated_at && (
@@ -458,9 +672,7 @@ export default function ContactDetail() {
                     <Separator />
                     <div>
                       <p className="text-sm font-medium">Last Updated</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(contact.updated_at)}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{formatDate(contact.updated_at)}</p>
                     </div>
                   </>
                 )}
