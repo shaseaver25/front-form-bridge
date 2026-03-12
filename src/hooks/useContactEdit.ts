@@ -32,7 +32,7 @@ export interface EditablePhone {
   value: string;
   category: string;
   is_primary: boolean;
-  extension: string;
+  extension?: string;
   _deleted?: boolean;
 }
 
