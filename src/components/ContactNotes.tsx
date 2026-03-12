@@ -170,7 +170,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
               <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setNewNote(""); }}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={addNote} disabled={adding || !newNote.trim()}>
+              <Button size="sm" onClick={addNote} disabled={adding || !newNote.replace(/<[^>]*>/g, "").trim()}>
                 {adding && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                 Save
               </Button>
