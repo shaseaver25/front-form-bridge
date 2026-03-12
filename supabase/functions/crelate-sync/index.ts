@@ -1160,6 +1160,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "full";
     const entityType = body.entity_type || "all";
+    const cursorOffset = body.cursor_offset || 0;
 
     // Test connection
     if (action === "test") {
