@@ -220,14 +220,12 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       const currentPos = c.CurrentPosition;
       const jobTitle = currentPos?.JobTitle || getField(c, "JobTitle", "jobTitle") || null;
 
-      // Map Crelate RecordType to allowed contact_type values
       const rawType = String(c.RecordType || "").toLowerCase();
       const contactType = rawType.includes("candidate") ? "candidate"
         : rawType.includes("client") ? "client"
         : rawType.includes("contact") ? "contact"
         : "contact";
 
-      // Map Crelate EntityStatus to allowed status values
       const rawStatus = String(c.EntityStatus || "").toLowerCase();
       const status = rawStatus.includes("inactive") ? "inactive"
         : rawStatus.includes("do_not_contact") || rawStatus.includes("donotcontact") ? "do_not_contact"
@@ -273,6 +271,18 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       if (lc.crelate_id) crelateToLocal[lc.crelate_id] = lc.id;
     }
 
+    // Get company crelate_id -> local id map for linking
+    const { data: localCompanies } = await supabase
+      .from("crm_companies")
+      .select("id, crelate_id, name")
+      .not("crelate_id", "is", null);
+    const compCrelateToLocal: Record<string, string> = {};
+    const compNameToLocal: Record<string, string> = {};
+    for (const co of (localCompanies || [])) {
+      if (co.crelate_id) compCrelateToLocal[co.crelate_id] = co.id;
+      if (co.name) compNameToLocal[co.name.toLowerCase()] = co.id;
+    }
+
     // Build sub-record arrays
     const allEmails: any[] = [];
     const allPhones: any[] = [];
@@ -280,6 +290,8 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
     const allAddresses: any[] = [];
     const allTagNames = new Set<string>();
     const contactTagPairs: { crelateId: string; tagName: string }[] = [];
+    const contactCompanyUpdates: { id: string; primary_company_id: string }[] = [];
+    const allCareerHistory: any[] = [];
 
     for (const c of contacts) {
       const crelateId = c.Id;
@@ -317,6 +329,79 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
           }
         }
       }
+
+      // Link contact to company via CurrentPosition or CompanyId
+      const compRef = c.CompanyId?.Id || c.CompanyId;
+      const currentPosCompany = c.CurrentPosition?.CompanyId?.Id || c.CurrentPosition?.CompanyId || c.CurrentPosition?.CompanyName;
+      if (compRef && typeof compRef === "string" && compCrelateToLocal[compRef]) {
+        contactCompanyUpdates.push({ id: contactId, primary_company_id: compCrelateToLocal[compRef] });
+      } else if (currentPosCompany && typeof currentPosCompany === "string") {
+        const localId = compCrelateToLocal[currentPosCompany] || compNameToLocal[currentPosCompany.toLowerCase()];
+        if (localId) {
+          contactCompanyUpdates.push({ id: contactId, primary_company_id: localId });
+        }
+      }
+
+      // Career History from CurrentPosition and PastPositions
+      const currentPos = c.CurrentPosition;
+      if (currentPos) {
+        const compName = currentPos.CompanyName || currentPos.Company || null;
+        const compId = currentPos.CompanyId?.Id || currentPos.CompanyId;
+        allCareerHistory.push({
+          crelate_id: `${crelateId}_current`,
+          contact_id: contactId,
+          entry_type: "experience",
+          job_title: currentPos.JobTitle || currentPos.Title || null,
+          company_name: compName,
+          company_id: (compId && compCrelateToLocal[compId]) || null,
+          started_at: currentPos.StartDate || null,
+          ended_at: null,
+          is_current: true,
+          description: currentPos.Description || null,
+        });
+      }
+
+      const pastPositions = c.PastPositions || c.WorkHistory || c.Positions || [];
+      if (Array.isArray(pastPositions)) {
+        for (let idx = 0; idx < pastPositions.length; idx++) {
+          const pos = pastPositions[idx];
+          const posId = pos.Id || `${crelateId}_past_${idx}`;
+          const compName = pos.CompanyName || pos.Company || null;
+          const compId = pos.CompanyId?.Id || pos.CompanyId;
+          allCareerHistory.push({
+            crelate_id: posId,
+            contact_id: contactId,
+            entry_type: "experience",
+            job_title: pos.JobTitle || pos.Title || null,
+            company_name: compName,
+            company_id: (compId && typeof compId === "string" && compCrelateToLocal[compId]) || null,
+            started_at: pos.StartDate || null,
+            ended_at: pos.EndDate || null,
+            is_current: false,
+            description: pos.Description || null,
+          });
+        }
+      }
+
+      // Education
+      const education = c.Education || c.EducationHistory || [];
+      if (Array.isArray(education)) {
+        for (let idx = 0; idx < education.length; idx++) {
+          const edu = education[idx];
+          const eduId = edu.Id || `${crelateId}_edu_${idx}`;
+          allCareerHistory.push({
+            crelate_id: eduId,
+            contact_id: contactId,
+            entry_type: "education",
+            degree: edu.Degree || edu.DegreeName || null,
+            institution: edu.School || edu.Institution || edu.SchoolName || null,
+            started_at: edu.StartDate || null,
+            ended_at: edu.EndDate || null,
+            is_current: false,
+            description: edu.Description || edu.FieldOfStudy || null,
+          });
+        }
+      }
     }
 
     // Batch upsert sub-records
@@ -336,21 +421,30 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       console.log(`Upserting ${allAddresses.length} addresses...`);
       await batchUpsert(supabase, "crm_addresses", allAddresses, "crelate_id");
     }
+    if (allCareerHistory.length > 0) {
+      console.log(`Upserting ${allCareerHistory.length} career history entries...`);
+      await batchUpsert(supabase, "crm_career_history", allCareerHistory, "crelate_id");
+    }
+
+    // Link contacts to companies
+    if (contactCompanyUpdates.length > 0) {
+      console.log(`Linking ${contactCompanyUpdates.length} contacts to companies...`);
+      for (const upd of contactCompanyUpdates) {
+        await supabase.from("crm_contacts").update({ primary_company_id: upd.primary_company_id }).eq("id", upd.id);
+      }
+    }
 
     // Tags: upsert tag names, then link
     if (allTagNames.size > 0) {
       console.log(`Processing ${allTagNames.size} unique tags...`);
       const tagRows = Array.from(allTagNames).map(name => ({ name }));
-      // Upsert tags by name
       for (const tr of tagRows) {
         await supabase.from("crm_tags").upsert(tr, { onConflict: "name", ignoreDuplicates: true });
       }
-      // Get all tag IDs
       const { data: allTags } = await supabase.from("crm_tags").select("id, name");
       const tagNameToId: Record<string, string> = {};
       for (const t of (allTags || [])) tagNameToId[t.name] = t.id;
 
-      // Build contact-tag links (deduplicated)
       const seen = new Set<string>();
       const tagLinks: any[] = [];
       for (const { crelateId, tagName } of contactTagPairs) {
@@ -366,7 +460,6 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       }
       if (tagLinks.length > 0) {
         console.log(`Linking ${tagLinks.length} contact-tag pairs...`);
-        // Use chunks to avoid conflicts
         for (let i = 0; i < tagLinks.length; i += 500) {
           const chunk = tagLinks.slice(i, i + 500);
           await supabase.from("crm_contact_tags").upsert(chunk, { 
@@ -377,7 +470,7 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
       }
     }
 
-    console.log(`Contact sync complete: ${result.total} contacts, ${allEmails.length} emails, ${allPhones.length} phones, ${allUrls.length} urls, ${allAddresses.length} addresses`);
+    console.log(`Contact sync complete: ${result.total} contacts, ${allEmails.length} emails, ${allPhones.length} phones, ${allUrls.length} urls, ${allAddresses.length} addresses, ${allCareerHistory.length} career entries, ${contactCompanyUpdates.length} company links`);
   } catch (e) {
     result.errors.push(`Contacts sync failed: ${e.message}`);
     result.failed = result.total;
