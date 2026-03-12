@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import RichTextEditor, { RichTextDisplay } from "@/components/ui/rich-text-editor";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pin, PinOff, Trash2, Plus, Loader2, StickyNote, Mail, Phone, Calendar, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -102,7 +102,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
   }, [contactId]);
 
   const addNote = async () => {
-    if (!newNote.trim()) return;
+    const stripped = newNote.replace(/<[^>]*>/g, "").trim();
+    if (!stripped) return;
     setAdding(true);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -159,17 +160,17 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
       <CardContent className="space-y-3">
         {showForm && (
           <div className="space-y-2 border border-border rounded-lg p-3">
-            <Textarea
+            <RichTextEditor
+              content={newNote}
+              onChange={setNewNote}
               placeholder="Write a note..."
-              value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
-              rows={3}
+              minHeight="80px"
             />
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="ghost" onClick={() => { setShowForm(false); setNewNote(""); }}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={addNote} disabled={adding || !newNote.trim()}>
+              <Button size="sm" onClick={addNote} disabled={adding || !newNote.replace(/<[^>]*>/g, "").trim()}>
                 {adding && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                 Save
               </Button>
@@ -215,9 +216,13 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                       <Pin className="w-3 h-3 text-primary shrink-0" />
                     )}
                   </div>
-                  <p className={`whitespace-pre-line text-foreground ${!isExpanded ? "line-clamp-1" : ""}`}>
-                    {note.content}
-                  </p>
+                  {isExpanded ? (
+                    <RichTextDisplay content={note.content} className="text-foreground" />
+                  ) : (
+                    <p className="whitespace-pre-line text-foreground line-clamp-1">
+                      {note.content.replace(/<[^>]*>/g, "")}
+                    </p>
+                  )}
                   <span className="text-xs text-muted-foreground block pt-1">
                     {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                   </span>

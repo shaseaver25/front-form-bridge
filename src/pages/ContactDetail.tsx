@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor, { RichTextDisplay } from "@/components/ui/rich-text-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -584,16 +585,13 @@ export default function ContactDetail() {
                 </CardHeader>
                 <CardContent>
                   {editing ? (
-                    <Textarea
-                      value={editData.description}
-                      onChange={(e) => updateField("description", e.target.value)}
+                    <RichTextEditor
+                      content={editData.description}
+                      onChange={(html) => updateField("description", html)}
                       placeholder="Description / notes about this contact..."
-                      rows={4}
                     />
                   ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                      {contact.description}
-                    </p>
+                    <RichTextDisplay content={contact.description} />
                   )}
                 </CardContent>
               </Card>
