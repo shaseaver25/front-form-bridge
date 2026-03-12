@@ -273,10 +273,10 @@ export default function SiteDetail() {
                       <div
                         key={contact.id}
                         className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
-                        onClick={() => navigate(`/constituents`)}
+                        onClick={() => navigate(`/contacts/${contact.id}`)}
                       >
                         <div>
-                          <p className="font-medium">
+                          <p className="font-medium text-primary hover:underline">
                             {contact.first_name} {contact.last_name}
                           </p>
                           {contact.job_title && (
