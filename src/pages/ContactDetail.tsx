@@ -31,6 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import ContactNotes from "@/components/ContactNotes";
 import ContactDocuments from "@/components/ContactDocuments";
+import ContactResumes from "@/components/ContactResumes";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
