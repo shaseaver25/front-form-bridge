@@ -273,10 +273,14 @@ export default function JobDetail() {
             {placements && placements.length > 0 ? (
               <div className="space-y-2">
                 {placements.map((p: any) => (
-                  <Card key={p.id}>
+                  <Card
+                    key={p.id}
+                    className="cursor-pointer hover:shadow-md transition-all"
+                    onClick={() => p.contact?.id && navigate(`/contacts/${p.contact.id}`)}
+                  >
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-primary hover:underline">
                           {p.contact?.first_name} {p.contact?.last_name}
                         </p>
                         {p.placement_date && (

@@ -302,10 +302,11 @@ export default function SiteDetail() {
                     {jobs.map((job) => (
                       <div
                         key={job.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
+                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/jobs/${job.id}`)}
                       >
                         <div>
-                          <p className="font-medium">{job.name}</p>
+                          <p className="font-medium text-primary hover:underline">{job.name}</p>
                           {job.job_title && (
                             <p className="text-sm text-muted-foreground">{job.job_title}</p>
                           )}
