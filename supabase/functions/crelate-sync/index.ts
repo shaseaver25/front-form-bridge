@@ -686,12 +686,14 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     for (const contact of contacts) {
       try {
         // Use Crelate v2 document list endpoint (POST)
-        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${apiKey}`;
+        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}`;
+        if (debugCount < 3) {
+          console.log(`Fetching attachments from: ${listUrl}`);
+        }
         const res = await fetch(listUrl, {
           method: "POST",
           headers: {
             "X-Api-Key": apiKey,
-            "x-api-key": apiKey,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ Types: [0, 1, 2] }),
