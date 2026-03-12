@@ -1246,11 +1246,15 @@ Deno.serve(async (req) => {
         .eq("id", logEntry.id);
     }
 
+    // Check if any result has hasMore (for paginated document sync)
+    const docResult = results.find((r: any) => r.entity === "documents" && r.hasMore);
+
     return new Response(
       JSON.stringify({
         success: true,
         results,
         summary: { synced: totalCreated + totalUpdated, created: totalCreated, updated: totalUpdated, failed: totalFailed },
+        ...(docResult ? { hasMore: true, nextCursor: (docResult as any).nextCursor, continueEntity: "documents" } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
