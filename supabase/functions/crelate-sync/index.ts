@@ -680,11 +680,28 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     let totalAttachments = 0;
 
+    // Log first few contacts for debugging
+    let debugCount = 0;
+
     for (const contact of contacts) {
       try {
-        const url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
-        const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+        // Try v1 pub API first (correct endpoint for attachments), then fall back to v3
+        const v1Url = `https://app.crelate.com/api/pub/v1/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
+        let res = await fetch(v1Url, { headers: { "x-api-key": apiKey } });
+        
+        // If v1 fails, try v3
         if (!res.ok) {
+          const v3Url = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments?api_key=${apiKey}`;
+          res = await fetch(v3Url, { headers: { "x-api-key": apiKey } });
+        }
+
+        if (!res.ok) {
+          if (debugCount < 3) {
+            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id}`);
+            const errText = await res.text();
+            console.log(`Response body: ${errText.substring(0, 500)}`);
+            debugCount++;
+          }
           if (res.status === 404) continue;
           if (res.status === 429) {
             console.warn(`Rate limited on attachments list, waiting 5s...`);
@@ -695,9 +712,20 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
         }
 
         const attachData = await res.json();
+        
+        // Debug: log first few responses to understand the shape
+        if (debugCount < 3) {
+          const keys = Object.keys(attachData || {});
+          const preview = JSON.stringify(attachData).substring(0, 500);
+          console.log(`Contact ${contact.crelate_id} attachments response keys=[${keys}] preview: ${preview}`);
+          debugCount++;
+        }
+
         let attachments: any[] = [];
         if (Array.isArray(attachData)) {
           attachments = attachData;
+        } else if (attachData?.Results && Array.isArray(attachData.Results)) {
+          attachments = attachData.Results;
         } else if (attachData?.Data && Array.isArray(attachData.Data)) {
           attachments = attachData.Data;
         } else {
@@ -706,6 +734,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
         }
 
         if (attachments.length === 0) continue;
+        
+        console.log(`Found ${attachments.length} attachments for contact ${contact.crelate_id}`);
 
         for (const att of attachments) {
           const attId = att.Id || att.id;
@@ -719,8 +749,14 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           const fileType = att.ContentType || att.MimeType || guessContentType(fileName);
 
           try {
-            const dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
-            const dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            // Try v1 endpoint for downloading individual attachment
+            let dlUrl = `https://app.crelate.com/api/pub/v1/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
+            let dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            if (!dlRes.ok) {
+              // Fall back to v3
+              dlUrl = `${CRELATE_BASE}/contacts/${contact.crelate_id}/attachments/${attId}?api_key=${apiKey}`;
+              dlRes = await fetch(dlUrl, { headers: { "x-api-key": apiKey } });
+            }
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
