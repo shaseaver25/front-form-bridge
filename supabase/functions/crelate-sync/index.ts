@@ -978,6 +978,134 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
   return result;
 }
 
+async function syncPipelineItems(apiKey: string, supabase: any): Promise<SyncResult> {
+  const result: SyncResult = { entity: "pipeline_items", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
+
+  try {
+    // Get lookup maps
+    const { data: contacts } = await supabase.from("crm_contacts").select("id, crelate_id").not("crelate_id", "is", null);
+    const contactMap: Record<string, string> = {};
+    for (const c of (contacts || [])) if (c.crelate_id) contactMap[c.crelate_id] = c.id;
+
+    const { data: jobs } = await supabase.from("crm_jobs").select("id, crelate_id").not("crelate_id", "is", null);
+    const jobMap: Record<string, string> = {};
+    for (const j of (jobs || [])) if (j.crelate_id) jobMap[j.crelate_id] = j.id;
+
+    // Fetch pipeline/sales items from Crelate
+    let items: any[] = [];
+    try {
+      items = await fetchAllPages("sales", apiKey);
+    } catch {
+      try {
+        items = await fetchAllPages("pipeline", apiKey);
+      } catch (e2) {
+        // Try fetching per-job candidates
+        console.log("No pipeline endpoint, fetching per-job candidates...");
+        for (const job of (jobs || [])) {
+          if (!job.crelate_id) continue;
+          try {
+            const url = `${CRELATE_BASE}/jobs/${job.crelate_id}/candidates?api_key=${apiKey}`;
+            const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+            if (!res.ok) { await res.text(); continue; }
+            const data = await res.json();
+            const candidates = Array.isArray(data) ? data : (data?.Data || []);
+            for (const cand of candidates) {
+              items.push({ ...cand, _jobCrelateId: job.crelate_id });
+            }
+          } catch {}
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+    }
+
+    result.total = items.length;
+    if (items.length === 0) return result;
+
+    const rows = items
+      .filter(item => {
+        const contactRef = item.ContactId?.Id || item.ContactId || item.Id;
+        const jobRef = item._jobCrelateId || item.JobId?.Id || item.JobId;
+        return contactRef && jobRef && contactMap[contactRef] && jobMap[jobRef];
+      })
+      .map(item => {
+        const contactRef = item.ContactId?.Id || item.ContactId || item.Id;
+        const jobRef = item._jobCrelateId || item.JobId?.Id || item.JobId;
+        const itemId = item.SalesId || item.PipelineId || item.Id || `${contactRef}_${jobRef}`;
+        
+        const rawStatus = String(item.Status || item.Stage || item.EntityStatus || "").toLowerCase();
+        const status = rawStatus.includes("interview") ? "interview"
+          : rawStatus.includes("offer") ? "offer"
+          : rawStatus.includes("placed") ? "placed"
+          : rawStatus.includes("reject") ? "rejected"
+          : rawStatus.includes("withdraw") ? "withdrawn"
+          : rawStatus.includes("submit") ? "submitted"
+          : rawStatus.includes("screen") ? "screening"
+          : "new";
+
+        return {
+          crelate_id: itemId,
+          contact_id: contactMap[contactRef],
+          job_id: jobMap[jobRef],
+          status,
+          executive_summary: item.ExecutiveSummary || item.Summary || null,
+          average_rating: item.Rating || item.AverageRating || null,
+        };
+      });
+
+    if (rows.length > 0) {
+      const r = await batchUpsert(supabase, "crm_pipeline_items", rows, "crelate_id");
+      result.created = r.created;
+      result.failed = r.failed;
+      result.errors.push(...r.errors);
+    }
+
+    console.log(`Pipeline items sync: ${rows.length} items processed`);
+  } catch (e) {
+    result.errors.push(`Pipeline items sync failed: ${e.message}`);
+  }
+
+  return result;
+}
+
+async function syncSources(apiKey: string, supabase: any): Promise<SyncResult> {
+  const result: SyncResult = { entity: "sources", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
+
+  try {
+    let sources: any[] = [];
+    try {
+      sources = await fetchAllPages("sources", apiKey);
+    } catch {
+      // Sources might not have a dedicated endpoint; extract from contacts
+      console.log("No sources endpoint, extracting from contacts...");
+      const { data: contacts } = await supabase
+        .from("crm_contacts")
+        .select("source_id")
+        .not("source_id", "is", null);
+      // Sources already come with contacts, skip if no endpoint
+      return result;
+    }
+    
+    result.total = sources.length;
+    const rows = sources
+      .filter(s => s.Id && s.Name)
+      .map(s => ({
+        crelate_id: s.Id,
+        name: s.Name,
+      }));
+
+    if (rows.length > 0) {
+      const r = await batchUpsert(supabase, "crm_contact_sources", rows, "crelate_id");
+      result.created = r.created;
+      result.failed = r.failed;
+      result.errors.push(...r.errors);
+    }
+  } catch (e) {
+    result.errors.push(`Sources sync failed: ${e.message}`);
+  }
+
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
