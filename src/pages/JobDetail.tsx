@@ -246,11 +246,11 @@ export default function JobDetail() {
                   <Card
                     key={item.id}
                     className="cursor-pointer hover:shadow-md transition-all"
-                    onClick={() => navigate(`/constituents`)}
+                    onClick={() => item.contact?.id && navigate(`/contacts/${item.contact.id}`)}
                   >
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-primary hover:underline">
                           {item.contact?.first_name} {item.contact?.last_name}
                         </p>
                         {item.contact?.job_title && (
