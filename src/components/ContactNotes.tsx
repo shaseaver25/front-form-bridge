@@ -216,9 +216,13 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                       <Pin className="w-3 h-3 text-primary shrink-0" />
                     )}
                   </div>
-                  <p className={`whitespace-pre-line text-foreground ${!isExpanded ? "line-clamp-1" : ""}`}>
-                    {note.content}
-                  </p>
+                  {isExpanded ? (
+                    <RichTextDisplay content={note.content} className="text-foreground" />
+                  ) : (
+                    <p className="whitespace-pre-line text-foreground line-clamp-1">
+                      {note.content.replace(/<[^>]*>/g, "")}
+                    </p>
+                  )}
                   <span className="text-xs text-muted-foreground block pt-1">
                     {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                   </span>
