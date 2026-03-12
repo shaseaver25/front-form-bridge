@@ -778,7 +778,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
                 file_name: fileName,
                 file_url: storagePath,
                 file_type: fileType,
-                file_size_bytes: fileBlob.size || null,
+                file_size_bytes: fileBlob.size || att.FileSize || null,
               }, { onConflict: "crelate_id" });
 
             if (insertError) {
