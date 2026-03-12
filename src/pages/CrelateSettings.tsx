@@ -8,16 +8,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   ArrowLeft, RefreshCw, CheckCircle2, XCircle, Clock,
   Database, Users, Building2, Briefcase, Award, MessageSquare, MapPin, Loader2,
+  FileText, GitBranch, Tag,
 } from "lucide-react";
 import { useCrelateSync } from "@/hooks/useCrelateSync";
 import { format } from "date-fns";
 
 const ENTITY_TYPES = [
+  { key: "sources", label: "Sources", icon: Tag, description: "Contact sources / origins" },
   { key: "contacts", label: "Contacts", icon: Users, description: "Contacts, emails, phones, URLs, tags" },
   { key: "companies", label: "Companies", icon: Building2, description: "Company records" },
   { key: "jobs", label: "Jobs", icon: Briefcase, description: "Job postings" },
   { key: "placements", label: "Placements", icon: Award, description: "Placement records" },
+  { key: "pipeline_items", label: "Pipeline", icon: GitBranch, description: "Candidate pipeline stages" },
   { key: "activities", label: "Activities", icon: MessageSquare, description: "Notes, calls, meetings" },
+  { key: "documents", label: "Documents", icon: FileText, description: "Resumes & attachments" },
 ];
 
 export default function CrelateSettings() {
