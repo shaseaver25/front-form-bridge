@@ -34,10 +34,12 @@ import ContactDocuments from "@/components/ContactDocuments";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isReady } = useAuthReady();
 
   const [contact, setContact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
