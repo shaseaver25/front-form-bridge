@@ -1051,6 +1051,214 @@ export type Database = {
         }
         Relationships: []
       }
+      gmail_connections: {
+        Row: {
+          access_token: string | null
+          auto_sync_enabled: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gmail_messages: {
+        Row: {
+          cc_emails: Json | null
+          connection_id: string | null
+          created_at: string | null
+          from_email: string | null
+          from_name: string | null
+          gmail_message_id: string
+          id: string
+          internal_date: string | null
+          is_read: boolean | null
+          label_ids: Json | null
+          matched_contact_id: string | null
+          snippet: string | null
+          subject: string | null
+          thread_id: string | null
+          to_emails: Json | null
+          user_id: string
+        }
+        Insert: {
+          cc_emails?: Json | null
+          connection_id?: string | null
+          created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          gmail_message_id: string
+          id?: string
+          internal_date?: string | null
+          is_read?: boolean | null
+          label_ids?: Json | null
+          matched_contact_id?: string | null
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_emails?: Json | null
+          user_id: string
+        }
+        Update: {
+          cc_emails?: Json | null
+          connection_id?: string | null
+          created_at?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          gmail_message_id?: string
+          id?: string
+          internal_date?: string | null
+          is_read?: boolean | null
+          label_ids?: Json | null
+          matched_contact_id?: string | null
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string | null
+          to_emails?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gmail_messages_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "gmail_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar_connections: {
+        Row: {
+          access_token: string | null
+          auto_sync_enabled: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          last_sync_at: string | null
+          refresh_token: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          auto_sync_enabled?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_events: {
+        Row: {
+          attendees: Json | null
+          connection_id: string | null
+          created_at: string | null
+          description: string | null
+          end_time: string | null
+          google_event_id: string
+          html_link: string | null
+          id: string
+          location: string | null
+          start_time: string | null
+          status: string | null
+          summary: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attendees?: Json | null
+          connection_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          google_event_id: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          start_time?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attendees?: Json | null
+          connection_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          end_time?: string | null
+          google_event_id?: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          start_time?: string | null
+          status?: string | null
+          summary?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "google_calendar_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
