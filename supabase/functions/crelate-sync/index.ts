@@ -1407,7 +1407,7 @@ Deno.serve(async (req) => {
     const totalSynced = totalCreated + totalUpdated;
 
     const syncStatus = allErrors.length > 0
-      ? (totalSynced > 0 || totalFailed > 0 ? "partial" : "failed")
+      ? (totalSynced > 0 ? "partial" : "failed")
       : (totalFailed > 0 ? "partial" : "success");
 
     if (logEntry) {
