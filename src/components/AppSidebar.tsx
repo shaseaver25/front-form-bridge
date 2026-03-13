@@ -187,6 +187,13 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            Executive Search
+          </SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(execSearchItems)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
             Outreach
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
