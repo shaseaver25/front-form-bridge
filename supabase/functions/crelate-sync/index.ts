@@ -1324,9 +1324,9 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: syncStatus !== "failed",
         results,
-        summary: { synced: totalCreated + totalUpdated, created: totalCreated, updated: totalUpdated, failed: totalFailed },
+        summary: { synced: totalSynced, created: totalCreated, updated: totalUpdated, failed: totalFailed },
         ...(docResult ? { hasMore: true, nextCursor: (docResult as any).nextCursor, continueEntity: "documents" } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
