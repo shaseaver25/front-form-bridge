@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.company-summary]
 verify_jwt = false
+
+[functions.enrich-contact]
+verify_jwt = false

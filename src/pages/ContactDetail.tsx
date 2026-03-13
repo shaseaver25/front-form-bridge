@@ -190,11 +190,24 @@ export default function ContactDetail() {
   };
 
   const handleEnrich = async () => {
+    if (!id) return;
     setEnriching(true);
-    // TODO: Wire up to enrichment edge function
-    await new Promise((r) => setTimeout(r, 1000));
-    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
-    setEnriching(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-contact", {
+        body: { contact_id: id },
+      });
+      if (error) throw error;
+      if (data?.enriched) {
+        toast({ title: "Contact enriched", description: "Apollo.io data has been applied." });
+        fetchContact();
+      } else {
+        toast({ title: "No match found", description: data?.message || "Apollo could not find a match for this contact." });
+      }
+    } catch (err: any) {
+      toast({ title: "Enrichment failed", description: err.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setEnriching(false);
+    }
   };
 
   if (loading) {

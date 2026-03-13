@@ -40,14 +40,26 @@ export function ESContactsList() {
   const handleEnrich = async (e: React.MouseEvent, contactId: string) => {
     e.stopPropagation();
     setEnrichingIds((prev) => new Set(prev).add(contactId));
-    // TODO: Wire up to enrichment edge function
-    await new Promise((r) => setTimeout(r, 1000));
-    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
-    setEnrichingIds((prev) => {
-      const next = new Set(prev);
-      next.delete(contactId);
-      return next;
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke("enrich-contact", {
+        body: { contact_id: contactId },
+      });
+      if (error) throw error;
+      if (data?.enriched) {
+        toast({ title: "Contact enriched", description: "Apollo.io data has been applied." });
+        fetchContacts();
+      } else {
+        toast({ title: "No match found", description: data?.message || "No Apollo match." });
+      }
+    } catch (err: any) {
+      toast({ title: "Enrichment failed", description: err.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setEnrichingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(contactId);
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
