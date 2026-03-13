@@ -763,6 +763,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     let totalAttachments = 0;
 
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
     // Log first few contacts for debugging
     let debugCount = 0;
     let abortPagination = false;
@@ -775,45 +777,73 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           console.log(`Fetching attachments from: ${listUrl}`);
         }
 
-        const { response: res, authAttempt: listAuthAttempt } = await fetchCrelateWithAuthVariants(
-          listUrl,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ Types: [0, 1, 2] }),
-          },
-          normalizedApiKey,
-        );
+        const maxRateLimitRetries = 3;
+        let rateLimitRetries = 0;
+        let listResult: { response: Response; authAttempt: string } | null = null;
 
-        if (!res.ok) {
-          if (debugCount < 3) {
-            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
-            const errText = await res.text();
-            console.log(`Response body: ${errText.substring(0, 500)}`);
-            debugCount++;
-          } else {
-            await res.text(); // consume body
+        while (rateLimitRetries <= maxRateLimitRetries) {
+          listResult = await fetchCrelateWithAuthVariants(
+            listUrl,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ Types: [0, 1, 2] }),
+            },
+            normalizedApiKey,
+          );
+
+          if (listResult.response.status !== 429) break;
+
+          if (rateLimitRetries === maxRateLimitRetries) {
+            break;
           }
 
-          if (res.status === 401) {
-            console.error(`401 Unauthorized on document list API - aborting document sync (authAttempt=${listAuthAttempt})`);
+          const retryAfterHeader = Number(listResult.response.headers.get("retry-after") || "5");
+          const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+            ? retryAfterHeader * 1000
+            : 5000;
+          await listResult.response.text();
+          rateLimitRetries += 1;
+          console.warn(`Rate limited on attachments list, retry ${rateLimitRetries}/${maxRateLimitRetries}, waiting ${Math.round(waitMs / 1000)}s...`);
+          await sleep(waitMs);
+        }
+
+        if (!listResult) continue;
+
+        const { response: res, authAttempt: listAuthAttempt } = listResult;
+
+        if (!res.ok) {
+          const errText = await res.text();
+          if (debugCount < 3) {
+            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
+            console.log(`Response body: ${errText.substring(0, 500)}`);
+            debugCount++;
+          }
+
+          if (res.status === 401 || res.status === 403) {
+            console.error(`${res.status} on document list API - aborting document sync (authAttempt=${listAuthAttempt})`);
             result.failed += 1;
-            result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
+            result.errors.push(`${res.status} from Crelate document API for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
+            abortPagination = true;
+            break;
+          }
+
+          if (res.status === 429) {
+            result.failed += 1;
+            result.errors.push(`429 rate limit from Crelate document API after ${maxRateLimitRetries} retries for contact ${contact.crelate_id}`);
             abortPagination = true;
             break;
           }
 
           if (res.status === 404) continue;
-          if (res.status === 429) {
-            console.warn("Rate limited on attachments list, waiting 5s...");
-            await new Promise(r => setTimeout(r, 5000));
-            continue;
-          }
+
+          result.failed += 1;
+          result.errors.push(`Document list API returned ${res.status} for contact ${contact.crelate_id}`);
           continue;
         }
 
         const attachData = await res.json();
-        
+
         // Debug: log first few responses
         if (debugCount < 3) {
           const preview = JSON.stringify(attachData).substring(0, 500);
@@ -825,7 +855,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
         const attachments: any[] = attachData?.Attachments || [];
 
         if (attachments.length === 0) continue;
-        
+
         console.log(`Found ${attachments.length} attachments for contact ${contact.crelate_id}`);
 
         for (const att of attachments) {
@@ -848,13 +878,25 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
               normalizedApiKey,
             );
             if (!dlRes.ok) {
-              if (dlRes.status === 401) {
-                console.warn(`Attachment download 401 for ${attId} (authAttempt=${downloadAuthAttempt})`);
+              const dlErrText = await dlRes.text();
+
+              if (dlRes.status === 401 || dlRes.status === 403) {
+                console.warn(`Attachment download ${dlRes.status} for ${attId} (authAttempt=${downloadAuthAttempt})`);
+                result.failed++;
+                result.errors.push(`${dlRes.status} from Crelate attachment download for attachment ${attId} (authAttempt=${downloadAuthAttempt})`);
+                abortPagination = true;
+                break;
               }
+
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
-                await new Promise(r => setTimeout(r, 5000));
+                await sleep(5000);
               }
+
+              if (debugCount < 3) {
+                console.log(`Attachment download ${dlRes.status} body: ${dlErrText.substring(0, 500)}`);
+              }
+
               result.failed++;
               continue;
             }
@@ -895,19 +937,23 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             result.failed++;
           }
 
-          await new Promise(r => setTimeout(r, 500));
+          if (abortPagination) break;
+
+          await sleep(500);
         }
       } catch (contactErr) {
         console.warn(`Error fetching attachments for contact ${contact.crelate_id}: ${contactErr.message}`);
       }
 
-      await new Promise(r => setTimeout(r, 300));
+      if (abortPagination) break;
+
+      await sleep(300);
     }
 
     result.total = totalAttachments;
     result.hasMore = abortPagination ? false : hasMore;
     result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
-    console.log(`Document sync batch complete: ${result.created} uploaded, ${result.failed} failed, hasMore=${hasMore}`);
+    console.log(`Document sync batch complete: ${result.created} uploaded, ${result.failed} failed, hasMore=${result.hasMore}`);
   } catch (e) {
     result.errors.push(`Documents sync failed: ${e.message}`);
   }
