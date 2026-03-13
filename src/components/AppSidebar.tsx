@@ -34,6 +34,8 @@ import {
   LayoutTemplate,
   Database,
   Send,
+  UserSearch,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -74,6 +76,12 @@ const workItems: NavItem[] = [
     pro: "voice",
     tierRequired: "professional",
   },
+];
+
+const execSearchItems: NavItem[] = [
+  { title: "ES Contacts", url: "/exec-search/contacts", icon: UserSearch },
+  { title: "ES Companies", url: "/exec-search/companies", icon: Building2 },
+  { title: "ES Jobs", url: "/exec-search/jobs", icon: Briefcase },
 ];
 
 const outreachItems: NavItem[] = [
@@ -175,6 +183,13 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Work</SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(workItems)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+            Executive Search
+          </SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(execSearchItems)}</SidebarGroupContent>
         </SidebarGroup>
 
         <SidebarGroup>
