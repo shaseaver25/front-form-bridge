@@ -884,7 +884,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
             const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const { response: dlRes, authAttempt: downloadAuthAttempt } = await fetchCrelateWithAuthVariants(
+            const dlRes = await fetchCrelateWithHeaderOnly(
               dlUrl,
               { method: "GET" },
               normalizedApiKey,
@@ -893,9 +893,9 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
               const dlErrText = await dlRes.text();
 
               if (dlRes.status === 401 || dlRes.status === 403) {
-                console.warn(`Attachment download ${dlRes.status} for ${attId} (authAttempt=${downloadAuthAttempt})`);
+                console.warn(`Attachment download ${dlRes.status} for ${attId} using X-Api-Key header`);
                 result.failed++;
-                result.errors.push(`${dlRes.status} from Crelate attachment download for attachment ${attId} (authAttempt=${downloadAuthAttempt})`);
+                result.errors.push(`${dlRes.status} from Crelate attachment download for attachment ${attId}: ${dlErrText.substring(0, 200)}`);
                 abortPagination = true;
                 break;
               }
