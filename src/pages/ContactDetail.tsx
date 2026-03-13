@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ContactNotes from "@/components/ContactNotes";
 import ContactDocuments from "@/components/ContactDocuments";
 import ContactResumes from "@/components/ContactResumes";
+import ContactAvatar from "@/components/ContactAvatar";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
@@ -251,9 +252,12 @@ export default function ContactDetail() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-primary" />
-              </div>
+              <ContactAvatar
+                contactId={contact.id}
+                iconUrl={contact.icon_attachment_url}
+                name={displayName}
+                onUpdate={(newPath) => setContact((prev: any) => ({ ...prev, icon_attachment_url: newPath }))}
+              />
               {editing ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
