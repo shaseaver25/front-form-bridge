@@ -416,30 +416,22 @@ export default function SiteDetail() {
               <Activity className="h-4 w-4" />
               Activities ({activities?.length ?? 0})
             </TabsTrigger>
-            {placements && placements.length > 0 && (
-              <TabsTrigger value="placements" className="gap-2">
-                <Award className="h-4 w-4" />
-                Placements ({placements.length})
-              </TabsTrigger>
-            )}
-            {addresses && addresses.length > 0 && (
-              <TabsTrigger value="addresses" className="gap-2">
-                <MapPin className="h-4 w-4" />
-                Addresses ({addresses.length})
-              </TabsTrigger>
-            )}
-            {urls && urls.length > 0 && (
-              <TabsTrigger value="urls" className="gap-2">
-                <Link2 className="h-4 w-4" />
-                URLs ({urls.length})
-              </TabsTrigger>
-            )}
-            {attachments && attachments.length > 0 && (
-              <TabsTrigger value="attachments" className="gap-2">
-                <Paperclip className="h-4 w-4" />
-                Files ({attachments.length})
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="placements" className="gap-2">
+              <Award className="h-4 w-4" />
+              Placements ({placements?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Addresses ({addresses?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="urls" className="gap-2">
+              <Link2 className="h-4 w-4" />
+              URLs ({urls?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="attachments" className="gap-2">
+              <Paperclip className="h-4 w-4" />
+              Files ({attachments?.length ?? 0})
+            </TabsTrigger>
           </TabsList>
 
           {/* Contacts Tab */}
