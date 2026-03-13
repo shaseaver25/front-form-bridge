@@ -341,7 +341,10 @@ export default function JobDetail() {
                 {job.description && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-                    <p className="text-sm whitespace-pre-wrap">{job.description}</p>
+                    <div
+                      className="text-sm prose prose-sm dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(job.description) }}
+                    />
                   </div>
                 )}
                 {job.compensation_details && (
