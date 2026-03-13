@@ -1,25 +1,42 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { syncSiteContact } from "@/utils/siteContactSync";
-import { syncSiteVolunteerEvent } from "@/utils/siteVolunteerSync";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import Layout from "@/components/Layout";
-import { ArrowLeft } from "lucide-react";
-import { SiteForm } from "@/components/sites/SiteForm";
+import { ArrowLeft, Save } from "lucide-react";
+
+const companyTypeOptions = [
+  { value: "client", label: "Client" },
+  { value: "prospect", label: "Prospect" },
+  { value: "partner", label: "Partner" },
+  { value: "vendor", label: "Vendor" },
+];
+
+const statusOptions = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+  { value: "prospect", label: "Prospect" },
+  { value: "former", label: "Former" },
+];
 
 export default function SiteEdit() {
   const { siteId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: site, isLoading } = useQuery({
-    queryKey: ["site", siteId],
+  const { data: company, isLoading } = useQuery({
+    queryKey: ["company", siteId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("sites")
+        .from("crm_companies")
         .select("*")
         .eq("id", siteId)
         .single();
@@ -29,51 +46,54 @@ export default function SiteEdit() {
     enabled: !!siteId,
   });
 
-  const updateSite = useMutation({
-    mutationFn: async (formData: any) => {
-      // Sanitize empty strings to null for date/uuid fields
-      const clean = (val: any): any => (val === '' || val === undefined ? null : val);
-      const sanitized = {
-        ...formData,
-        start_date: clean(formData.start_date),
-        end_date: clean(formData.end_date),
-        relationship_started_at: clean(formData.relationship_started_at),
-        district_id: clean(formData.district_id),
-        website: clean(formData.website),
-        contact_email: clean(formData.contact_email),
-        description: clean(formData.description),
-      };
+  const [form, setForm] = useState<Record<string, any> | null>(null);
+
+  // Initialize form when company loads
+  if (company && !form) {
+    setForm({
+      name: company.name || "",
+      description: company.description || "",
+      company_type: company.company_type || "client",
+      status: company.status || "active",
+      domain: company.domain || "",
+      revenue: company.revenue ? String(company.revenue) : "",
+    });
+  }
+
+  const updateCompany = useMutation({
+    mutationFn: async (formData: Record<string, any>) => {
       const { error } = await supabase
-        .from("sites")
-        .update(sanitized)
+        .from("crm_companies")
+        .update({
+          name: formData.name,
+          description: formData.description || null,
+          company_type: formData.company_type,
+          status: formData.status,
+          domain: formData.domain || null,
+          revenue: formData.revenue ? Number(formData.revenue) : null,
+        })
         .eq("id", siteId);
       if (error) throw error;
-
-      // Auto-create/link constituent from contact fields
-      await syncSiteContact(siteId!, sanitized.contact_name || null, sanitized.contact_email || null, sanitized.contact_phone || null);
-
-      // Auto-create/sync volunteer event if volunteers needed
-      await syncSiteVolunteerEvent(siteId!, {
-        name: sanitized.name,
-        volunteers_needed: sanitized.volunteers_needed ?? false,
-        meeting_time: sanitized.meeting_time || null,
-        meeting_days: sanitized.meeting_days || null,
-        address_street: sanitized.address_street || null,
-        address_city: sanitized.address_city || null,
-        address_state: sanitized.address_state || null,
-        instructor_name: sanitized.instructor_name || null,
-      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["site", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["company", siteId] });
       queryClient.invalidateQueries({ queryKey: ["sites"] });
-      toast.success("Site updated successfully");
+      toast.success("Company updated successfully");
       navigate(`/sites/${siteId}`);
     },
     onError: () => {
-      toast.error("Failed to update site");
+      toast.error("Failed to update company");
     },
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form?.name?.trim()) {
+      toast.error("Company name is required");
+      return;
+    }
+    updateCompany.mutate(form);
+  };
 
   if (isLoading) {
     return (
@@ -86,12 +106,12 @@ export default function SiteEdit() {
     );
   }
 
-  if (!site) {
+  if (!company || !form) {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center py-16">
-          <p className="text-muted-foreground mb-4">Site not found</p>
-          <Button onClick={() => navigate("/sites")}>Back to Organizations</Button>
+          <p className="text-muted-foreground mb-4">Company not found</p>
+          <Button onClick={() => navigate("/sites")}>Back to Companies</Button>
         </div>
       </Layout>
     );
@@ -99,21 +119,103 @@ export default function SiteEdit() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-2xl">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/sites/${siteId}`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold tracking-tight">Edit {site.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Edit {company.name}</h1>
         </div>
 
-        <SiteForm
-          site={site as unknown as import("@/types/sites").Site}
-          onSubmit={async (data) => {
-            await updateSite.mutateAsync(data);
-          }}
-          isSubmitting={updateSite.isPending}
-        />
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Company Name *</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Enter company name"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Type</Label>
+                  <Select value={form.company_type} onValueChange={(v) => setForm({ ...form, company_type: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companyTypeOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="domain">Domain</Label>
+                <Input
+                  id="domain"
+                  value={form.domain}
+                  onChange={(e) => setForm({ ...form, domain: e.target.value })}
+                  placeholder="example.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="revenue">Revenue</Label>
+                <Input
+                  id="revenue"
+                  type="number"
+                  value={form.revenue}
+                  onChange={(e) => setForm({ ...form, revenue: e.target.value })}
+                  placeholder="Annual revenue"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Notes about this company..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" disabled={updateCompany.isPending}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateCompany.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate(`/sites/${siteId}`)}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
       </div>
     </Layout>
   );
