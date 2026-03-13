@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, UserSearch } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { RecordAvatar } from "@/components/ui/record-avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
