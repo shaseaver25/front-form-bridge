@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Sparkles } from "lucide-react";
 import { RecordAvatar } from "@/components/ui/record-avatar";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 import {
   Table,
@@ -21,6 +23,7 @@ type ESContact = {
   last_name: string;
   job_title: string | null;
   status: string;
+  enrichment_status: string | null;
   primary_email: string | null;
   primary_company_name: string | null;
 };
@@ -28,9 +31,24 @@ type ESContact = {
 export function ESContactsList() {
   const navigate = useNavigate();
   const { isReady } = useAuthReady();
+  const { toast } = useToast();
   const [contacts, setContacts] = useState<ESContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
+
+  const handleEnrich = async (e: React.MouseEvent, contactId: string) => {
+    e.stopPropagation();
+    setEnrichingIds((prev) => new Set(prev).add(contactId));
+    // TODO: Wire up to enrichment edge function
+    await new Promise((r) => setTimeout(r, 1000));
+    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
+    setEnrichingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isReady) return;
@@ -71,7 +89,7 @@ export function ESContactsList() {
     const { data: contactsData } = await supabase
       .from("crm_contacts")
       .select(`
-        id, first_name, last_name, job_title, status,
+        id, first_name, last_name, job_title, status, enrichment_status,
         crm_contact_emails(value, is_primary)
       `)
       .in("id", contactIds)
@@ -103,6 +121,7 @@ export function ESContactsList() {
         last_name: c.last_name,
         job_title: c.job_title,
         status: c.status,
+        enrichment_status: c.enrichment_status || null,
         primary_email: primaryEmail,
         primary_company_name: companyMap[c.id] || null,
       };
@@ -162,6 +181,7 @@ export function ESContactsList() {
                 <TableHead>Company</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -196,6 +216,22 @@ export function ESContactsList() {
                     <span className="capitalize text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                       {contact.status}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs"
+                      disabled={enrichingIds.has(contact.id) || contact.enrichment_status === "enriched"}
+                      onClick={(e) => handleEnrich(e, contact.id)}
+                    >
+                      {enrichingIds.has(contact.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      {contact.enrichment_status === "enriched" ? "Enriched" : "Enrich"}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
