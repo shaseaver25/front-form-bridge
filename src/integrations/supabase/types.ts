@@ -411,6 +411,42 @@ export type Database = {
           },
         ]
       }
+      crm_company_tags: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_company_tags_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_company_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_contact_documents: {
         Row: {
           contact_id: string
@@ -799,6 +835,42 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "crm_contact_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_job_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          job_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          job_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          job_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_job_tags_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "crm_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_job_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tags"
             referencedColumns: ["id"]
           },
         ]
