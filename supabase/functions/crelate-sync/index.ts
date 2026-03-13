@@ -842,7 +842,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
             const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const dlRes = await fetchCrelateWithApiKeyFallback(
+            const { response: dlRes, authAttempt: downloadAuthAttempt } = await fetchCrelateWithAuthVariants(
               dlUrl,
               { method: "GET" },
               normalizedApiKey,
