@@ -103,11 +103,15 @@ function FilesSection({ application }: { application: PoolApplication }) {
 
   const viewFile = async (filePath: string) => {
     try {
-      const { data } = supabase.storage
+      const { data, error } = await supabase.storage
         .from("pool-application-files")
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 3600);
 
-      window.open(data.publicUrl, "_blank");
+      if (error || !data?.signedUrl) {
+        throw new Error("Failed to generate signed URL");
+      }
+
+      window.open(data.signedUrl, "_blank");
     } catch (error) {
       console.error("View error:", error);
       toast.error("Failed to view file");

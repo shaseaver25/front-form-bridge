@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,17 +21,35 @@ interface ResumeDoc {
   crelate_id: string | null;
 }
 
-const anonSupabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  }
-);
+function guessMime(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    txt: "text/plain",
+  };
+  return map[ext] || "application/octet-stream";
+}
+
+const isPdf = (doc: ResumeDoc) => {
+  const ext = doc.file_name.split(".").pop()?.toLowerCase() || "";
+  const mime = doc.file_type || "";
+  return mime.includes("pdf") || ext === "pdf";
+};
+
+const isImage = (doc: ResumeDoc) => {
+  const ext = doc.file_name.split(".").pop()?.toLowerCase() || "";
+  const mime = doc.file_type || "";
+  return mime.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
+};
+
+const canPreviewInline = (doc: ResumeDoc) => isPdf(doc) || isImage(doc);
 
 const ContactResumes = ({ contactId }: ContactResumesProps) => {
   const [resumes, setResumes] = useState<ResumeDoc[]>([]);
@@ -57,19 +74,6 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
         .eq("contact_id", contactId)
         .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
         .not("storage_path", "is", null);
-
-      if ((!attachmentsRes.data || attachmentsRes.data.length === 0) && !attachmentsRes.error) {
-        const anonRes = await anonSupabase
-          .from("crm_attachments")
-          .select("id,file_name,storage_path,content_type,content_length,created_at,crelate_id")
-          .eq("contact_id", contactId)
-          .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
-          .not("storage_path", "is", null);
-
-        if (!anonRes.error && anonRes.data?.length) {
-          attachmentsRes = anonRes as typeof attachmentsRes;
-        }
-      }
 
       if (syncedDocsRes.error || attachmentsRes.error) {
         setResumes([]);
@@ -121,36 +125,22 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
     setPreviewLoading(true);
     setPreviewUrl(null);
 
-    const mime = doc.file_type || guessMime(doc.file_name);
-    const isInline = canPreviewInline(doc);
+    // Always use a signed URL — no blob downloads needed
+    const { data: signedData, error } = await supabase.storage
+      .from("contact-documents")
+      .createSignedUrl(doc.file_url, 3600);
 
-    if (isInline) {
-      // For PDFs and images, download blob for direct display
-      const { data, error } = await supabase.storage
-        .from("contact-documents")
-        .download(doc.file_url);
+    if (error || !signedData?.signedUrl) {
+      toast.error("Failed to load file preview");
+      setPreviewLoading(false);
+      return;
+    }
 
-      if (error || !data) {
-        toast.error("Failed to load file preview");
-        setPreviewLoading(false);
-        return;
-      }
-
-      const blob = new Blob([data], { type: mime });
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+    if (canPreviewInline(doc)) {
+      // PDFs and images use the signed URL directly
+      setPreviewUrl(signedData.signedUrl);
     } else {
-      // For DOCX/DOC etc., use a signed URL with Google Docs Viewer
-      const { data: signedData, error } = await supabase.storage
-        .from("contact-documents")
-        .createSignedUrl(doc.file_url, 3600);
-
-      if (error || !signedData?.signedUrl) {
-        toast.error("Failed to load file preview");
-        setPreviewLoading(false);
-        return;
-      }
-
+      // DOCX/DOC etc. use Google Docs Viewer
       const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(signedData.signedUrl)}&embedded=true`;
       setPreviewUrl(viewerUrl);
     }
@@ -158,9 +148,6 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
   };
 
   const closePreview = () => {
-    if (previewUrl && !previewUrl.startsWith("https://docs.google.com")) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setPreviewDoc(null);
     setPreviewUrl(null);
   };
@@ -210,17 +197,6 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
   }
 
   if (resumes.length === 0) return null;
-
-  const canPreviewInline = (doc: ResumeDoc) => {
-    const ext = doc.file_name.split(".").pop()?.toLowerCase() || "";
-    const mime = doc.file_type || "";
-    return (
-      mime.includes("pdf") ||
-      ext === "pdf" ||
-      mime.startsWith("image/") ||
-      ["png", "jpg", "jpeg", "gif", "webp"].includes(ext)
-    );
-  };
 
   return (
     <>
@@ -302,32 +278,21 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
             ) : previewUrl && previewDoc ? (
-              canPreviewInline(previewDoc) ? (
-                (previewDoc.file_type?.startsWith("image/") ||
-                  ["png", "jpg", "jpeg", "gif", "webp"].includes(
-                    previewDoc.file_name.split(".").pop()?.toLowerCase() || ""
-                  )) ? (
-                  <div className="flex items-center justify-center h-full p-4">
-                    <img
-                      src={previewUrl}
-                      alt={previewDoc.file_name}
-                      className="max-w-full max-h-full object-contain rounded"
-                    />
-                  </div>
-                ) : (
-                  <iframe
+              isImage(previewDoc) ? (
+                <div className="flex items-center justify-center h-full p-4">
+                  <img
                     src={previewUrl}
-                    title={previewDoc.file_name}
-                    className="w-full h-full border-0"
+                    alt={previewDoc.file_name}
+                    className="max-w-full max-h-full object-contain rounded"
                   />
-                )
+                </div>
               ) : (
-                  <iframe
-                    src={previewUrl}
-                    title={previewDoc.file_name}
-                    className="w-full h-full border-0"
-                  />
-                )
+                <iframe
+                  src={previewUrl}
+                  title={previewDoc.file_name}
+                  className="w-full h-full border-0"
+                />
+              )
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-sm">Failed to load preview</p>
@@ -339,21 +304,5 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
     </>
   );
 };
-
-function guessMime(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  const map: Record<string, string> = {
-    pdf: "application/pdf",
-    doc: "application/msword",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp",
-    txt: "text/plain",
-  };
-  return map[ext] || "application/octet-stream";
-}
 
 export default ContactResumes;
