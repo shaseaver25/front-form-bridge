@@ -743,6 +743,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             console.error("401 Unauthorized on document list API - aborting document sync");
             result.failed += 1;
             result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id}`);
+            abortPagination = true;
             break;
           }
 
