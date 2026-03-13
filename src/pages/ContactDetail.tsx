@@ -46,6 +46,7 @@ export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isReady } = useAuthReady();
+  const { toast } = useToast();
 
   const [contact, setContact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
