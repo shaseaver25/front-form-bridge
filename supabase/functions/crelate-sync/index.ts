@@ -18,6 +18,17 @@ interface SyncResult {
   errors: string[];
 }
 
+function normalizeApiKey(apiKey: string) {
+  return apiKey.trim().replace(/^['"]+|['"]+$/g, "");
+}
+
+function toHeaderRecord(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
+  if (Array.isArray(headers)) return Object.fromEntries(headers);
+  return { ...headers };
+}
+
 function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: string) {
   return {
     ...headers,
@@ -26,27 +37,72 @@ function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: st
   };
 }
 
-async function fetchCrelateWithApiKeyFallback(url: string, init: RequestInit, apiKey: string) {
-  const primary = await fetch(url, {
-    ...init,
-    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
-  });
-
-  if (primary.status !== 401) return primary;
-
-  await primary.text(); // consume before retry
+function withApiKeyQuery(url: string, apiKey: string) {
+  if (url.includes("api_key=")) return url;
   const separator = url.includes("?") ? "&" : "?";
-  const fallbackUrl = `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+  return `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+}
 
-  return fetch(fallbackUrl, {
-    ...init,
-    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
-  });
+async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiKey: string) {
+  const normalizedKey = normalizeApiKey(apiKey);
+  const baseHeaders = toHeaderRecord(init.headers);
+
+  const attempts = [
+    {
+      name: "header_only",
+      url,
+      headers: withCrelateAuthHeaders({}, normalizedKey),
+    },
+    {
+      name: "query_only",
+      url: withApiKeyQuery(url, normalizedKey),
+      headers: {},
+    },
+    {
+      name: "header_and_query",
+      url: withApiKeyQuery(url, normalizedKey),
+      headers: withCrelateAuthHeaders({}, normalizedKey),
+    },
+    {
+      name: "authorization_bearer",
+      url,
+      headers: { Authorization: `Bearer ${normalizedKey}` },
+    },
+  ];
+
+  let lastResponse: Response | null = null;
+  let lastAttempt = "none";
+
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    const response = await fetch(attempt.url, {
+      ...init,
+      headers: {
+        ...baseHeaders,
+        ...attempt.headers,
+      },
+    });
+
+    if (response.status !== 401) {
+      return { response, authAttempt: attempt.name };
+    }
+
+    lastResponse = response;
+    lastAttempt = attempt.name;
+
+    // Consume response body before next attempt to avoid resource leaks.
+    if (i < attempts.length - 1) {
+      await response.text();
+    }
+  }
+
+  return { response: lastResponse!, authAttempt: lastAttempt };
 }
 
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
-  const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, apiKey) });
+  const normalizedKey = normalizeApiKey(apiKey);
+  const url = `${CRELATE_BASE}/${endpoint}?api_key=${normalizedKey}&offset=${offset}&limit=${limit}`;
+  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, normalizedKey) });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Crelate API error ${res.status}: ${text}`);
@@ -672,7 +728,7 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
 }
 
 async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 50): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
-  const normalizedApiKey = apiKey.trim();
+  const normalizedApiKey = normalizeApiKey(apiKey);
   const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
@@ -719,7 +775,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           console.log(`Fetching attachments from: ${listUrl}`);
         }
 
-        const res = await fetchCrelateWithApiKeyFallback(
+        const { response: res, authAttempt: listAuthAttempt } = await fetchCrelateWithAuthVariants(
           listUrl,
           {
             method: "POST",
@@ -731,7 +787,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
         if (!res.ok) {
           if (debugCount < 3) {
-            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id}`);
+            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
             const errText = await res.text();
             console.log(`Response body: ${errText.substring(0, 500)}`);
             debugCount++;
@@ -740,9 +796,9 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           }
 
           if (res.status === 401) {
-            console.error("401 Unauthorized on document list API - aborting document sync");
+            console.error(`401 Unauthorized on document list API - aborting document sync (authAttempt=${listAuthAttempt})`);
             result.failed += 1;
-            result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id}`);
+            result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
             abortPagination = true;
             break;
           }
@@ -786,12 +842,15 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
             const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const dlRes = await fetchCrelateWithApiKeyFallback(
+            const { response: dlRes, authAttempt: downloadAuthAttempt } = await fetchCrelateWithAuthVariants(
               dlUrl,
               { method: "GET" },
               normalizedApiKey,
             );
             if (!dlRes.ok) {
+              if (dlRes.status === 401) {
+                console.warn(`Attachment download 401 for ${attId} (authAttempt=${downloadAuthAttempt})`);
+              }
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
                 await new Promise(r => setTimeout(r, 5000));
