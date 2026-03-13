@@ -131,7 +131,7 @@ export function ESCompaniesList() {
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <RecordAvatar name={company.name} size="sm" />
+                      <RecordAvatar type="constituent" name={company.name} size="sm" />
                       <span className="font-medium">{company.name}</span>
                     </div>
                   </TableCell>

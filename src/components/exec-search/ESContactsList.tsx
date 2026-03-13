@@ -174,8 +174,10 @@ export function ESContactsList() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <RecordAvatar
+                        type="constituent"
                         name={`${contact.first_name || ""} ${contact.last_name}`}
                         size="sm"
+                      />
                       />
                       <span className="font-medium">
                         {contact.first_name} {contact.last_name}

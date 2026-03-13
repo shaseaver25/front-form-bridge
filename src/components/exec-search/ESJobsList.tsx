@@ -114,15 +114,14 @@ export function ESJobsList() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={Briefcase}
-          title="No Executive Search jobs"
-          description={
-            jobs.length === 0
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-lg font-medium text-foreground mb-1">No Executive Search jobs</p>
+          <p className="text-sm text-muted-foreground">
+            {jobs.length === 0
               ? 'Tag jobs with "Executive Search" to see them here.'
-              : "No jobs match your search."
-          }
-        />
+              : "No jobs match your search."}
+          </p>
+        </div>
       ) : (
         <div className="border rounded-lg">
           <Table>
