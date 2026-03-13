@@ -167,10 +167,15 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
             <StickyNote className="w-5 h-5" />
             Notes & Activity
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Note
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={fetchNotes} title="Refresh">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add Note
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
