@@ -34,6 +34,7 @@ import ContactNotes from "@/components/ContactNotes";
 import ContactDocuments from "@/components/ContactDocuments";
 import ContactResumes from "@/components/ContactResumes";
 import ContactAvatar from "@/components/ContactAvatar";
+import ContactTagManager from "@/components/ContactTagManager";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
@@ -357,16 +358,11 @@ export default function ContactDetail() {
                     </Badge>
                   )}
                 </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag: any) => (
-                      <Badge key={tag.id} variant="secondary" className="text-xs">
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <ContactTagManager
+                  contactId={id!}
+                  tags={tags}
+                  onTagsChange={fetchContact}
+                />
               </>
             )}
           </div>
