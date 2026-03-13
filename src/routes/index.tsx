@@ -487,6 +487,13 @@ export const legalRoutes: RouteObject[] = [
   { path: "/legal/privacy", element: <PrivacyPolicyPage /> },
 ];
 
+// Executive Search routes
+export const execSearchRoutes: RouteObject[] = [
+  { path: "/exec-search/contacts", element: <ExecSearchContacts /> },
+  { path: "/exec-search/companies", element: <ExecSearchCompanies /> },
+  { path: "/exec-search/jobs", element: <ExecSearchJobs /> },
+];
+
 // Misc routes
 export const miscRoutes: RouteObject[] = [
   { path: "/collaboration-demo", element: <CollaborationDemo /> },
