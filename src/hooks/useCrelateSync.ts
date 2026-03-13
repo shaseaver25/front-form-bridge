@@ -24,11 +24,26 @@ export function useCrelateSync() {
         const entities = ["sources", "contacts", "companies", "jobs", "placements", "pipeline_items", "activities", "documents"];
         const allResults: any[] = [];
         for (const entity of entities) {
-          let cursorOffset = 0;
-          let hasMore = true;
-          while (hasMore) {
+          if (entity === "documents") {
+            // Documents use client-side batch loop with contactOffset
+            let contactOffset = 0;
+            let hasMore = true;
+            while (hasMore) {
+              const { data, error } = await supabase.functions.invoke("crelate-sync", {
+                body: { action: "sync", entity_type: "documents", cursor_offset: contactOffset },
+              });
+              if (error) throw error;
+              if (data?.success === false) {
+                const message = data?.results?.flatMap((r: any) => r.errors || []).join("; ") || data?.error || "Sync failed";
+                throw new Error(message);
+              }
+              if (data?.results) allResults.push(...data.results);
+              hasMore = data?.hasMore === true;
+              contactOffset = data?.nextCursor || (contactOffset + 10);
+            }
+          } else {
             const { data, error } = await supabase.functions.invoke("crelate-sync", {
-              body: { action: "sync", entity_type: entity, cursor_offset: cursorOffset },
+              body: { action: "sync", entity_type: entity },
             });
             if (error) throw error;
             if (data?.success === false) {
@@ -36,8 +51,6 @@ export function useCrelateSync() {
               throw new Error(message);
             }
             if (data?.results) allResults.push(...data.results);
-            hasMore = data?.hasMore && data?.continueEntity === entity;
-            cursorOffset = data?.nextCursor || 0;
           }
         }
         const summary = allResults.reduce(
@@ -50,32 +63,56 @@ export function useCrelateSync() {
         );
         return { success: true, results: allResults, summary };
       }
-      // Single entity - also handle pagination for documents
-      let cursorOffset = 0;
-      let hasMore = true;
-      const allResults: any[] = [];
-      while (hasMore) {
-        const { data, error } = await supabase.functions.invoke("crelate-sync", {
-          body: { action: "sync", entity_type: entityType, cursor_offset: cursorOffset },
-        });
-        if (error) throw error;
-        if (data?.success === false) {
-          const message = data?.results?.flatMap((r: any) => r.errors || []).join("; ") || data?.error || "Sync failed";
-          throw new Error(message);
+
+      // Single entity sync
+      if (entityType === "documents") {
+        // Documents: client-side batch loop
+        let contactOffset = 0;
+        let hasMore = true;
+        const allResults: any[] = [];
+        while (hasMore) {
+          const { data, error } = await supabase.functions.invoke("crelate-sync", {
+            body: { action: "sync", entity_type: "documents", cursor_offset: contactOffset },
+          });
+          if (error) throw error;
+          if (data?.success === false) {
+            const message = data?.results?.flatMap((r: any) => r.errors || []).join("; ") || data?.error || "Sync failed";
+            throw new Error(message);
+          }
+          if (data?.results) allResults.push(...data.results);
+          hasMore = data?.hasMore === true;
+          contactOffset = data?.nextCursor || (contactOffset + 10);
         }
-        if (data?.results) allResults.push(...data.results);
-        hasMore = data?.hasMore === true;
-        cursorOffset = data?.nextCursor || 0;
+        const summary = allResults.reduce(
+          (acc, r) => ({
+            created: acc.created + (r.created || 0),
+            updated: acc.updated + (r.updated || 0),
+            failed: acc.failed + (r.failed || 0),
+          }),
+          { created: 0, updated: 0, failed: 0 }
+        );
+        return { success: true, results: allResults, summary };
       }
-      const summary = allResults.reduce(
-        (acc, r) => ({
+
+      // Non-document single entity (no pagination needed)
+      const { data, error } = await supabase.functions.invoke("crelate-sync", {
+        body: { action: "sync", entity_type: entityType },
+      });
+      if (error) throw error;
+      if (data?.success === false) {
+        const message = data?.results?.flatMap((r: any) => r.errors || []).join("; ") || data?.error || "Sync failed";
+        throw new Error(message);
+      }
+      const results = data?.results || [];
+      const summary = results.reduce(
+        (acc: any, r: any) => ({
           created: acc.created + (r.created || 0),
           updated: acc.updated + (r.updated || 0),
           failed: acc.failed + (r.failed || 0),
         }),
         { created: 0, updated: 0, failed: 0 }
       );
-      return { success: true, results: allResults, summary };
+      return { success: true, results, summary };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["crm-sync-log"] });
