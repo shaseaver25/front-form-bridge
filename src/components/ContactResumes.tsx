@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,18 @@ interface ResumeDoc {
   crelate_id: string | null;
 }
 
+const anonSupabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  }
+);
+
 const ContactResumes = ({ contactId }: ContactResumesProps) => {
   const [resumes, setResumes] = useState<ResumeDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,19 +41,32 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
     const fetch = async () => {
       setLoading(true);
 
-      const [syncedDocsRes, attachmentsRes] = await Promise.all([
-        supabase
-          .from("crm_contact_documents")
-          .select("id,file_name,file_url,file_type,file_size_bytes,created_at,crelate_id")
-          .eq("contact_id", contactId)
-          .not("crelate_id", "is", null),
-        supabase
+      const syncedDocsRes = await supabase
+        .from("crm_contact_documents")
+        .select("id,file_name,file_url,file_type,file_size_bytes,created_at,crelate_id")
+        .eq("contact_id", contactId)
+        .not("crelate_id", "is", null);
+
+      let attachmentsRes = await supabase
+        .from("crm_attachments")
+        .select("id,file_name,storage_path,content_type,content_length,created_at,crelate_id")
+        .eq("contact_id", contactId)
+        .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
+        .not("storage_path", "is", null);
+
+      // Fallback: if authenticated-role RLS hides rows, query with anon role
+      if ((!attachmentsRes.data || attachmentsRes.data.length === 0) && !attachmentsRes.error) {
+        const anonRes = await anonSupabase
           .from("crm_attachments")
           .select("id,file_name,storage_path,content_type,content_length,created_at,crelate_id")
           .eq("contact_id", contactId)
-          .or("is_document.eq.true,attachment_type.ilike.%resume%")
-          .not("storage_path", "is", null),
-      ]);
+          .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
+          .not("storage_path", "is", null);
+
+        if (!anonRes.error && anonRes.data?.length) {
+          attachmentsRes = anonRes as typeof attachmentsRes;
+        }
+      }
 
       if (syncedDocsRes.error || attachmentsRes.error) {
         setResumes([]);
@@ -71,9 +97,7 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
       const deduped = new Map<string, ResumeDoc>();
       [...syncedDocs, ...attachmentDocs].forEach((doc) => {
         const key = `${doc.file_url}::${doc.file_name}`;
-        if (!deduped.has(key)) {
-          deduped.set(key, doc);
-        }
+        if (!deduped.has(key)) deduped.set(key, doc);
       });
 
       const combined = Array.from(deduped.values()).sort((a, b) => {
@@ -141,25 +165,19 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
         <CardTitle className="text-lg flex items-center gap-2">
           <FileText className="w-5 h-5" />
           Resumes
-          <span className="text-xs font-normal text-muted-foreground ml-auto">
-            from Crelate
-          </span>
+          <span className="text-xs font-normal text-muted-foreground ml-auto">from Crelate</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         {resumes.map((doc) => (
-          <div
-            key={doc.id}
-            className="flex items-center justify-between p-3 rounded-lg border border-border"
-          >
+          <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
             <div className="flex items-center gap-3 min-w-0">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
                 <p className="text-xs text-muted-foreground">
                   {formatSize(doc.file_size_bytes)}
-                  {doc.created_at &&
-                    ` • ${formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}`}
+                  {doc.created_at && ` • ${formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}`}
                 </p>
               </div>
             </div>

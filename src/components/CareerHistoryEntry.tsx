@@ -16,26 +16,49 @@ interface CareerHistoryEntryProps {
   };
 }
 
-/**
- * Parse a career description that may contain bullet points (• character)
- * into a structured format with an intro paragraph and bullet items.
- */
 function parseDescription(raw: string): { intro: string; bullets: string[] } {
-  // Split on bullet character (•) — often preceded by whitespace or tab
-  const parts = raw.split(/\s*•\s*/);
+  const normalized = raw.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  if (!normalized) return { intro: "", bullets: [] };
 
-  const intro = (parts[0] || "").trim();
-  const bullets = parts
-    .slice(1)
-    .map((b) => b.trim())
+  const bulletSplit = normalized
+    .split(/\s*(?:•|▪|◦|‣|\*|—\s+|–\s+|\-\s+)\s*/)
+    .map((p) => p.trim())
     .filter(Boolean);
 
-  return { intro, bullets };
+  if (bulletSplit.length > 1) {
+    return {
+      intro: bulletSplit[0],
+      bullets: bulletSplit.slice(1),
+    };
+  }
+
+  const sentenceSplit = normalized
+    .split(/(?<=\.)\s*(?=[A-Z])/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  if (sentenceSplit.length >= 4) {
+    return {
+      intro: sentenceSplit[0],
+      bullets: sentenceSplit.slice(1),
+    };
+  }
+
+  return { intro: normalized, bullets: [] };
 }
 
 export default function CareerHistoryEntry({ entry }: CareerHistoryEntryProps) {
   const isEducation = entry.entry_type === "education";
-  const title = entry.job_title || entry.degree || "Position";
+
+  const hasLongJobTitle = (entry.job_title?.length || 0) > 140;
+  const hasShortDescription = (entry.description?.length || 0) > 0 && (entry.description?.length || 0) < 120;
+  const swappedFields = hasLongJobTitle && hasShortDescription;
+
+  const title = swappedFields
+    ? (entry.description || "Position")
+    : (entry.job_title || entry.degree || "Position");
+
+  const detailText = swappedFields ? (entry.job_title || "") : (entry.description || "");
   const org = entry.company_name || entry.institution || "";
 
   const dateRange = (() => {
@@ -51,11 +74,10 @@ export default function CareerHistoryEntry({ entry }: CareerHistoryEntryProps) {
     return `${start} — ${end}`;
   })();
 
-  const parsed = entry.description ? parseDescription(entry.description) : null;
+  const parsed = detailText ? parseDescription(detailText) : null;
 
   return (
     <div className="border-l-2 border-border pl-4 space-y-2">
-      {/* Title row */}
       <div className="flex items-center gap-2 flex-wrap">
         {isEducation ? (
           <GraduationCap className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -68,23 +90,14 @@ export default function CareerHistoryEntry({ entry }: CareerHistoryEntryProps) {
         )}
       </div>
 
-      {/* Organization */}
-      {org && (
-        <p className="text-sm text-muted-foreground font-medium">{org}</p>
-      )}
+      {org && <p className="text-sm text-muted-foreground font-medium">{org}</p>}
 
-      {/* Date range */}
-      {dateRange && (
-        <p className="text-xs text-muted-foreground">{dateRange}</p>
-      )}
+      {dateRange && <p className="text-xs text-muted-foreground">{dateRange}</p>}
 
-      {/* Description with parsed bullets */}
       {parsed && (
         <div className="space-y-2 pt-1">
           {parsed.intro && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {parsed.intro}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed">{parsed.intro}</p>
           )}
           {parsed.bullets.length > 0 && (
             <ul className="space-y-1.5 ml-1">
