@@ -299,34 +299,9 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
                   Career History
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {careerHistory.map((entry) => (
-                  <div key={entry.id} className="border-l-2 border-border pl-4 space-y-1">
-                    <div className="flex items-center gap-2">
-                      {entry.entry_type === "education" ? (
-                        <GraduationCap className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <Briefcase className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <p className="text-sm font-medium">
-                        {entry.job_title || entry.degree || "Position"}
-                      </p>
-                      {entry.is_current && (
-                        <Badge variant="secondary" className="text-xs">Current</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {entry.company_name || entry.institution || ""}
-                    </p>
-                    {(entry.started_at || entry.ended_at) && (
-                      <p className="text-xs text-muted-foreground">
-                        {entry.started_at ? new Date(entry.started_at).toLocaleDateString() : "?"} — {entry.is_current ? "Present" : entry.ended_at ? new Date(entry.ended_at).toLocaleDateString() : "?"}
-                      </p>
-                    )}
-                    {entry.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-3">{entry.description}</p>
-                    )}
-                  </div>
+                  <CareerHistoryEntry key={entry.id} entry={entry} />
                 ))}
               </CardContent>
             </Card>
