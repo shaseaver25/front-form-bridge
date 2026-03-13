@@ -23,6 +23,7 @@ type ESContact = {
   last_name: string;
   job_title: string | null;
   status: string;
+  enrichment_status: string | null;
   primary_email: string | null;
   primary_company_name: string | null;
 };
