@@ -775,7 +775,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           console.log(`Fetching attachments from: ${listUrl}`);
         }
 
-        const res = await fetchCrelateWithApiKeyFallback(
+        const { response: res, authAttempt: listAuthAttempt } = await fetchCrelateWithAuthVariants(
           listUrl,
           {
             method: "POST",
