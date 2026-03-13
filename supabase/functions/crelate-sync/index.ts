@@ -83,7 +83,8 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
       },
     });
 
-    if (response.status !== 401) {
+    const isAuthFailure = response.status === 401 || response.status === 403;
+    if (!isAuthFailure) {
       return { response, authAttempt: attempt.name };
     }
 
