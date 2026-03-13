@@ -530,10 +530,10 @@ export default function SiteDetail() {
           </TabsContent>
 
           {/* Placements Tab */}
-          {placements && placements.length > 0 && (
-            <TabsContent value="placements">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="placements">
+            <Card>
+              <CardContent className="p-4">
+                {placements && placements.length > 0 ? (
                   <div className="space-y-3">
                     {placements.map((p: any) => (
                       <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
@@ -554,16 +554,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No placements recorded</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Addresses Tab */}
-          {addresses && addresses.length > 0 && (
-            <TabsContent value="addresses">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="addresses">
+            <Card>
+              <CardContent className="p-4">
+                {addresses && addresses.length > 0 ? (
                   <div className="space-y-3">
                     {addresses.map((addr: any) => (
                       <div key={addr.id} className="flex items-start gap-3 p-3 rounded-lg border">
@@ -579,16 +581,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No addresses on file</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* URLs Tab */}
-          {urls && urls.length > 0 && (
-            <TabsContent value="urls">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="urls">
+            <Card>
+              <CardContent className="p-4">
+                {urls && urls.length > 0 ? (
                   <div className="space-y-3">
                     {urls.map((url: any) => (
                       <div key={url.id} className="flex items-center gap-3 p-3 rounded-lg border">
@@ -609,16 +613,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No URLs on file</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Attachments Tab */}
-          {attachments && attachments.length > 0 && (
-            <TabsContent value="attachments">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="attachments">
+            <Card>
+              <CardContent className="p-4">
+                {attachments && attachments.length > 0 ? (
                   <div className="space-y-3">
                     {attachments.map((att: any) => (
                       <div key={att.id} className="flex items-center gap-3 p-3 rounded-lg border">
@@ -634,10 +640,12 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No files attached</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Description */}
