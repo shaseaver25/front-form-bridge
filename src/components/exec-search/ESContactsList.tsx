@@ -5,7 +5,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search } from "lucide-react";
 import { RecordAvatar } from "@/components/ui/record-avatar";
-import { EmptyState } from "@/components/ui/empty-state";
+
 import {
   Table,
   TableBody,
