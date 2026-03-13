@@ -358,16 +358,11 @@ export default function ContactDetail() {
                     </Badge>
                   )}
                 </div>
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {tags.map((tag: any) => (
-                      <Badge key={tag.id} variant="secondary" className="text-xs">
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <ContactTagManager
+                  contactId={id!}
+                  tags={tags}
+                  onTagsChange={fetchContact}
+                />
               </>
             )}
           </div>
