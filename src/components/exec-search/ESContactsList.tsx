@@ -217,6 +217,22 @@ export function ESContactsList() {
                       {contact.status}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 gap-1.5 text-xs"
+                      disabled={enrichingIds.has(contact.id) || contact.enrichment_status === "enriched"}
+                      onClick={(e) => handleEnrich(e, contact.id)}
+                    >
+                      {enrichingIds.has(contact.id) ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      {contact.enrichment_status === "enriched" ? "Enriched" : "Enrich"}
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
