@@ -188,6 +188,88 @@ export type Database = {
           },
         ]
       }
+      crm_attachments: {
+        Row: {
+          attachment_type: string | null
+          company_id: string | null
+          contact_id: string | null
+          content_length: number | null
+          content_type: string | null
+          created_at: string | null
+          created_by: string | null
+          crelate_id: string | null
+          file_name: string
+          id: string
+          is_document: boolean | null
+          is_image: boolean | null
+          is_primary_doc: boolean | null
+          is_profile_photo: boolean | null
+          job_id: string | null
+          storage_path: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachment_type?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          content_length?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crelate_id?: string | null
+          file_name: string
+          id?: string
+          is_document?: boolean | null
+          is_image?: boolean | null
+          is_primary_doc?: boolean | null
+          is_profile_photo?: boolean | null
+          job_id?: string | null
+          storage_path?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachment_type?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          content_length?: number | null
+          content_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crelate_id?: string | null
+          file_name?: string
+          id?: string
+          is_document?: boolean | null
+          is_image?: boolean | null
+          is_primary_doc?: boolean | null
+          is_profile_photo?: boolean | null
+          job_id?: string | null
+          storage_path?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_attachments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_attachments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_attachments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "crm_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_career_history: {
         Row: {
           company_id: string | null
