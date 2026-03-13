@@ -189,6 +189,14 @@ export default function ContactDetail() {
     setEditData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleEnrich = async () => {
+    setEnriching(true);
+    // TODO: Wire up to enrichment edge function
+    await new Promise((r) => setTimeout(r, 1000));
+    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
+    setEnriching(false);
+  };
+
   if (loading) {
     return (
       <Layout>
