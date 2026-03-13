@@ -787,7 +787,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
         if (!res.ok) {
           if (debugCount < 3) {
-            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id}`);
+            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
             const errText = await res.text();
             console.log(`Response body: ${errText.substring(0, 500)}`);
             debugCount++;
