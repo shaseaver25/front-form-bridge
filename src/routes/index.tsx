@@ -154,6 +154,11 @@ const PublicVolunteerOpportunities = lazy(
 );
 const VolunteerSignUp = lazy(() => import("@/pages/public/VolunteerSignUp"));
 
+// Executive Search
+const ExecSearchContacts = lazy(() => import("@/pages/exec-search/ExecSearchContacts"));
+const ExecSearchCompanies = lazy(() => import("@/pages/exec-search/ExecSearchCompanies"));
+const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
+
 // Route group types
 type RouteGroup = {
   path: string;
@@ -482,6 +487,13 @@ export const legalRoutes: RouteObject[] = [
   { path: "/legal/privacy", element: <PrivacyPolicyPage /> },
 ];
 
+// Executive Search routes
+export const execSearchRoutes: RouteObject[] = [
+  { path: "/exec-search/contacts", element: <ExecSearchContacts /> },
+  { path: "/exec-search/companies", element: <ExecSearchCompanies /> },
+  { path: "/exec-search/jobs", element: <ExecSearchJobs /> },
+];
+
 // Misc routes
 export const miscRoutes: RouteObject[] = [
   { path: "/collaboration-demo", element: <CollaborationDemo /> },
@@ -509,6 +521,7 @@ export const allRoutes: RouteObject[] = [
   ...adminRoutes,
   ...superAdminRoutes,
   ...legalRoutes,
+  ...execSearchRoutes,
   ...miscRoutes,
   fallbackRoute,
 ];
