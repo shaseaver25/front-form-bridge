@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import RichTextEditor, { RichTextDisplay } from "@/components/ui/rich-text-editor";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Pin, PinOff, Trash2, Plus, Loader2, StickyNote, Mail, Phone, Calendar, MessageSquare, ChevronDown, ChevronRight } from "lucide-react";
+import { Pin, PinOff, Trash2, Plus, Loader2, StickyNote, Mail, Phone, Calendar, MessageSquare, ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -36,6 +36,7 @@ const activityTypeIcon = (type: string) => {
 const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [newNote, setNewNote] = useState("");
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -52,49 +53,64 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
 
   const fetchNotes = async () => {
     setLoading(true);
+    setFetchError(false);
 
-    // Fetch from both crm_contact_notes and crm_activities in parallel
-    const [notesRes, activitiesRes] = await Promise.all([
-      supabase
-        .from("crm_contact_notes")
-        .select("*")
-        .eq("contact_id", contactId)
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("crm_activities" as any)
-        .select("id, subject, body, activity_type, is_pinned, created_at, scheduled_at")
-        .eq("contact_id", contactId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+    try {
+      const [notesRes, activitiesRes] = await Promise.all([
+        supabase
+          .from("crm_contact_notes")
+          .select("*")
+          .eq("contact_id", contactId)
+          .order("is_pinned", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("crm_activities")
+          .select("id, subject, body, activity_type, is_pinned, created_at, scheduled_at")
+          .eq("contact_id", contactId)
+          .order("created_at", { ascending: false })
+          .limit(200),
+      ]);
 
-    const manualNotes: Note[] = (notesRes.data || []).map((n: any) => ({
-      ...n,
-      source: "note" as const,
-    }));
+      if (notesRes.error) {
+        console.error("Failed to fetch notes:", notesRes.error);
+        toast.error("Failed to load notes");
+        setFetchError(true);
+      }
+      if (activitiesRes.error) {
+        console.error("Failed to fetch activities:", activitiesRes.error);
+      }
 
-    const activityNotes: Note[] = ((activitiesRes.data as any[]) || [])
-      .filter((a: any) => a.body || a.subject)
-      .map((a: any) => ({
-        id: a.id,
-        content: [a.subject, a.body].filter(Boolean).join("\n\n"),
-        is_pinned: a.is_pinned || false,
-        created_at: a.scheduled_at || a.created_at,
-        updated_at: a.created_at,
-        source: "activity" as const,
-        activity_type: a.activity_type,
-        subject: a.subject,
+      const manualNotes: Note[] = (notesRes.data || []).map((n: any) => ({
+        ...n,
+        source: "note" as const,
       }));
 
-    // Merge: pinned first, then by date
-    const all = [...manualNotes, ...activityNotes].sort((a, b) => {
-      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+      const activityNotes: Note[] = ((activitiesRes.data as any[]) || [])
+        .filter((a: any) => a.body || a.subject)
+        .map((a: any) => ({
+          id: a.id,
+          content: [a.subject, a.body].filter(Boolean).join("\n\n"),
+          is_pinned: a.is_pinned || false,
+          created_at: a.scheduled_at || a.created_at,
+          updated_at: a.created_at,
+          source: "activity" as const,
+          activity_type: a.activity_type,
+          subject: a.subject,
+        }));
 
-    setNotes(all);
-    setLoading(false);
+      const all = [...manualNotes, ...activityNotes].sort((a, b) => {
+        if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      setNotes(all);
+    } catch (err) {
+      console.error("Unexpected error fetching notes:", err);
+      toast.error("Failed to load notes");
+      setFetchError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -151,10 +167,15 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
             <StickyNote className="w-5 h-5" />
             Notes & Activity
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
-            <Plus className="w-4 h-4 mr-1" />
-            Add Note
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" onClick={fetchNotes} title="Refresh">
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowForm(!showForm)}>
+              <Plus className="w-4 h-4 mr-1" />
+              Add Note
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -180,6 +201,13 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading notes...</p>
+        ) : fetchError && notes.length === 0 ? (
+          <div className="text-center py-4 space-y-2">
+            <p className="text-sm text-muted-foreground">Failed to load notes. Please try again.</p>
+            <Button size="sm" variant="outline" onClick={fetchNotes}>
+              <RefreshCw className="w-3 h-3 mr-1" /> Retry
+            </Button>
+          </div>
         ) : notes.length === 0 ? (
           <p className="text-sm text-muted-foreground">No notes or activity yet</p>
         ) : (

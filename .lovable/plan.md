@@ -1,53 +1,48 @@
 
 
-## Fix: Pyrz's Notes and Activity Not Loading
+## Pipeline Page Rework
 
-### Root Cause Analysis
+### The Problem
 
-Data exists in the database (10 notes, 18 activities for Joe Pyrz). The `ContactNotes` component has two issues that could prevent data from appearing:
+The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
 
-1. **No error handling**: If either the `crm_contact_notes` or `crm_activities` query fails (network issue, timeout, etc.), the `Promise.all` silently swallows the error. The component either stays stuck on "Loading notes..." or shows "No notes or activity yet" with no indication of failure.
+1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
+2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
 
-2. **No retry/refetch mechanism**: The data is fetched once on mount via `useEffect`. If the initial fetch fails or returns empty due to a transient auth timing issue, there's no way to recover without navigating away and back.
+Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
 
-3. **Missing error logging**: Neither query checks `error` from the Supabase response, making debugging impossible.
+### Recommendation
 
-### Changes
+**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
 
-**File: `src/components/ContactNotes.tsx`**
+1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
+   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
+   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
 
-1. Add error handling to `fetchNotes`: check both `notesRes.error` and `activitiesRes.error`, log errors, and show a toast on failure
-2. Remove the unnecessary `as any` cast on `crm_activities` (it's a valid table in the schema)
-3. Add a retry button that appears when the fetch fails or returns empty, so users can manually refetch
-4. Add a `try/catch` around the entire `fetchNotes` to handle unexpected failures
-5. Increase the activity limit from 50 to 200 to ensure all activities load for contacts with extensive history
+2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
 
-### Technical Detail
+3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
 
-The key fix is wrapping the fetch in proper error handling:
+### What the new Pipeline Analytics tab will show (from real data)
 
-```typescript
-const fetchNotes = async () => {
-  setLoading(true);
-  try {
-    const [notesRes, activitiesRes] = await Promise.all([...]);
-    
-    if (notesRes.error) {
-      console.error("Failed to fetch notes:", notesRes.error);
-      toast.error("Failed to load notes");
-    }
-    if (activitiesRes.error) {
-      console.error("Failed to fetch activities:", activitiesRes.error);
-    }
-    // ... process data
-  } catch (err) {
-    console.error("Unexpected error fetching notes:", err);
-    toast.error("Failed to load notes");
-  } finally {
-    setLoading(false);
-  }
-};
-```
+- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
+- **Stage distribution**: Count per stage with visual bars
+- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
+- **Recent activity**: Latest stage changes
 
-This ensures `setLoading(false)` always runs and errors are visible to both users and developers.
+### Technical approach
+
+- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
+- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
+- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
+- Remove `RecruitmentPipeline.tsx` and its route
+- Update sidebar to remove the "Recruiting" entry
+- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
+
+### Files to modify
+- `src/pages/PipelineDashboard.tsx` — full rewrite
+- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
+- `src/components/AppSidebar.tsx` — remove Recruiting nav item
+- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
+- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
 
