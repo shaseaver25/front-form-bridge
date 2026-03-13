@@ -16,7 +16,7 @@ interface ResumeDoc {
   file_url: string;
   file_type: string | null;
   file_size_bytes: number | null;
-  created_at: string;
+  created_at: string | null;
   crelate_id: string | null;
 }
 
@@ -27,16 +27,65 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("crm_contact_documents")
-        .select("*")
-        .eq("contact_id", contactId)
-        .not("crelate_id", "is", null)
-        .order("created_at", { ascending: false });
 
-      if (!error) setResumes(data || []);
+      const [syncedDocsRes, attachmentsRes] = await Promise.all([
+        supabase
+          .from("crm_contact_documents")
+          .select("id,file_name,file_url,file_type,file_size_bytes,created_at,crelate_id")
+          .eq("contact_id", contactId)
+          .not("crelate_id", "is", null),
+        supabase
+          .from("crm_attachments")
+          .select("id,file_name,storage_path,content_type,content_length,created_at,crelate_id")
+          .eq("contact_id", contactId)
+          .or("is_document.eq.true,attachment_type.ilike.%resume%")
+          .not("storage_path", "is", null),
+      ]);
+
+      if (syncedDocsRes.error || attachmentsRes.error) {
+        setResumes([]);
+        setLoading(false);
+        return;
+      }
+
+      const syncedDocs: ResumeDoc[] = (syncedDocsRes.data || []).map((doc: any) => ({
+        id: `doc-${doc.id}`,
+        file_name: doc.file_name,
+        file_url: doc.file_url,
+        file_type: doc.file_type,
+        file_size_bytes: doc.file_size_bytes,
+        created_at: doc.created_at,
+        crelate_id: doc.crelate_id,
+      }));
+
+      const attachmentDocs: ResumeDoc[] = (attachmentsRes.data || []).map((att: any) => ({
+        id: `att-${att.id}`,
+        file_name: att.file_name,
+        file_url: att.storage_path,
+        file_type: att.content_type,
+        file_size_bytes: att.content_length,
+        created_at: att.created_at,
+        crelate_id: att.crelate_id,
+      }));
+
+      const deduped = new Map<string, ResumeDoc>();
+      [...syncedDocs, ...attachmentDocs].forEach((doc) => {
+        const key = `${doc.file_url}::${doc.file_name}`;
+        if (!deduped.has(key)) {
+          deduped.set(key, doc);
+        }
+      });
+
+      const combined = Array.from(deduped.values()).sort((a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return bTime - aTime;
+      });
+
+      setResumes(combined);
       setLoading(false);
     };
+
     fetch();
   }, [contactId]);
 
