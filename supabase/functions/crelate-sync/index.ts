@@ -709,6 +709,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     // Log first few contacts for debugging
     let debugCount = 0;
+    let abortPagination = false;
 
     for (const contact of contacts) {
       try {
