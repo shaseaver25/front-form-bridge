@@ -158,7 +158,9 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
   };
 
   const closePreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    if (previewUrl && !previewUrl.startsWith("https://docs.google.com")) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewDoc(null);
     setPreviewUrl(null);
   };
