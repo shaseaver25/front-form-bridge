@@ -1,44 +1,48 @@
 
 
-## Wire Up Apollo.io Enrichment for Contacts
+## Pipeline Page Rework
 
-The Enrich button is currently a placeholder. The `APOLLO_API_KEY` secret already exists. We need to create an edge function that calls Apollo's People Enrichment API and update the client to call it.
+### The Problem
 
-### Changes
+The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
 
-**1. Create edge function `supabase/functions/enrich-contact/index.ts`**
-- Accepts `{ contact_id }` in the request body
-- Authenticates the caller via `getClaims()`
-- Reads the contact's primary email (and optionally name) from `crm_contacts` + `crm_contact_emails`
-- Calls Apollo.io People Enrichment API (`https://api.apollo.io/api/v1/people/match`) with the email/name
-- Writes the enrichment result back to `crm_contacts`: sets `enrichment_data` (JSONB), `enrichment_status = 'enriched'`, `enrichment_source = 'apollo'`, `enrichment_updated_at = now()`
-- Also updates useful fields if present in Apollo response: `job_title`, `description`, and optionally inserts/updates career history and company info
-- Returns success/failure JSON with CORS headers
+1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
+2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
 
-**2. Add config entry in `supabase/config.toml`**
-```toml
-[functions.enrich-contact]
-verify_jwt = false
-```
+Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
 
-**3. Update `src/pages/ContactDetail.tsx` — `handleEnrich`**
-- Replace the placeholder with `supabase.functions.invoke('enrich-contact', { body: { contact_id: id } })`
-- On success, call `fetchContact()` to refresh the page with enriched data
-- On error, show a toast with the error message
+### Recommendation
 
-**4. Update `src/components/exec-search/ESContactsList.tsx` — `handleEnrich`**
-- Same pattern: invoke the edge function with the contact ID
-- On success, refresh the contacts list via `fetchContacts()`
-- On error, show error toast
+**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
 
-### Apollo API Call Detail
+1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
+   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
+   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
 
-```typescript
-// POST https://api.apollo.io/api/v1/people/match
-// Headers: { "X-Api-Key": APOLLO_API_KEY, "Content-Type": "application/json" }
-// Body: { email, first_name, last_name }
-// Returns: { person: { title, organization_name, linkedin_url, ... } }
-```
+2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
 
-The edge function stores the full Apollo `person` object in `enrichment_data` for future use and extracts key fields to update the contact record directly.
+3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
+
+### What the new Pipeline Analytics tab will show (from real data)
+
+- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
+- **Stage distribution**: Count per stage with visual bars
+- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
+- **Recent activity**: Latest stage changes
+
+### Technical approach
+
+- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
+- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
+- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
+- Remove `RecruitmentPipeline.tsx` and its route
+- Update sidebar to remove the "Recruiting" entry
+- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
+
+### Files to modify
+- `src/pages/PipelineDashboard.tsx` — full rewrite
+- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
+- `src/components/AppSidebar.tsx` — remove Recruiting nav item
+- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
+- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
 
