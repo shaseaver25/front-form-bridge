@@ -154,6 +154,11 @@ const PublicVolunteerOpportunities = lazy(
 );
 const VolunteerSignUp = lazy(() => import("@/pages/public/VolunteerSignUp"));
 
+// Executive Search
+const ExecSearchContacts = lazy(() => import("@/pages/exec-search/ExecSearchContacts"));
+const ExecSearchCompanies = lazy(() => import("@/pages/exec-search/ExecSearchCompanies"));
+const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
+
 // Route group types
 type RouteGroup = {
   path: string;
