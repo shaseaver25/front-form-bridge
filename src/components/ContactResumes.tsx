@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FileText, Download, Loader2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -36,6 +37,9 @@ const anonSupabase = createClient(
 const ContactResumes = ({ contactId }: ContactResumesProps) => {
   const [resumes, setResumes] = useState<ResumeDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewDoc, setPreviewDoc] = useState<ResumeDoc | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -54,7 +58,6 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
         .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
         .not("storage_path", "is", null);
 
-      // Fallback: if authenticated-role RLS hides rows, query with anon role
       if ((!attachmentsRes.data || attachmentsRes.data.length === 0) && !attachmentsRes.error) {
         const anonRes = await anonSupabase
           .from("crm_attachments")
@@ -113,6 +116,34 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
     fetch();
   }, [contactId]);
 
+  const openPreview = async (doc: ResumeDoc) => {
+    setPreviewDoc(doc);
+    setPreviewLoading(true);
+    setPreviewUrl(null);
+
+    const { data, error } = await supabase.storage
+      .from("contact-documents")
+      .download(doc.file_url);
+
+    if (error || !data) {
+      toast.error("Failed to load file preview");
+      setPreviewLoading(false);
+      return;
+    }
+
+    const mimeType = doc.file_type || guessMime(doc.file_name);
+    const blob = new Blob([data], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    setPreviewUrl(url);
+    setPreviewLoading(false);
+  };
+
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewDoc(null);
+    setPreviewUrl(null);
+  };
+
   const downloadFile = async (doc: ResumeDoc) => {
     const { data, error } = await supabase.storage
       .from("contact-documents")
@@ -159,41 +190,158 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
 
   if (resumes.length === 0) return null;
 
+  const canPreviewInline = (doc: ResumeDoc) => {
+    const ext = doc.file_name.split(".").pop()?.toLowerCase() || "";
+    const mime = doc.file_type || "";
+    return (
+      mime.includes("pdf") ||
+      ext === "pdf" ||
+      mime.startsWith("image/") ||
+      ["png", "jpg", "jpeg", "gif", "webp"].includes(ext)
+    );
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Resumes
-          <span className="text-xs font-normal text-muted-foreground ml-auto">from Crelate</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {resumes.map((doc) => (
-          <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-            <div className="flex items-center gap-3 min-w-0">
-              <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{doc.file_name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatSize(doc.file_size_bytes)}
-                  {doc.created_at && ` • ${formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}`}
-                </p>
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Resumes
+            <span className="text-xs font-normal text-muted-foreground ml-auto">from Crelate</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {resumes.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+              onClick={() => openPreview(doc)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{doc.file_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatSize(doc.file_size_bytes)}
+                    {doc.created_at && ` • ${formatDistanceToNow(new Date(doc.created_at), { addSuffix: true })}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={(e) => { e.stopPropagation(); openPreview(doc); }}
+                  title="Preview"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={(e) => { e.stopPropagation(); downloadFile(doc); }}
+                  title="Download"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 shrink-0"
-              onClick={() => downloadFile(doc)}
-            >
-              <Download className="w-3.5 h-3.5" />
-            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) closePreview(); }}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle className="text-base font-semibold truncate">
+                {previewDoc?.file_name}
+              </DialogTitle>
+              {previewDoc && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 shrink-0"
+                  onClick={() => downloadFile(previewDoc)}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden bg-muted/30">
+            {previewLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : previewUrl && previewDoc ? (
+              canPreviewInline(previewDoc) ? (
+                (previewDoc.file_type?.startsWith("image/") ||
+                  ["png", "jpg", "jpeg", "gif", "webp"].includes(
+                    previewDoc.file_name.split(".").pop()?.toLowerCase() || ""
+                  )) ? (
+                  <div className="flex items-center justify-center h-full p-4">
+                    <img
+                      src={previewUrl}
+                      alt={previewDoc.file_name}
+                      className="max-w-full max-h-full object-contain rounded"
+                    />
+                  </div>
+                ) : (
+                  <iframe
+                    src={previewUrl}
+                    title={previewDoc.file_name}
+                    className="w-full h-full border-0"
+                  />
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
+                  <FileText className="w-16 h-16" />
+                  <p className="text-sm">
+                    Preview not available for this file type.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => downloadFile(previewDoc)}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download to view
+                  </Button>
+                </div>
+              )
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p className="text-sm">Failed to load preview</p>
+              </div>
+            )}
           </div>
-        ))}
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
+
+function guessMime(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    txt: "text/plain",
+  };
+  return map[ext] || "application/octet-stream";
+}
 
 export default ContactResumes;
