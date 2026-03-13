@@ -31,9 +31,24 @@ type ESContact = {
 export function ESContactsList() {
   const navigate = useNavigate();
   const { isReady } = useAuthReady();
+  const { toast } = useToast();
   const [contacts, setContacts] = useState<ESContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [enrichingIds, setEnrichingIds] = useState<Set<string>>(new Set());
+
+  const handleEnrich = async (e: React.MouseEvent, contactId: string) => {
+    e.stopPropagation();
+    setEnrichingIds((prev) => new Set(prev).add(contactId));
+    // TODO: Wire up to enrichment edge function
+    await new Promise((r) => setTimeout(r, 1000));
+    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
+    setEnrichingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(contactId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isReady) return;
