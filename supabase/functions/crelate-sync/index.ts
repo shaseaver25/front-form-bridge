@@ -43,6 +43,19 @@ function withApiKeyQuery(url: string, apiKey: string) {
   return `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
 }
 
+async function fetchCrelateWithHeaderOnly(url: string, init: RequestInit, apiKey: string) {
+  const normalizedKey = normalizeApiKey(apiKey);
+  const baseHeaders = toHeaderRecord(init.headers);
+
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...baseHeaders,
+      "X-Api-Key": normalizedKey,
+    },
+  });
+}
+
 async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiKey: string) {
   const normalizedKey = normalizeApiKey(apiKey);
   const baseHeaders = toHeaderRecord(init.headers);
