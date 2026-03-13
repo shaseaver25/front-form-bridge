@@ -693,6 +693,10 @@ export type Database = {
           description: string | null
           desired_salary_max: number | null
           desired_salary_min: number | null
+          enrichment_data: Json | null
+          enrichment_source: string | null
+          enrichment_status: string | null
+          enrichment_updated_at: string | null
           first_name: string | null
           icon_attachment_url: string | null
           id: string
@@ -723,6 +727,10 @@ export type Database = {
           description?: string | null
           desired_salary_max?: number | null
           desired_salary_min?: number | null
+          enrichment_data?: Json | null
+          enrichment_source?: string | null
+          enrichment_status?: string | null
+          enrichment_updated_at?: string | null
           first_name?: string | null
           icon_attachment_url?: string | null
           id?: string
@@ -753,6 +761,10 @@ export type Database = {
           description?: string | null
           desired_salary_max?: number | null
           desired_salary_min?: number | null
+          enrichment_data?: Json | null
+          enrichment_source?: string | null
+          enrichment_status?: string | null
+          enrichment_updated_at?: string | null
           first_name?: string | null
           icon_attachment_url?: string | null
           id?: string
