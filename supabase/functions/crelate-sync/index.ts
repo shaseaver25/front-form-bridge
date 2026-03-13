@@ -18,9 +18,35 @@ interface SyncResult {
   errors: string[];
 }
 
+function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: string) {
+  return {
+    ...headers,
+    "X-Api-Key": apiKey,
+    "x-api-key": apiKey,
+  };
+}
+
+async function fetchCrelateWithApiKeyFallback(url: string, init: RequestInit, apiKey: string) {
+  const primary = await fetch(url, {
+    ...init,
+    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
+  });
+
+  if (primary.status !== 401) return primary;
+
+  await primary.text(); // consume before retry
+  const separator = url.includes("?") ? "&" : "?";
+  const fallbackUrl = `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+
+  return fetch(fallbackUrl, {
+    ...init,
+    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
+  });
+}
+
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
   const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, apiKey) });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Crelate API error ${res.status}: ${text}`);
