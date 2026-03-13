@@ -1297,13 +1297,18 @@ Deno.serve(async (req) => {
     const totalUpdated = results.reduce((s, r) => s + r.updated, 0);
     const totalFailed = results.reduce((s, r) => s + r.failed, 0);
     const allErrors = results.flatMap((r) => r.errors);
+    const totalSynced = totalCreated + totalUpdated;
+
+    const syncStatus = allErrors.length > 0
+      ? (totalSynced > 0 || totalFailed > 0 ? "partial" : "failed")
+      : (totalFailed > 0 ? "partial" : "success");
 
     if (logEntry) {
       await supabase
         .from("crm_sync_log")
         .update({
-          status: totalFailed > 0 ? "partial" : "success",
-          records_synced: totalCreated + totalUpdated,
+          status: syncStatus,
+          records_synced: totalSynced,
           records_created: totalCreated,
           records_updated: totalUpdated,
           records_failed: totalFailed,
