@@ -28,6 +28,11 @@ import {
   Building2,
   Calendar,
   Clock,
+  Sparkles,
+  Mail,
+  Phone,
+  Loader2,
+  User,
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
@@ -43,6 +48,8 @@ export default function SiteDetail() {
   const queryClient = useQueryClient();
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [editedDesc, setEditedDesc] = useState("");
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const { data: company, isLoading } = useQuery({
     queryKey: ["company", siteId],
@@ -77,6 +84,23 @@ export default function SiteDetail() {
       }));
     },
     enabled: !!siteId,
+  });
+
+  // Fetch main contact email & phone
+  const mainContact = contacts?.[0];
+  const { data: mainContactDetails } = useQuery({
+    queryKey: ["main-contact-details", mainContact?.id],
+    queryFn: async () => {
+      const [emailRes, phoneRes] = await Promise.all([
+        supabase.from("crm_contact_emails").select("value").eq("contact_id", mainContact!.id).eq("is_primary", true).limit(1),
+        supabase.from("crm_contact_phones").select("value").eq("contact_id", mainContact!.id).eq("is_primary", true).limit(1),
+      ]);
+      return {
+        email: emailRes.data?.[0]?.value || null,
+        phone: phoneRes.data?.[0]?.value || null,
+      };
+    },
+    enabled: !!mainContact?.id,
   });
 
   // Fetch jobs linked to this company
@@ -158,7 +182,6 @@ export default function SiteDetail() {
   const { data: placements } = useQuery({
     queryKey: ["company-placements", siteId],
     queryFn: async () => {
-      // First get job IDs for this company
       const { data: companyJobs } = await supabase
         .from("crm_jobs")
         .select("id")
@@ -239,17 +262,40 @@ export default function SiteDetail() {
     },
   });
 
+  const generateSummary = async () => {
+    if (!company) return;
+    setIsGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("company-summary", {
+        body: {
+          companyName: company.name,
+          domain: company.domain,
+          description: company.description,
+          contactCount: contacts?.length ?? 0,
+          jobCount: jobs?.length ?? 0,
+          placementCount: placements?.length ?? 0,
+          revenue: company.revenue,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+      } else {
+        setAiSummary(data.summary);
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to generate summary");
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
         <div className="space-y-6">
           <Skeleton className="h-12 w-64" />
-          <div className="grid gap-4 grid-cols-4">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-          </div>
+          <Skeleton className="h-32" />
           <Skeleton className="h-64" />
         </div>
       </Layout>
@@ -269,6 +315,11 @@ export default function SiteDetail() {
 
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+
+  const primaryAddress = addresses?.find((a: any) => a.is_primary) || addresses?.[0];
+  const hqAddressStr = primaryAddress
+    ? [primaryAddress.line1, primaryAddress.city, primaryAddress.state, primaryAddress.zip_code].filter(Boolean).join(", ")
+    : null;
 
   return (
     <Layout>
@@ -302,29 +353,28 @@ export default function SiteDetail() {
                 )}
               </div>
 
+              {/* Inline metadata row */}
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 {company.domain && (
-                  <a
-                    href={`https://${company.domain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary"
-                  >
+                  <a href={`https://${company.domain}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary">
                     <Globe className="h-4 w-4" />
                     {company.domain}
                   </a>
                 )}
+                {hqAddressStr && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {hqAddressStr}
+                  </span>
+                )}
                 {company.revenue && (
                   <span className="flex items-center gap-1">
                     <DollarSign className="h-4 w-4" />
-                    Revenue: ${Number(company.revenue).toLocaleString()}
+                    ${Number(company.revenue).toLocaleString()}
                   </span>
                 )}
                 {parentCompany && (
-                  <span
-                    className="flex items-center gap-1 cursor-pointer hover:text-primary"
-                    onClick={() => navigate(`/sites/${parentCompany.id}`)}
-                  >
+                  <span className="flex items-center gap-1 cursor-pointer hover:text-primary" onClick={() => navigate(`/sites/${parentCompany.id}`)}>
                     <Building2 className="h-4 w-4" />
                     Parent: {parentCompany.name}
                   </span>
@@ -335,14 +385,35 @@ export default function SiteDetail() {
                     Owner: {owner.first_name} {owner.last_name}
                   </span>
                 )}
-                {source && (
-                  <span className="flex items-center gap-1">
-                    <Link2 className="h-4 w-4" />
-                    Source: {source.name}
-                  </span>
-                )}
               </div>
 
+              {/* Main contact inline */}
+              {mainContact && (
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <span
+                    className="flex items-center gap-1 font-medium text-primary cursor-pointer hover:underline"
+                    onClick={() => navigate(`/contacts/${mainContact.id}`)}
+                  >
+                    <User className="h-4 w-4" />
+                    {mainContact.first_name} {mainContact.last_name}
+                    {mainContact.job_title && <span className="font-normal text-muted-foreground ml-1">— {mainContact.job_title}</span>}
+                  </span>
+                  {mainContactDetails?.email && (
+                    <a href={`mailto:${mainContactDetails.email}`} className="flex items-center gap-1 text-muted-foreground hover:text-primary">
+                      <Mail className="h-3.5 w-3.5" />
+                      {mainContactDetails.email}
+                    </a>
+                  )}
+                  {mainContactDetails?.phone && (
+                    <a href={`tel:${mainContactDetails.phone}`} className="flex items-center gap-1 text-muted-foreground hover:text-primary">
+                      <Phone className="h-3.5 w-3.5" />
+                      {mainContactDetails.phone}
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Date metadata */}
               <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                 {company.last_activity_date && (
                   <span className="flex items-center gap-1">
@@ -367,39 +438,47 @@ export default function SiteDetail() {
           </div>
         </div>
 
-        {/* Quick Info Cards */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Type</p>
-              <p className="text-lg font-semibold capitalize">{company.company_type || "—"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Status</p>
-              <p className="text-lg font-semibold capitalize">{company.status || "—"}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Contacts</p>
-              <p className="text-lg font-semibold">{contacts?.length ?? 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Jobs</p>
-              <p className="text-lg font-semibold">{jobs?.length ?? 0}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Placements</p>
-              <p className="text-lg font-semibold">{placements?.length ?? 0}</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* AI Company Summary */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Company Summary
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateSummary}
+              disabled={isGeneratingSummary}
+            >
+              {isGeneratingSummary ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Generating…
+                </>
+              ) : aiSummary ? (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Regenerate
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Generate with AI
+                </>
+              )}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {aiSummary ? (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{aiSummary}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">
+                Click "Generate with AI" to create an overview of this company using public information and your CRM data.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="contacts" className="space-y-4">
@@ -479,12 +558,8 @@ export default function SiteDetail() {
                       >
                         <div>
                           <p className="font-medium text-primary hover:underline">{job.name}</p>
-                          {job.job_title && (
-                            <p className="text-sm text-muted-foreground">{job.job_title}</p>
-                          )}
-                          {job.location && (
-                            <p className="text-sm text-muted-foreground">{job.location}</p>
-                          )}
+                          {job.job_title && <p className="text-sm text-muted-foreground">{job.job_title}</p>}
+                          {job.location && <p className="text-sm text-muted-foreground">{job.location}</p>}
                         </div>
                         <Badge variant="outline" className="capitalize">{job.status}</Badge>
                       </div>
@@ -506,19 +581,13 @@ export default function SiteDetail() {
                     {activities.map((activity) => (
                       <div key={activity.id} className="p-3 rounded-lg border space-y-1">
                         <div className="flex items-center justify-between">
-                          <p className="font-medium text-sm">
-                            {activity.subject || activity.activity_type}
-                          </p>
+                          <p className="font-medium text-sm">{activity.subject || activity.activity_type}</p>
                           <Badge variant={activity.completed ? "secondary" : "outline"} className="text-xs">
                             {activity.completed ? "Done" : "Pending"}
                           </Badge>
                         </div>
-                        {activity.body && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">{activity.body}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(activity.created_at!).toLocaleDateString()}
-                        </p>
+                        {activity.body && <p className="text-sm text-muted-foreground line-clamp-2">{activity.body}</p>}
+                        <p className="text-xs text-muted-foreground">{new Date(activity.created_at!).toLocaleDateString()}</p>
                       </div>
                     ))}
                   </div>
@@ -655,29 +724,21 @@ export default function SiteDetail() {
             {isEditingDesc ? (
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setIsEditingDesc(false)}>
-                  <X className="h-4 w-4 mr-1" />
-                  Cancel
+                  <X className="h-4 w-4 mr-1" /> Cancel
                 </Button>
                 <Button size="sm" onClick={() => updateDescription.mutate(editedDesc)} disabled={updateDescription.isPending}>
-                  <Save className="h-4 w-4 mr-1" />
-                  {updateDescription.isPending ? "Saving..." : "Save"}
+                  <Save className="h-4 w-4 mr-1" /> {updateDescription.isPending ? "Saving..." : "Save"}
                 </Button>
               </div>
             ) : (
               <Button variant="ghost" size="sm" onClick={() => { setEditedDesc(company.description || ""); setIsEditingDesc(true); }}>
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit
+                <Pencil className="h-4 w-4 mr-1" /> Edit
               </Button>
             )}
           </CardHeader>
           <CardContent>
             {isEditingDesc ? (
-              <Textarea
-                value={editedDesc}
-                onChange={(e) => setEditedDesc(e.target.value)}
-                placeholder="Add a description..."
-                rows={4}
-              />
+              <Textarea value={editedDesc} onChange={(e) => setEditedDesc(e.target.value)} placeholder="Add a description..." rows={4} />
             ) : (
               <p className="text-sm whitespace-pre-wrap">
                 {company.description || <span className="text-muted-foreground italic">No description</span>}
