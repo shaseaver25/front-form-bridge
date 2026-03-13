@@ -18,6 +18,17 @@ interface SyncResult {
   errors: string[];
 }
 
+function normalizeApiKey(apiKey: string) {
+  return apiKey.trim().replace(/^['"]+|['"]+$/g, "");
+}
+
+function toHeaderRecord(headers?: HeadersInit): Record<string, string> {
+  if (!headers) return {};
+  if (headers instanceof Headers) return Object.fromEntries(headers.entries());
+  if (Array.isArray(headers)) return Object.fromEntries(headers);
+  return { ...headers };
+}
+
 function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: string) {
   return {
     ...headers,
@@ -26,22 +37,66 @@ function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: st
   };
 }
 
-async function fetchCrelateWithApiKeyFallback(url: string, init: RequestInit, apiKey: string) {
-  const primary = await fetch(url, {
-    ...init,
-    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
-  });
-
-  if (primary.status !== 401) return primary;
-
-  await primary.text(); // consume before retry
+function withApiKeyQuery(url: string, apiKey: string) {
+  if (url.includes("api_key=")) return url;
   const separator = url.includes("?") ? "&" : "?";
-  const fallbackUrl = `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+  return `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+}
 
-  return fetch(fallbackUrl, {
-    ...init,
-    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
-  });
+async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiKey: string) {
+  const normalizedKey = normalizeApiKey(apiKey);
+  const baseHeaders = toHeaderRecord(init.headers);
+
+  const attempts = [
+    {
+      name: "header_only",
+      url,
+      headers: withCrelateAuthHeaders({}, normalizedKey),
+    },
+    {
+      name: "query_only",
+      url: withApiKeyQuery(url, normalizedKey),
+      headers: {},
+    },
+    {
+      name: "header_and_query",
+      url: withApiKeyQuery(url, normalizedKey),
+      headers: withCrelateAuthHeaders({}, normalizedKey),
+    },
+    {
+      name: "authorization_bearer",
+      url,
+      headers: { Authorization: `Bearer ${normalizedKey}` },
+    },
+  ];
+
+  let lastResponse: Response | null = null;
+  let lastAttempt = "none";
+
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    const response = await fetch(attempt.url, {
+      ...init,
+      headers: {
+        ...baseHeaders,
+        ...attempt.headers,
+      },
+    });
+
+    if (response.status !== 401) {
+      return { response, authAttempt: attempt.name };
+    }
+
+    lastResponse = response;
+    lastAttempt = attempt.name;
+
+    // Consume response body before next attempt to avoid resource leaks.
+    if (i < attempts.length - 1) {
+      await response.text();
+    }
+  }
+
+  return { response: lastResponse!, authAttempt: lastAttempt };
 }
 
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
