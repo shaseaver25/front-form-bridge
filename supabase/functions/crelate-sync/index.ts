@@ -793,10 +793,10 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
         const maxRateLimitRetries = 3;
         let rateLimitRetries = 0;
-        let listResult: { response: Response; authAttempt: string } | null = null;
+        let res: Response | null = null;
 
         while (rateLimitRetries <= maxRateLimitRetries) {
-          listResult = await fetchCrelateWithAuthVariants(
+          res = await fetchCrelateWithHeaderOnly(
             listUrl,
             {
               method: "POST",
@@ -806,38 +806,36 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             normalizedApiKey,
           );
 
-          if (listResult.response.status !== 429) break;
+          if (res.status !== 429) break;
 
           if (rateLimitRetries === maxRateLimitRetries) {
             break;
           }
 
-          const retryAfterHeader = Number(listResult.response.headers.get("retry-after") || "5");
+          const retryAfterHeader = Number(res.headers.get("retry-after") || "5");
           const waitMs = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
             ? retryAfterHeader * 1000
             : 5000;
-          await listResult.response.text();
+          await res.text();
           rateLimitRetries += 1;
           console.warn(`Rate limited on attachments list, retry ${rateLimitRetries}/${maxRateLimitRetries}, waiting ${Math.round(waitMs / 1000)}s...`);
           await sleep(waitMs);
         }
 
-        if (!listResult) continue;
-
-        const { response: res, authAttempt: listAuthAttempt } = listResult;
+        if (!res) continue;
 
         if (!res.ok) {
           const errText = await res.text();
           if (debugCount < 3) {
-            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
+            console.log(`Attachments API returned ${res.status} for contact ${contact.crelate_id}`);
             console.log(`Response body: ${errText.substring(0, 500)}`);
             debugCount++;
           }
 
           if (res.status === 401 || res.status === 403) {
-            console.error(`${res.status} on document list API - aborting document sync (authAttempt=${listAuthAttempt})`);
+            console.error(`${res.status} on document list API using X-Api-Key header - aborting document sync`);
             result.failed += 1;
-            result.errors.push(`${res.status} from Crelate document API for contact ${contact.crelate_id} (authAttempt=${listAuthAttempt})`);
+            result.errors.push(`${res.status} from Crelate document API for contact ${contact.crelate_id}: ${errText.substring(0, 200)}`);
             abortPagination = true;
             break;
           }
@@ -852,7 +850,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           if (res.status === 404) continue;
 
           result.failed += 1;
-          result.errors.push(`Document list API returned ${res.status} for contact ${contact.crelate_id}`);
+          result.errors.push(`Document list API returned ${res.status} for contact ${contact.crelate_id}: ${errText.substring(0, 200)}`);
           continue;
         }
 
