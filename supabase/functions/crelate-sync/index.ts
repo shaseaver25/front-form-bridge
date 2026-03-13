@@ -18,9 +18,35 @@ interface SyncResult {
   errors: string[];
 }
 
+function withCrelateAuthHeaders(headers: Record<string, string> = {}, apiKey: string) {
+  return {
+    ...headers,
+    "X-Api-Key": apiKey,
+    "x-api-key": apiKey,
+  };
+}
+
+async function fetchCrelateWithApiKeyFallback(url: string, init: RequestInit, apiKey: string) {
+  const primary = await fetch(url, {
+    ...init,
+    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
+  });
+
+  if (primary.status !== 401) return primary;
+
+  await primary.text(); // consume before retry
+  const separator = url.includes("?") ? "&" : "?";
+  const fallbackUrl = `${url}${separator}api_key=${encodeURIComponent(apiKey)}`;
+
+  return fetch(fallbackUrl, {
+    ...init,
+    headers: withCrelateAuthHeaders((init.headers as Record<string, string>) || {}, apiKey),
+  });
+}
+
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
   const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: { "x-api-key": apiKey } });
+  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, apiKey) });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Crelate API error ${res.status}: ${text}`);
@@ -646,6 +672,7 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
 }
 
 async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 50): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
+  const normalizedApiKey = apiKey.trim();
   const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
@@ -682,23 +709,25 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     // Log first few contacts for debugging
     let debugCount = 0;
+    let abortPagination = false;
 
     for (const contact of contacts) {
       try {
         // Use Crelate v2 document list endpoint (POST)
-        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${apiKey}`;
+        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}`;
         if (debugCount < 3) {
-          console.log(`Fetching attachments from: ${listUrl.replace(apiKey, '***')}`);
+          console.log(`Fetching attachments from: ${listUrl}`);
         }
-        const res = await fetch(listUrl, {
-          method: "POST",
-          headers: {
-            "X-Api-Key": apiKey,
-            "x-api-key": apiKey,
-            "Content-Type": "application/json",
+
+        const res = await fetchCrelateWithApiKeyFallback(
+          listUrl,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Types: [0, 1, 2] }),
           },
-          body: JSON.stringify({ Types: [0, 1, 2] }),
-        });
+          normalizedApiKey,
+        );
 
         if (!res.ok) {
           if (debugCount < 3) {
@@ -709,15 +738,18 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           } else {
             await res.text(); // consume body
           }
+
           if (res.status === 401) {
-            // Auth failure - log once and abort entire sync (key is wrong or v2 not enabled)
-            console.error(`401 Unauthorized on document list API - aborting document sync`);
-            result.errors.push("401 Unauthorized from Crelate document API");
+            console.error("401 Unauthorized on document list API - aborting document sync");
+            result.failed += 1;
+            result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id}`);
+            abortPagination = true;
             break;
           }
+
           if (res.status === 404) continue;
           if (res.status === 429) {
-            console.warn(`Rate limited on attachments list, waiting 5s...`);
+            console.warn("Rate limited on attachments list, waiting 5s...");
             await new Promise(r => setTimeout(r, 5000));
             continue;
           }
@@ -753,8 +785,12 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
           try {
             // Download via v2 attachment endpoint (type=0 for original file)
-            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${apiKey}`;
-            const dlRes = await fetch(dlUrl, { headers: { "X-Api-Key": apiKey, "x-api-key": apiKey } });
+            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
+            const dlRes = await fetchCrelateWithApiKeyFallback(
+              dlUrl,
+              { method: "GET" },
+              normalizedApiKey,
+            );
             if (!dlRes.ok) {
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
@@ -810,8 +846,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     }
 
     result.total = totalAttachments;
-    result.hasMore = hasMore;
-    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    result.hasMore = abortPagination ? false : hasMore;
+    result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
     console.log(`Document sync batch complete: ${result.created} uploaded, ${result.failed} failed, hasMore=${hasMore}`);
   } catch (e) {
     result.errors.push(`Documents sync failed: ${e.message}`);
@@ -1157,7 +1193,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const crelateApiKey = Deno.env.get("CRELATE_API_KEY");
+    const crelateApiKey = Deno.env.get("CRELATE_API_KEY")?.trim();
 
     if (!crelateApiKey) {
       return new Response(JSON.stringify({ error: "CRELATE_API_KEY not configured" }), {
@@ -1263,13 +1299,18 @@ Deno.serve(async (req) => {
     const totalUpdated = results.reduce((s, r) => s + r.updated, 0);
     const totalFailed = results.reduce((s, r) => s + r.failed, 0);
     const allErrors = results.flatMap((r) => r.errors);
+    const totalSynced = totalCreated + totalUpdated;
+
+    const syncStatus = allErrors.length > 0
+      ? (totalSynced > 0 || totalFailed > 0 ? "partial" : "failed")
+      : (totalFailed > 0 ? "partial" : "success");
 
     if (logEntry) {
       await supabase
         .from("crm_sync_log")
         .update({
-          status: totalFailed > 0 ? "partial" : "success",
-          records_synced: totalCreated + totalUpdated,
+          status: syncStatus,
+          records_synced: totalSynced,
           records_created: totalCreated,
           records_updated: totalUpdated,
           records_failed: totalFailed,
@@ -1285,9 +1326,9 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        success: true,
+        success: syncStatus !== "failed",
         results,
-        summary: { synced: totalCreated + totalUpdated, created: totalCreated, updated: totalUpdated, failed: totalFailed },
+        summary: { synced: totalSynced, created: totalCreated, updated: totalUpdated, failed: totalFailed },
         ...(docResult ? { hasMore: true, nextCursor: (docResult as any).nextCursor, continueEntity: "documents" } : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
