@@ -121,20 +121,39 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
     setPreviewLoading(true);
     setPreviewUrl(null);
 
-    const { data, error } = await supabase.storage
-      .from("contact-documents")
-      .download(doc.file_url);
+    const mime = doc.file_type || guessMime(doc.file_name);
+    const isInline = canPreviewInline(doc);
 
-    if (error || !data) {
-      toast.error("Failed to load file preview");
-      setPreviewLoading(false);
-      return;
+    if (isInline) {
+      // For PDFs and images, download blob for direct display
+      const { data, error } = await supabase.storage
+        .from("contact-documents")
+        .download(doc.file_url);
+
+      if (error || !data) {
+        toast.error("Failed to load file preview");
+        setPreviewLoading(false);
+        return;
+      }
+
+      const blob = new Blob([data], { type: mime });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } else {
+      // For DOCX/DOC etc., use a signed URL with Google Docs Viewer
+      const { data: signedData, error } = await supabase.storage
+        .from("contact-documents")
+        .createSignedUrl(doc.file_url, 3600);
+
+      if (error || !signedData?.signedUrl) {
+        toast.error("Failed to load file preview");
+        setPreviewLoading(false);
+        return;
+      }
+
+      const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(signedData.signedUrl)}&embedded=true`;
+      setPreviewUrl(viewerUrl);
     }
-
-    const mimeType = doc.file_type || guessMime(doc.file_name);
-    const blob = new Blob([data], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    setPreviewUrl(url);
     setPreviewLoading(false);
   };
 
