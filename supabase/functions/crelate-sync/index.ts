@@ -1392,7 +1392,14 @@ Deno.serve(async (req) => {
         success: syncStatus !== "failed",
         results,
         summary: { synced: totalSynced, created: totalCreated, updated: totalUpdated, failed: totalFailed },
-        ...(docResult ? { hasMore: true, nextCursor: (docResult as any).nextCursor, continueEntity: "documents" } : {}),
+        ...(docResult
+          ? {
+              hasMore: true,
+              nextCursor: (docResult as any).nextCursor ?? (docResult as any).nextOffset,
+              nextOffset: (docResult as any).nextOffset ?? (docResult as any).nextCursor,
+              continueEntity: "documents",
+            }
+          : {}),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
