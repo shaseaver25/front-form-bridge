@@ -201,6 +201,13 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading notes...</p>
+        ) : fetchError && notes.length === 0 ? (
+          <div className="text-center py-4 space-y-2">
+            <p className="text-sm text-muted-foreground">Failed to load notes. Please try again.</p>
+            <Button size="sm" variant="outline" onClick={fetchNotes}>
+              <RefreshCw className="w-3 h-3 mr-1" /> Retry
+            </Button>
+          </div>
         ) : notes.length === 0 ? (
           <p className="text-sm text-muted-foreground">No notes or activity yet</p>
         ) : (
