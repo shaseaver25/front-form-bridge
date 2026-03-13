@@ -28,6 +28,7 @@ import {
   X,
   Loader2,
   Save,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ContactNotes from "@/components/ContactNotes";
