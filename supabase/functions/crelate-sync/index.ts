@@ -786,37 +786,28 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     for (const contact of contacts) {
       try {
         const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${encodeURIComponent(normalizedApiKey)}`;
-        console.log(`Fetching attachments for contact ${contact.crelate_id}`);
+        console.log(`Fetching docs for contact ${contact.crelate_id}`);
 
-        const { response: listRes } = await fetchCrelateWithAuthVariants(
-          listUrl,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ Types: [0, 1, 2] }),
+        const listRes = await fetch(listUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Api-Key": normalizedApiKey,
           },
-          normalizedApiKey,
-        );
+          body: JSON.stringify({ Types: [0, 1, 2] }),
+        });
 
         if (!listRes.ok) {
+          if (listRes.status === 429 || listRes.status === 401 || listRes.status === 403) {
+            console.warn(`${listRes.status} for contact ${contact.crelate_id} - skipping`);
+            result.failed += 1;
+            await listRes.text(); // consume body
+            continue;
+          }
+          if (listRes.status === 404) { await listRes.text(); continue; }
           const errText = await listRes.text();
-
-          if (listRes.status === 429) {
-            console.warn(`429 rate limit for contact ${contact.crelate_id} - skipping`);
-            result.failed += 1;
-            continue;
-          }
-
-          if (listRes.status === 401 || listRes.status === 403) {
-            console.warn(`${listRes.status} on document list API for ${contact.crelate_id} - skipping contact`);
-            result.failed += 1;
-            continue;
-          }
-
-          if (listRes.status === 404) continue;
-
           result.failed += 1;
-          result.errors.push(`Document list returned ${listRes.status} for contact ${contact.crelate_id}: ${errText.substring(0, 200)}`);
+          result.errors.push(`Doc list ${listRes.status} for ${contact.crelate_id}: ${errText.substring(0, 100)}`);
           continue;
         }
 
@@ -842,26 +833,20 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
           try {
             const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${encodeURIComponent(normalizedApiKey)}`;
-            const { response: dlRes } = await fetchCrelateWithAuthVariants(
-              dlUrl,
-              { method: "GET" },
-              normalizedApiKey,
-            );
+            const dlRes = await fetch(dlUrl, {
+              method: "GET",
+              headers: { "X-Api-Key": normalizedApiKey },
+            });
 
             if (!dlRes.ok) {
-              if (dlRes.status === 429) {
-                console.warn(`429 on attachment download ${attId} - skipping`);
+              if (dlRes.status === 429 || dlRes.status === 401 || dlRes.status === 403) {
+                console.warn(`${dlRes.status} on download ${attId} - skipping`);
+                await dlRes.text();
                 result.failed++;
                 continue;
               }
-
-              if (dlRes.status === 401 || dlRes.status === 403) {
-                console.warn(`${dlRes.status} on attachment download ${attId} - skipping`);
-                result.failed++;
-                continue;
-              }
-
-              console.warn(`Attachment download ${dlRes.status} for ${attId}`);
+              console.warn(`Download ${dlRes.status} for ${attId}`);
+              await dlRes.text();
               result.failed++;
               continue;
             }
