@@ -56,6 +56,7 @@ export default function ContactDetail() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [careerHistory, setCareerHistory] = useState<any[]>([]);
   const [source, setSource] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
 
   const fetchContact = useCallback(async () => {
     if (!id) return;
