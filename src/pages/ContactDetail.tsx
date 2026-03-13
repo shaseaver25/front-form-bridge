@@ -252,9 +252,12 @@ export default function ContactDetail() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-primary" />
-              </div>
+              <ContactAvatar
+                contactId={contact.id}
+                iconUrl={contact.icon_attachment_url}
+                name={displayName}
+                onUpdate={(newPath) => setContact((prev: any) => ({ ...prev, icon_attachment_url: newPath }))}
+              />
               {editing ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
