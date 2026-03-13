@@ -40,6 +40,7 @@ import EditableMultiValueField from "@/components/contact-edit/EditableMultiValu
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
