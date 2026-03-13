@@ -100,8 +100,9 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
 }
 
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
-  const url = `${CRELATE_BASE}/${endpoint}?api_key=${apiKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, apiKey) });
+  const normalizedKey = normalizeApiKey(apiKey);
+  const url = `${CRELATE_BASE}/${endpoint}?api_key=${normalizedKey}&offset=${offset}&limit=${limit}`;
+  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, normalizedKey) });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Crelate API error ${res.status}: ${text}`);
