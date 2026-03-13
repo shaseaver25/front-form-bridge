@@ -178,7 +178,6 @@ export function ESContactsList() {
                         name={`${contact.first_name || ""} ${contact.last_name}`}
                         size="sm"
                       />
-                      />
                       <span className="font-medium">
                         {contact.first_name} {contact.last_name}
                       </span>
