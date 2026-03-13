@@ -780,19 +780,18 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     for (const contact of contacts) {
       try {
-        // Use Crelate v2 document list endpoint (POST) with header-only auth
-        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}`;
-        console.log(`Fetching attachments from: ${listUrl}`);
+        // Use Crelate v2 document list endpoint (POST) with both query and header auth
+        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${encodeURIComponent(normalizedApiKey)}`;
+        console.log(`Fetching attachments for contact ${contact.crelate_id}`);
 
-        const res = await fetchCrelateWithHeaderOnly(
-          listUrl,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ Types: [0, 1, 2] }),
+        const res = await fetch(listUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Api-Key": normalizedApiKey,
           },
-          normalizedApiKey,
-        );
+          body: JSON.stringify({ Types: [0, 1, 2] }),
+        });
 
         if (!res.ok) {
           const errText = await res.text();
@@ -840,8 +839,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           const fileType = att.ContentType || guessContentType(fileName);
 
           try {
-            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const dlRes = await fetchCrelateWithHeaderOnly(dlUrl, { method: "GET" }, normalizedApiKey);
+            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${encodeURIComponent(normalizedApiKey)}`;
+            const dlRes = await fetch(dlUrl, { method: "GET", headers: { "X-Api-Key": normalizedApiKey } });
 
             if (!dlRes.ok) {
               const dlErrText = await dlRes.text();
