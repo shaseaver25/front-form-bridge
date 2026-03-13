@@ -103,15 +103,14 @@ export function ESCompaniesList() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState
-          icon={Building2}
-          title="No Executive Search companies"
-          description={
-            companies.length === 0
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <p className="text-lg font-medium text-foreground mb-1">No Executive Search companies</p>
+          <p className="text-sm text-muted-foreground">
+            {companies.length === 0
               ? 'Tag companies with "Executive Search" to see them here.'
-              : "No companies match your search."
-          }
-        />
+              : "No companies match your search."}
+          </p>
+        </div>
       ) : (
         <div className="border rounded-lg">
           <Table>
