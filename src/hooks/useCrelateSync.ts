@@ -31,6 +31,10 @@ export function useCrelateSync() {
               body: { action: "sync", entity_type: entity, cursor_offset: cursorOffset },
             });
             if (error) throw error;
+            if (data?.success === false) {
+              const message = data?.results?.flatMap((r: any) => r.errors || []).join("; ") || data?.error || "Sync failed";
+              throw new Error(message);
+            }
             if (data?.results) allResults.push(...data.results);
             hasMore = data?.hasMore && data?.continueEntity === entity;
             cursorOffset = data?.nextCursor || 0;
