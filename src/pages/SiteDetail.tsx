@@ -416,30 +416,22 @@ export default function SiteDetail() {
               <Activity className="h-4 w-4" />
               Activities ({activities?.length ?? 0})
             </TabsTrigger>
-            {placements && placements.length > 0 && (
-              <TabsTrigger value="placements" className="gap-2">
-                <Award className="h-4 w-4" />
-                Placements ({placements.length})
-              </TabsTrigger>
-            )}
-            {addresses && addresses.length > 0 && (
-              <TabsTrigger value="addresses" className="gap-2">
-                <MapPin className="h-4 w-4" />
-                Addresses ({addresses.length})
-              </TabsTrigger>
-            )}
-            {urls && urls.length > 0 && (
-              <TabsTrigger value="urls" className="gap-2">
-                <Link2 className="h-4 w-4" />
-                URLs ({urls.length})
-              </TabsTrigger>
-            )}
-            {attachments && attachments.length > 0 && (
-              <TabsTrigger value="attachments" className="gap-2">
-                <Paperclip className="h-4 w-4" />
-                Files ({attachments.length})
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="placements" className="gap-2">
+              <Award className="h-4 w-4" />
+              Placements ({placements?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Addresses ({addresses?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="urls" className="gap-2">
+              <Link2 className="h-4 w-4" />
+              URLs ({urls?.length ?? 0})
+            </TabsTrigger>
+            <TabsTrigger value="attachments" className="gap-2">
+              <Paperclip className="h-4 w-4" />
+              Files ({attachments?.length ?? 0})
+            </TabsTrigger>
           </TabsList>
 
           {/* Contacts Tab */}
@@ -538,10 +530,10 @@ export default function SiteDetail() {
           </TabsContent>
 
           {/* Placements Tab */}
-          {placements && placements.length > 0 && (
-            <TabsContent value="placements">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="placements">
+            <Card>
+              <CardContent className="p-4">
+                {placements && placements.length > 0 ? (
                   <div className="space-y-3">
                     {placements.map((p: any) => (
                       <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
@@ -562,16 +554,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No placements recorded</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Addresses Tab */}
-          {addresses && addresses.length > 0 && (
-            <TabsContent value="addresses">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="addresses">
+            <Card>
+              <CardContent className="p-4">
+                {addresses && addresses.length > 0 ? (
                   <div className="space-y-3">
                     {addresses.map((addr: any) => (
                       <div key={addr.id} className="flex items-start gap-3 p-3 rounded-lg border">
@@ -587,16 +581,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No addresses on file</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* URLs Tab */}
-          {urls && urls.length > 0 && (
-            <TabsContent value="urls">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="urls">
+            <Card>
+              <CardContent className="p-4">
+                {urls && urls.length > 0 ? (
                   <div className="space-y-3">
                     {urls.map((url: any) => (
                       <div key={url.id} className="flex items-center gap-3 p-3 rounded-lg border">
@@ -617,16 +613,18 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No URLs on file</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Attachments Tab */}
-          {attachments && attachments.length > 0 && (
-            <TabsContent value="attachments">
-              <Card>
-                <CardContent className="p-4">
+          <TabsContent value="attachments">
+            <Card>
+              <CardContent className="p-4">
+                {attachments && attachments.length > 0 ? (
                   <div className="space-y-3">
                     {attachments.map((att: any) => (
                       <div key={att.id} className="flex items-center gap-3 p-3 rounded-lg border">
@@ -642,10 +640,12 @@ export default function SiteDetail() {
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No files attached</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Description */}
