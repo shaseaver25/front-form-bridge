@@ -121,6 +121,7 @@ export function ESContactsList() {
         last_name: c.last_name,
         job_title: c.job_title,
         status: c.status,
+        enrichment_status: c.enrichment_status || null,
         primary_email: primaryEmail,
         primary_company_name: companyMap[c.id] || null,
       };
