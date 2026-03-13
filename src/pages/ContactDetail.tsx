@@ -28,6 +28,7 @@ import {
   X,
   Loader2,
   Save,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ContactNotes from "@/components/ContactNotes";
@@ -39,11 +40,13 @@ import EditableMultiValueField from "@/components/contact-edit/EditableMultiValu
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
 import { useContactEdit } from "@/hooks/useContactEdit";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContactDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isReady } = useAuthReady();
+  const { toast } = useToast();
 
   const [contact, setContact] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,7 @@ export default function ContactDetail() {
   const [addresses, setAddresses] = useState<any[]>([]);
   const [careerHistory, setCareerHistory] = useState<any[]>([]);
   const [source, setSource] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
 
   const fetchContact = useCallback(async () => {
     if (!id) return;
@@ -185,6 +189,14 @@ export default function ContactDetail() {
     setEditData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleEnrich = async () => {
+    setEnriching(true);
+    // TODO: Wire up to enrichment edge function
+    await new Promise((r) => setTimeout(r, 1000));
+    toast({ title: "Enrichment not configured", description: "Connect an enrichment provider to enable this feature." });
+    setEnriching(false);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -241,10 +253,25 @@ export default function ContactDetail() {
                 </Button>
               </>
             ) : (
-              <Button variant="outline" onClick={handleStartEdit}>
-                <Pencil className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleEnrich}
+                  disabled={enriching || contact.enrichment_status === "enriched"}
+                  className="gap-1.5"
+                >
+                  {enriching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {contact.enrichment_status === "enriched" ? "Enriched" : "Enrich"}
+                </Button>
+                <Button variant="outline" onClick={handleStartEdit}>
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </>
             )}
           </div>
         </div>
