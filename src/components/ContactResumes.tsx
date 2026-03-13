@@ -322,21 +322,12 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
                   />
                 )
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-                  <FileText className="w-16 h-16" />
-                  <p className="text-sm">
-                    Preview not available for this file type.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => downloadFile(previewDoc)}
-                  >
-                    <Download className="w-4 h-4" />
-                    Download to view
-                  </Button>
-                </div>
-              )
+                  <iframe
+                    src={previewUrl}
+                    title={previewDoc.file_name}
+                    className="w-full h-full border-0"
+                  />
+                )
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <p className="text-sm">Failed to load preview</p>
