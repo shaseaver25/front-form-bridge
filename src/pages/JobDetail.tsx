@@ -133,9 +133,11 @@ export default function JobDetail() {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">{job.name}</h1>
-                {job.job_title && (
-                  <p className="text-lg text-muted-foreground mt-1">{job.job_title}</p>
+                <h1 className="text-3xl font-bold tracking-tight">{job.job_title || job.name}</h1>
+                {job.company?.name && (
+                  <p className="text-lg text-muted-foreground mt-1 cursor-pointer hover:text-foreground transition-colors" onClick={() => navigate(`/sites/${job.company.id}`)}>
+                    {job.company.name}
+                  </p>
                 )}
               </div>
               <Badge className={statusColors[job.status] || "bg-muted text-muted-foreground"}>
