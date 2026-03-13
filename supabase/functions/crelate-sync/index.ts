@@ -846,8 +846,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     }
 
     result.total = totalAttachments;
-    result.hasMore = hasMore;
-    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    result.hasMore = abortPagination ? false : hasMore;
+    result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
     console.log(`Document sync batch complete: ${result.created} uploaded, ${result.failed} failed, hasMore=${hasMore}`);
   } catch (e) {
     result.errors.push(`Documents sync failed: ${e.message}`);
