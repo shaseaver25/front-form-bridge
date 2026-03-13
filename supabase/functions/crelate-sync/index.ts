@@ -741,12 +741,18 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
   return result;
 }
 
-async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 10): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
+async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 10): Promise<SyncResult & { nextCursor?: number; nextOffset?: number; hasMore?: boolean }> {
   const normalizedApiKey = normalizeApiKey(apiKey);
-  const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
+  const result: SyncResult & { nextCursor?: number; nextOffset?: number; hasMore?: boolean } = {
+    entity: "documents",
+    created: 0,
+    updated: 0,
+    failed: 0,
+    total: 0,
+    errors: [],
+  };
 
   try {
-    // Get all contacts with crelate_ids, ordered for consistent pagination
     const { data: allContacts } = await supabase
       .from("crm_contacts")
       .select("id, crelate_id")
@@ -755,20 +761,20 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
     if (!allContacts || allContacts.length === 0) {
       console.log("No contacts found for document sync");
+      result.hasMore = false;
       return result;
     }
 
-    // Process only batchSize contacts per call
     const contacts = allContacts.slice(cursorOffset, cursorOffset + batchSize);
     const hasMore = cursorOffset + batchSize < allContacts.length;
 
     console.log(`Document sync batch: contacts ${cursorOffset}-${cursorOffset + contacts.length} of ${allContacts.length}`);
 
     if (contacts.length === 0) {
+      result.hasMore = false;
       return result;
     }
 
-    // Get already-synced document crelate_ids to skip
     const { data: existingDocs } = await supabase
       .from("crm_contact_documents")
       .select("crelate_id")
@@ -776,56 +782,52 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     const existingSet = new Set((existingDocs || []).map((d: any) => d.crelate_id));
 
     let totalAttachments = 0;
-    let abortPagination = false;
 
     for (const contact of contacts) {
       try {
-        // Use Crelate v2 document list endpoint (POST) with both query and header auth
         const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${encodeURIComponent(normalizedApiKey)}`;
         console.log(`Fetching attachments for contact ${contact.crelate_id}`);
 
-        const res = await fetch(listUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Api-Key": normalizedApiKey,
+        const { response: listRes } = await fetchCrelateWithAuthVariants(
+          listUrl,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Types: [0, 1, 2] }),
           },
-          body: JSON.stringify({ Types: [0, 1, 2] }),
-        });
+          normalizedApiKey,
+        );
 
-        if (!res.ok) {
-          const errText = await res.text();
+        if (!listRes.ok) {
+          const errText = await listRes.text();
 
-          if (res.status === 401 || res.status === 403) {
-            console.error(`${res.status} on document list API - aborting`);
-            result.failed += 1;
-            result.errors.push(`${res.status} from Crelate document API: ${errText.substring(0, 200)}`);
-            abortPagination = true;
-            break;
-          }
-
-          // Rate limited? Skip this contact, move on (no waiting)
-          if (res.status === 429) {
+          if (listRes.status === 429) {
             console.warn(`429 rate limit for contact ${contact.crelate_id} - skipping`);
             result.failed += 1;
             continue;
           }
 
-          if (res.status === 404) continue;
+          if (listRes.status === 401 || listRes.status === 403) {
+            console.warn(`${listRes.status} on document list API for ${contact.crelate_id} - skipping contact`);
+            result.failed += 1;
+            continue;
+          }
+
+          if (listRes.status === 404) continue;
 
           result.failed += 1;
-          result.errors.push(`Document list returned ${res.status} for contact ${contact.crelate_id}: ${errText.substring(0, 200)}`);
+          result.errors.push(`Document list returned ${listRes.status} for contact ${contact.crelate_id}: ${errText.substring(0, 200)}`);
           continue;
         }
 
-        const attachData = await res.json();
-        const preview = JSON.stringify(attachData).substring(0, 300);
-        console.log(`Contact ${contact.crelate_id} response: ${preview}`);
+        const attachData = await listRes.json();
+        const attachments: any[] = Array.isArray(attachData?.Attachments)
+          ? attachData.Attachments
+          : Array.isArray(attachData)
+            ? attachData
+            : [];
 
-        const attachments: any[] = attachData?.Attachments || [];
         if (attachments.length === 0) continue;
-
-        console.log(`Found ${attachments.length} attachments for contact ${contact.crelate_id}`);
 
         for (const att of attachments) {
           const attId = att.Id || att.id;
@@ -840,22 +842,21 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
           try {
             const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${encodeURIComponent(normalizedApiKey)}`;
-            const dlRes = await fetch(dlUrl, { method: "GET", headers: { "X-Api-Key": normalizedApiKey } });
+            const { response: dlRes } = await fetchCrelateWithAuthVariants(
+              dlUrl,
+              { method: "GET" },
+              normalizedApiKey,
+            );
 
             if (!dlRes.ok) {
-              const dlErrText = await dlRes.text();
-
-              if (dlRes.status === 401 || dlRes.status === 403) {
-                console.error(`Attachment download ${dlRes.status} for ${attId} - aborting`);
-                result.failed++;
-                result.errors.push(`${dlRes.status} on attachment download ${attId}: ${dlErrText.substring(0, 200)}`);
-                abortPagination = true;
-                break;
-              }
-
-              // Rate limited on download? Skip this attachment (no waiting)
               if (dlRes.status === 429) {
                 console.warn(`429 on attachment download ${attId} - skipping`);
+                result.failed++;
+                continue;
+              }
+
+              if (dlRes.status === 401 || dlRes.status === 403) {
+                console.warn(`${dlRes.status} on attachment download ${attId} - skipping`);
                 result.failed++;
                 continue;
               }
@@ -880,36 +881,36 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
 
             const { error: insertError } = await supabase
               .from("crm_contact_documents")
-              .upsert({
-                crelate_id: crelateDocId,
-                contact_id: contact.id,
-                file_name: fileName,
-                file_url: storagePath,
-                file_type: fileType,
-                file_size_bytes: fileBlob.size || att.FileSize || null,
-              }, { onConflict: "crelate_id" });
+              .upsert(
+                {
+                  crelate_id: crelateDocId,
+                  contact_id: contact.id,
+                  file_name: fileName,
+                  file_url: storagePath,
+                  file_type: fileType,
+                  file_size_bytes: fileBlob.size || att.FileSize || null,
+                },
+                { onConflict: "crelate_id" },
+              );
 
             if (insertError) {
               result.failed++;
             } else {
               result.created++;
             }
-          } catch (dlErr) {
+          } catch {
             result.failed++;
           }
-
-          if (abortPagination) break;
         }
       } catch (contactErr) {
         console.warn(`Error for contact ${contact.crelate_id}: ${contactErr.message}`);
       }
-
-      if (abortPagination) break;
     }
 
     result.total = totalAttachments;
-    result.hasMore = abortPagination ? false : hasMore;
-    result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
+    result.hasMore = hasMore;
+    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    result.nextOffset = result.nextCursor;
     console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, hasMore=${result.hasMore}`);
   } catch (e) {
     result.errors.push(`Documents sync failed: ${e.message}`);
