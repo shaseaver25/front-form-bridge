@@ -89,7 +89,7 @@ export function ESContactsList() {
     const { data: contactsData } = await supabase
       .from("crm_contacts")
       .select(`
-        id, first_name, last_name, job_title, status,
+        id, first_name, last_name, job_title, status, enrichment_status,
         crm_contact_emails(value, is_primary)
       `)
       .in("id", contactIds)
