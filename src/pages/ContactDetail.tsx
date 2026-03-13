@@ -253,10 +253,25 @@ export default function ContactDetail() {
                 </Button>
               </>
             ) : (
-              <Button variant="outline" onClick={handleStartEdit}>
-                <Pencil className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleEnrich}
+                  disabled={enriching || contact.enrichment_status === "enriched"}
+                  className="gap-1.5"
+                >
+                  {enriching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  {contact.enrichment_status === "enriched" ? "Enriched" : "Enrich"}
+                </Button>
+                <Button variant="outline" onClick={handleStartEdit}>
+                  <Pencil className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </>
             )}
           </div>
         </div>
