@@ -839,8 +839,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           const fileType = att.ContentType || guessContentType(fileName);
 
           try {
-            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0`;
-            const dlRes = await fetchCrelateWithHeaderOnly(dlUrl, { method: "GET" }, normalizedApiKey);
+            const dlUrl = `https://app.crelate.com/api/attachment/${attId}/download?type=0&api_key=${encodeURIComponent(normalizedApiKey)}`;
+            const dlRes = await fetch(dlUrl, { method: "GET", headers: { "X-Api-Key": normalizedApiKey } });
 
             if (!dlRes.ok) {
               const dlErrText = await dlRes.text();
