@@ -672,6 +672,7 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
 }
 
 async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 50): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
+  const normalizedApiKey = apiKey.trim();
   const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
@@ -712,19 +713,20 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     for (const contact of contacts) {
       try {
         // Use Crelate v2 document list endpoint (POST)
-        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}?api_key=${apiKey}`;
+        const listUrl = `https://app.crelate.com/api/v2/document/list/_Contacts/${contact.crelate_id}`;
         if (debugCount < 3) {
-          console.log(`Fetching attachments from: ${listUrl.replace(apiKey, '***')}`);
+          console.log(`Fetching attachments from: ${listUrl}`);
         }
-        const res = await fetch(listUrl, {
-          method: "POST",
-          headers: {
-            "X-Api-Key": apiKey,
-            "x-api-key": apiKey,
-            "Content-Type": "application/json",
+
+        const res = await fetchCrelateWithApiKeyFallback(
+          listUrl,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ Types: [0, 1, 2] }),
           },
-          body: JSON.stringify({ Types: [0, 1, 2] }),
-        });
+          normalizedApiKey,
+        );
 
         if (!res.ok) {
           if (debugCount < 3) {
@@ -735,15 +737,17 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           } else {
             await res.text(); // consume body
           }
+
           if (res.status === 401) {
-            // Auth failure - log once and abort entire sync (key is wrong or v2 not enabled)
-            console.error(`401 Unauthorized on document list API - aborting document sync`);
-            result.errors.push("401 Unauthorized from Crelate document API");
+            console.error("401 Unauthorized on document list API - aborting document sync");
+            result.failed += 1;
+            result.errors.push(`401 Unauthorized from Crelate document API for contact ${contact.crelate_id}`);
             break;
           }
+
           if (res.status === 404) continue;
           if (res.status === 429) {
-            console.warn(`Rate limited on attachments list, waiting 5s...`);
+            console.warn("Rate limited on attachments list, waiting 5s...");
             await new Promise(r => setTimeout(r, 5000));
             continue;
           }
