@@ -728,7 +728,7 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
 }
 
 async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, batchSize = 50): Promise<SyncResult & { nextCursor?: number; hasMore?: boolean }> {
-  const normalizedApiKey = apiKey.trim();
+  const normalizedApiKey = normalizeApiKey(apiKey);
   const result: SyncResult & { nextCursor?: number; hasMore?: boolean } = { entity: "documents", created: 0, updated: 0, failed: 0, total: 0, errors: [] };
 
   try {
