@@ -848,6 +848,9 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
               normalizedApiKey,
             );
             if (!dlRes.ok) {
+              if (dlRes.status === 401) {
+                console.warn(`Attachment download 401 for ${attId} (authAttempt=${downloadAuthAttempt})`);
+              }
               if (dlRes.status === 429) {
                 console.warn(`Rate limited on attachment download, waiting 5s...`);
                 await new Promise(r => setTimeout(r, 5000));
