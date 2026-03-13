@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import CareerHistoryEntry from "@/components/CareerHistoryEntry";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
