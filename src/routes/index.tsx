@@ -521,6 +521,7 @@ export const allRoutes: RouteObject[] = [
   ...adminRoutes,
   ...superAdminRoutes,
   ...legalRoutes,
+  ...execSearchRoutes,
   ...miscRoutes,
   fallbackRoute,
 ];
