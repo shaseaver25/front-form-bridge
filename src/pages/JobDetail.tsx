@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -340,13 +341,19 @@ export default function JobDetail() {
                 {job.description && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Description</h4>
-                    <p className="text-sm whitespace-pre-wrap">{job.description}</p>
+                    <div
+                      className="text-sm prose prose-sm dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(job.description) }}
+                    />
                   </div>
                 )}
                 {job.compensation_details && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Compensation Details</h4>
-                    <p className="text-sm whitespace-pre-wrap">{job.compensation_details}</p>
+                    <div
+                      className="text-sm prose prose-sm dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(job.compensation_details) }}
+                    />
                   </div>
                 )}
                 {job.start_date && (
