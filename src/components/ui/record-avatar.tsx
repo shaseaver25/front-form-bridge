@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface RecordAvatarProps {
   type: "constituent" | "grant" | "major-gift";
   name?: string;
+  imageUrl?: string | null;
   status?: string;
   amount?: number;
   size?: "sm" | "md" | "lg";
