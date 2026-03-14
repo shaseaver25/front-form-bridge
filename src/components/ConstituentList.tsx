@@ -46,6 +46,8 @@ type Contact = {
   state?: string | null;
   last_activity_date?: string | null;
   average_rating?: number | null;
+  icon_attachment_url?: string | null;
+  headshot_signed_url?: string | null;
 };
 
 const ConstituentList = () => {
@@ -72,7 +74,7 @@ const ConstituentList = () => {
       .select(`
         id, first_name, last_name, job_title, status, contact_type, 
         description, created_at, updated_at, primary_company_id, source_id,
-        last_activity_date, average_rating,
+        last_activity_date, average_rating, icon_attachment_url,
         crm_contact_emails(value, is_primary)
       `)
       .order("created_at", { ascending: false });
@@ -130,6 +132,25 @@ const ConstituentList = () => {
       }
     });
 
+    // Resolve signed URLs for contacts with headshots
+    const contactsWithHeadshots = (contactsData || []).filter((c: any) => c.icon_attachment_url);
+    const signedUrlMap: Record<string, string> = {};
+    
+    if (contactsWithHeadshots.length > 0) {
+      const paths = contactsWithHeadshots.map((c: any) => c.icon_attachment_url);
+      const { data: signedData } = await supabase.storage
+        .from("contact-documents")
+        .createSignedUrls(paths, 3600);
+      
+      if (signedData) {
+        signedData.forEach((item: any, index: number) => {
+          if (item.signedUrl) {
+            signedUrlMap[contactsWithHeadshots[index].id] = item.signedUrl;
+          }
+        });
+      }
+    }
+
     const mapped: Contact[] = (contactsData || []).map((c: any) => {
       const primaryEmail = c.crm_contact_emails?.find((e: any) => e.is_primary)?.value 
         || c.crm_contact_emails?.[0]?.value 
@@ -154,6 +175,8 @@ const ConstituentList = () => {
         state: addressMap[c.id]?.state || null,
         last_activity_date: c.last_activity_date,
         average_rating: c.average_rating,
+        icon_attachment_url: c.icon_attachment_url,
+        headshot_signed_url: signedUrlMap[c.id] || null,
       };
     });
 
@@ -349,6 +372,7 @@ const ConstituentList = () => {
                     <RecordAvatar
                       type="constituent"
                       name={getDisplayName(contact)}
+                      imageUrl={contact.headshot_signed_url}
                       size={density === "compact" ? "sm" : "md"}
                     />
 

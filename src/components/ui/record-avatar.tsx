@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface RecordAvatarProps {
   type: "constituent" | "grant" | "major-gift";
   name?: string;
+  imageUrl?: string | null;
   status?: string;
   amount?: number;
   size?: "sm" | "md" | "lg";
@@ -44,10 +45,19 @@ const getMajorGiftTierColor = (amount: number): string => {
   return "text-slate-600 bg-slate-100";
 };
 
-export function RecordAvatar({ type, name = "", status = "", amount = 0, size = "md", className }: RecordAvatarProps) {
+export function RecordAvatar({ type, name = "", imageUrl, status = "", amount = 0, size = "md", className }: RecordAvatarProps) {
   const sizeClasses = { sm: "h-8 w-8 text-xs", md: "h-12 w-12 text-sm", lg: "h-16 w-16 text-base" };
 
   if (type === "constituent") {
+    if (imageUrl) {
+      return (
+        <img
+          src={imageUrl}
+          alt={name}
+          className={cn("rounded-full object-cover shadow-sm", sizeClasses[size], className)}
+        />
+      );
+    }
     const initials = getInitials(name);
     const bgColor = getColorFromLetter(initials[0]);
     return (
