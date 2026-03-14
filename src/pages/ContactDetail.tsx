@@ -270,7 +270,7 @@ export default function ContactDetail() {
                 <Button
                   variant="outline"
                   onClick={handleEnrich}
-                  disabled={enriching || contact.enrichment_status === "enriched"}
+                  disabled={enriching}
                   className="gap-1.5"
                 >
                   {enriching ? (
