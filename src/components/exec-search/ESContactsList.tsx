@@ -234,7 +234,7 @@ export function ESContactsList() {
                       variant="outline"
                       size="sm"
                       className="h-7 gap-1.5 text-xs"
-                      disabled={enrichingIds.has(contact.id) || contact.enrichment_status === "enriched"}
+                      disabled={enrichingIds.has(contact.id)}
                       onClick={(e) => handleEnrich(e, contact.id)}
                     >
                       {enrichingIds.has(contact.id) ? (
