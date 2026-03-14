@@ -46,6 +46,8 @@ type Contact = {
   state?: string | null;
   last_activity_date?: string | null;
   average_rating?: number | null;
+  icon_attachment_url?: string | null;
+  headshot_signed_url?: string | null;
 };
 
 const ConstituentList = () => {
