@@ -132,6 +132,25 @@ const ConstituentList = () => {
       }
     });
 
+    // Resolve signed URLs for contacts with headshots
+    const contactsWithHeadshots = (contactsData || []).filter((c: any) => c.icon_attachment_url);
+    const signedUrlMap: Record<string, string> = {};
+    
+    if (contactsWithHeadshots.length > 0) {
+      const paths = contactsWithHeadshots.map((c: any) => c.icon_attachment_url);
+      const { data: signedData } = await supabase.storage
+        .from("contact-documents")
+        .createSignedUrls(paths, 3600);
+      
+      if (signedData) {
+        signedData.forEach((item: any, index: number) => {
+          if (item.signedUrl) {
+            signedUrlMap[contactsWithHeadshots[index].id] = item.signedUrl;
+          }
+        });
+      }
+    }
+
     const mapped: Contact[] = (contactsData || []).map((c: any) => {
       const primaryEmail = c.crm_contact_emails?.find((e: any) => e.is_primary)?.value 
         || c.crm_contact_emails?.[0]?.value 
@@ -156,6 +175,8 @@ const ConstituentList = () => {
         state: addressMap[c.id]?.state || null,
         last_activity_date: c.last_activity_date,
         average_rating: c.average_rating,
+        icon_attachment_url: c.icon_attachment_url,
+        headshot_signed_url: signedUrlMap[c.id] || null,
       };
     });
 
