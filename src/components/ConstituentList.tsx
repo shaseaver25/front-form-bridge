@@ -74,7 +74,7 @@ const ConstituentList = () => {
       .select(`
         id, first_name, last_name, job_title, status, contact_type, 
         description, created_at, updated_at, primary_company_id, source_id,
-        last_activity_date, average_rating,
+        last_activity_date, average_rating, icon_attachment_url,
         crm_contact_emails(value, is_primary)
       `)
       .order("created_at", { ascending: false });
