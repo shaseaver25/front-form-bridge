@@ -372,6 +372,7 @@ const ConstituentList = () => {
                     <RecordAvatar
                       type="constituent"
                       name={getDisplayName(contact)}
+                      imageUrl={contact.headshot_signed_url}
                       size={density === "compact" ? "sm" : "md"}
                     />
 
