@@ -152,13 +152,20 @@ export default function CampaignComposer() {
 
     setIsSaving(true);
     try {
+      // Append unsubscribe footer with merge-field placeholder for per-recipient substitution
+      const unsubscribeFooter = `<div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-family: sans-serif; font-size: 12px; color: #9ca3af;">
+  <p>AvidEdge Technology Executive Search</p>
+  <p>To stop receiving these emails, <a href="https://theaiwhisperersmn.app.n8n.cloud/webhook/avidedge-unsubscribe?contact_id={{contact_id}}" style="color: #6b7280;">click here to unsubscribe</a>.</p>
+</div>`;
+      const htmlWithFooter = htmlBody + unsubscribeFooter;
+
       if (isEditMode && id) {
         const { error } = await supabase
           .from("email_campaigns")
           .update({
             name: name.trim(),
             subject_line: subject.trim(),
-            content_html: htmlBody,
+            content_html: htmlWithFooter,
             constituent_list: recipientIds.length > 0 ? recipientIds : null,
             total_recipients: recipientIds.length,
             updated_at: new Date().toISOString(),
@@ -175,7 +182,7 @@ export default function CampaignComposer() {
           .insert({
             name: name.trim(),
             subject_line: subject.trim(),
-            content_html: htmlBody,
+            content_html: htmlWithFooter,
             constituent_list: recipientIds.length > 0 ? recipientIds : null,
             total_recipients: recipientIds.length,
             status: "draft",

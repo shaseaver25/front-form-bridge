@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Send, Mail } from "lucide-react";
+import { appendUnsubscribeFooter } from "@/lib/emailFooter";
 
 interface EmailComposerProps {
   open: boolean;
@@ -51,13 +52,15 @@ const EmailComposer = ({
         throw new Error("No active session");
       }
 
+      const finalBody = appendUnsubscribeFooter(formData.body, constituentId);
+
       const { data, error } = await supabase.functions.invoke("send-constituent-email", {
         body: {
           constituentId,
           constituentEmail,
           constituentName,
           subject: formData.subject,
-          body: formData.body,
+          body: finalBody,
         },
       });
 

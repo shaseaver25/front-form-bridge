@@ -736,6 +736,7 @@ export type Database = {
           first_name: string | null
           icon_attachment_url: string | null
           id: string
+          is_unsubscribed: boolean | null
           job_title: string | null
           last_activity_date: string | null
           last_engagement_date: string | null
@@ -752,6 +753,7 @@ export type Database = {
           source_id: string | null
           status: string
           suffix: string | null
+          unsubscribed_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -770,6 +772,7 @@ export type Database = {
           first_name?: string | null
           icon_attachment_url?: string | null
           id?: string
+          is_unsubscribed?: boolean | null
           job_title?: string | null
           last_activity_date?: string | null
           last_engagement_date?: string | null
@@ -786,6 +789,7 @@ export type Database = {
           source_id?: string | null
           status?: string
           suffix?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -804,6 +808,7 @@ export type Database = {
           first_name?: string | null
           icon_attachment_url?: string | null
           id?: string
+          is_unsubscribed?: boolean | null
           job_title?: string | null
           last_activity_date?: string | null
           last_engagement_date?: string | null
@@ -820,6 +825,7 @@ export type Database = {
           source_id?: string | null
           status?: string
           suffix?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1214,6 +1220,229 @@ export type Database = {
           crelate_id?: string | null
           id?: string
           name?: string
+        }
+        Relationships: []
+      }
+      email_campaigns: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          brevo_campaign_id: number | null
+          click_count: number | null
+          created_at: string | null
+          created_by: string | null
+          from_email: string
+          from_name: string
+          id: string
+          name: string
+          open_count: number | null
+          reply_to: string | null
+          scheduled_at: string | null
+          segment_id: string | null
+          sent_at: string | null
+          sent_count: number | null
+          status: string | null
+          subject: string
+          unsub_count: number | null
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          brevo_campaign_id?: number | null
+          click_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          from_email?: string
+          from_name?: string
+          id?: string
+          name: string
+          open_count?: number | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          subject: string
+          unsub_count?: number | null
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          brevo_campaign_id?: number | null
+          click_count?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          from_email?: string
+          from_name?: string
+          id?: string
+          name?: string
+          open_count?: number | null
+          reply_to?: string | null
+          scheduled_at?: string | null
+          segment_id?: string | null
+          sent_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          subject?: string
+          unsub_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "email_segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_contacts: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          email: string
+          id: string
+          source: string | null
+          status: string
+          unsub_reason: string | null
+          unsubscribed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          source?: string | null
+          status?: string
+          unsub_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          source?: string | null
+          status?: string
+          unsub_reason?: string | null
+          unsubscribed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_segments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          filter_json: Json
+          id: string
+          member_count: number | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          filter_json: Json
+          id?: string
+          member_count?: number | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          filter_json?: Json
+          id?: string
+          member_count?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
+      email_sequence_enrollments: {
+        Row: {
+          contact_id: string | null
+          current_step: number | null
+          enrolled_at: string | null
+          id: string
+          next_send_at: string | null
+          sequence_id: string | null
+          status: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          current_step?: number | null
+          enrolled_at?: string | null
+          id?: string
+          next_send_at?: string | null
+          sequence_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          current_step?: number | null
+          enrolled_at?: string | null
+          id?: string
+          next_send_at?: string | null
+          sequence_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequences: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          name: string
+          steps: Json
+          trigger_type: string
+          trigger_value: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name: string
+          steps: Json
+          trigger_type: string
+          trigger_value?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          steps?: Json
+          trigger_type?: string
+          trigger_value?: string | null
         }
         Relationships: []
       }

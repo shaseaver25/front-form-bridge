@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { appendUnsubscribeFooter } from "@/lib/emailFooter";
 import {
   Dialog,
   DialogContent,
@@ -108,13 +109,17 @@ export function EmailComposeDialog({
 
     setSending(true);
     try {
+      const finalHtml = constituentId
+        ? appendUnsubscribeFooter(formData.body_html, constituentId)
+        : formData.body_html;
+
       const { data, error } = await supabase.functions.invoke("send-microsoft-email", {
         body: {
           recipient_email: formData.recipient_email,
           recipient_name: formData.recipient_name,
           subject: formData.subject,
-          body_html: formData.body_html,
-          body_text: formData.body_html.replace(/<[^>]*>/g, ""),
+          body_html: finalHtml,
+          body_text: finalHtml.replace(/<[^>]*>/g, ""),
           category: "stewardship",
           constituent_id: constituentId,
           template_id: formData.template_id || undefined,

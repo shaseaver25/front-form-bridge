@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { appendUnsubscribeFooter } from "@/lib/emailFooter";
 
 interface N8nEmailConfig {
   id: string;
@@ -110,8 +111,12 @@ export function useSendEmailViaN8n() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
+      const enrichedData = emailData.constituent_id
+        ? { ...emailData, body_html: appendUnsubscribeFooter(emailData.body_html, emailData.constituent_id) }
+        : emailData;
+
       const response = await supabase.functions.invoke("send-via-n8n", {
-        body: emailData,
+        body: enrichedData,
       });
 
       if (response.error) throw response.error;
