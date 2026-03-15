@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Send, Mail } from "lucide-react";
+import { appendUnsubscribeFooter } from "@/lib/emailFooter";
 
 interface EmailComposerProps {
   open: boolean;
