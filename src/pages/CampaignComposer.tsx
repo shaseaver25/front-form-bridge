@@ -182,7 +182,7 @@ export default function CampaignComposer() {
           .insert({
             name: name.trim(),
             subject_line: subject.trim(),
-            content_html: htmlBody,
+            content_html: htmlWithFooter,
             constituent_list: recipientIds.length > 0 ? recipientIds : null,
             total_recipients: recipientIds.length,
             status: "draft",
