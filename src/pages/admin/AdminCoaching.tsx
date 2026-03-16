@@ -225,8 +225,6 @@ export default function AdminCoaching() {
   );
 }
 
-}: {
-  client: CoachingClient;
   onBack: () => void;
 }) {
   const [progress, setProgress] = useState<ProgressRow[]>([]);
