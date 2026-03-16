@@ -94,6 +94,90 @@ function stripTriageBlock(text: string): string {
   return text.replace(/<triage>[\s\S]*?<\/triage>/, "").trim();
 }
 
+async function sendEscalationEmail(
+  resendApiKey: string,
+  shannonEmail: string,
+  triage: TriageResult,
+  userMessage: string,
+  message: string,
+  context: Record<string, unknown>,
+  customerEmail: string | undefined,
+  ticketId: string | null,
+  escalationId: string | null,
+) {
+  const severityEmoji: Record<string, string> = {
+    low: "🟡",
+    medium: "🟠",
+    high: "🔴",
+    critical: "🚨",
+  };
+
+  const emoji = severityEmoji[triage.severity] || "⚠️";
+
+  const htmlBody = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #dc2626;">${emoji} Chip Escalation: ${triage.severity.toUpperCase()}</h2>
+      
+      <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 16px 0; border-radius: 4px;">
+        <strong>Issue:</strong> ${triage.issueSummary || message}
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Severity</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${triage.severity}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Affected Area</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${triage.affectedArea || "Unknown"}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Page</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${context.page || "Unknown"}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Reporter</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${customerEmail || "Unknown"}</td></tr>
+        <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Role</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${context.role || "Unknown"}</td></tr>
+        ${ticketId ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Ticket ID</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${ticketId}</td></tr>` : ""}
+        ${escalationId ? `<tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: bold;">Escalation ID</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escalationId}</td></tr>` : ""}
+      </table>
+
+      ${triage.proposedFix ? `
+      <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 16px; margin: 16px 0; border-radius: 4px;">
+        <strong>Proposed Fix:</strong><br>${triage.proposedFix}
+      </div>` : ""}
+
+      <div style="background: #f9fafb; padding: 16px; margin: 16px 0; border-radius: 4px;">
+        <strong>Chip's Response to User:</strong><br>
+        <p style="color: #4b5563;">${userMessage}</p>
+      </div>
+
+      <div style="background: #f9fafb; padding: 16px; margin: 16px 0; border-radius: 4px;">
+        <strong>Original Message from User:</strong><br>
+        <p style="color: #4b5563;">${message}</p>
+      </div>
+
+      <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+        This email was sent automatically by Chip, the TailoredU support triage agent.<br>
+        ${new Date().toISOString()}
+      </p>
+    </div>
+  `;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: "Chip Support <chip@tailoredu.org>",
+      to: [shannonEmail],
+      subject: `${emoji} [${triage.severity.toUpperCase()}] Chip Escalation: ${triage.issueSummary || "Support Issue"}`,
+      html: htmlBody,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("Resend email failed:", res.status, errText);
+    return false;
+  }
+
+  console.log("Escalation email sent to", shannonEmail);
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -112,6 +196,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+    const resendApiKey = Deno.env.get("Resend_API_Key") || "";
     const webhookUrl = Deno.env.get("CHIP_ESCALATION_WEBHOOK") || "";
     const shannonEmail = Deno.env.get("SHANNON_EMAIL") || "shannon@tailoredu.org";
 
@@ -212,7 +297,6 @@ ${message}`,
       if (ticket) {
         result.ticketId = ticket.id;
 
-        // Also log in escalation_queue as auto_fixed for audit trail
         await adminClient.from("escalation_queue").insert({
           support_ticket_id: ticket.id,
           issue_summary: triage.issueSummary || message,
@@ -227,9 +311,8 @@ ${message}`,
       }
     }
 
-    // Handle escalate: create ticket + escalation + fire webhook
+    // Handle escalate: create ticket + escalation + send email + fire webhook
     if (triage?.action === "escalate") {
-      // Create support ticket
       const { data: ticket } = await adminClient.from("support_tickets").insert({
         user_id: user.id,
         page_url: context.page || null,
@@ -245,7 +328,6 @@ ${message}`,
       if (ticket) {
         result.ticketId = ticket.id;
 
-        // Create escalation record
         const { data: escalation } = await adminClient.from("escalation_queue").insert({
           support_ticket_id: ticket.id,
           issue_summary: triage.issueSummary || message,
@@ -264,7 +346,29 @@ ${message}`,
           result.escalationId = escalation.id;
         }
 
-        // Fire webhook to n8n (non-blocking — don't fail if webhook is down)
+        // Send email notification via Resend
+        if (resendApiKey) {
+          try {
+            const emailSent = await sendEscalationEmail(
+              resendApiKey,
+              shannonEmail,
+              triage,
+              userMessage,
+              message,
+              context,
+              user.email,
+              ticket.id,
+              escalationId,
+            );
+            console.log("Email notification result:", emailSent);
+          } catch (emailErr: unknown) {
+            console.error("Email notification failed (non-fatal):", emailErr);
+          }
+        } else {
+          console.warn("No Resend_API_Key configured — skipping email notification");
+        }
+
+        // Fire webhook to n8n (non-blocking)
         if (webhookUrl) {
           try {
             const webhookRes = await fetch(webhookUrl, {
@@ -284,14 +388,13 @@ ${message}`,
               }),
             });
 
-            // Update escalation with webhook result
             if (escalationId) {
               await adminClient.from("escalation_queue").update({
                 webhook_sent: true,
                 webhook_response_code: webhookRes.status,
               }).eq("id", escalationId);
             }
-          } catch (webhookErr) {
+          } catch (webhookErr: unknown) {
             console.error("Webhook failed (non-fatal):", webhookErr);
             if (escalationId) {
               await adminClient.from("escalation_queue").update({
@@ -306,7 +409,7 @@ ${message}`,
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("chip-triage error:", err);
     return new Response(
       JSON.stringify({
