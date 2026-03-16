@@ -46,12 +46,36 @@ export function HarvestExercise({ onSaved }: Props) {
         body: { job_description: rawDescription },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        console.error("Harvest invoke error:", error);
+        throw error;
+      }
 
-      setHarvestData(data as HarvestData);
-      toast.success("Harvest analysis complete!");
+      // supabase.functions.invoke may return a string or blob — parse defensively
+      let parsed: any = data;
+      if (typeof data === "string") {
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          console.error("Failed to parse harvest response as JSON:", data);
+          throw new Error("Received invalid response from analysis. Please try again.");
+        }
+      }
+
+      if (parsed?.error) throw new Error(parsed.error);
+
+      // Validate expected shape
+      const requiredKeys: (keyof HarvestData)[] = ["keywords", "problem_language", "responsibilities", "qualifications", "nomenclature"];
+      for (const key of requiredKeys) {
+        if (!Array.isArray(parsed[key])) {
+          parsed[key] = [];
+        }
+      }
+
+      setHarvestData(parsed as HarvestData);
+      toast.success("Analysis complete! Review the results below, then click Save Harvest.");
     } catch (e: any) {
+      console.error("Harvest analysis error:", e);
       toast.error(e.message || "Analysis failed. Please try again.");
     } finally {
       setAnalyzing(false);
