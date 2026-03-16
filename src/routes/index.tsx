@@ -136,6 +136,9 @@ const AdminRoles = lazy(() => import("@/pages/AdminRoles"));
 const AdminHelpPage = lazy(() => import("@/pages/AdminHelpPage"));
 const AdminActivityLog = lazy(() => import("@/pages/AdminActivityLog"));
 
+// Admin Coaching
+const AdminCoaching = lazy(() => import("@/pages/admin/AdminCoaching"));
+
 // Super Admin
 const SaasCustomersPage = lazy(() => import("@/pages/admin/SaasCustomersPage"));
 const SaasCustomerNewPage = lazy(() => import("@/pages/admin/SaasCustomerNewPage"));
@@ -440,6 +443,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <RequireAdmin>
         <SuperAdminAccessLogPage />
+      </RequireAdmin>
+    ),
+  },
+  {
+    path: "/admin/coaching",
+    element: (
+      <RequireAdmin>
+        <AdminCoaching />
       </RequireAdmin>
     ),
   },
