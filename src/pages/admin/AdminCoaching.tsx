@@ -1,23 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import Layout from "@/components/Layout";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ArrowLeft,
-  ChevronDown,
-  ChevronRight,
-  GraduationCap,
-  Loader2,
-  MessageSquarePlus,
-  Send,
-  Sparkles,
-  User,
-} from "lucide-react";
-import { formatDistanceToNow, differenceInDays, format } from "date-fns";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { GraduationCap, Loader2 } from "lucide-react";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
 
 /* ---------- Types ---------- */
 
