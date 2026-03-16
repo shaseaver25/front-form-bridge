@@ -1090,8 +1090,8 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
         console.log("Contact notes already exist, skipping population to avoid duplicates");
       }
     }
-  } catch (e) {
-    result.errors.push(`Activities sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Activities sync failed: ${(e as Error).message}`);
   }
 
   return result;
