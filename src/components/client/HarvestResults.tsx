@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { ExternalLink } from "lucide-react";
 
 type Harvest = {
@@ -31,24 +32,24 @@ export function HarvestResults({ refreshKey }: Props) {
   const [harvests, setHarvests] = useState<Harvest[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const { isReady, user } = useAuthReady();
 
   useEffect(() => {
+    if (!isReady || !user) return;
+
     async function load() {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { data } = await supabase
         .from("rebrand_harvests")
         .select("id, job_title, company_name, job_url, keywords, problem_language, responsibilities, qualifications, nomenclature, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
 
       if (data) setHarvests(data as unknown as Harvest[]);
       setLoading(false);
     }
     load();
-  }, [refreshKey]);
+  }, [isReady, user, refreshKey]);
 
   if (loading) {
     return (
