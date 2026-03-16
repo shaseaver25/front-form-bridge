@@ -1654,6 +1654,146 @@ export type Database = {
           },
         ]
       }
+      rebrand_coach_notes: {
+        Row: {
+          chapter_id: string
+          coach_id: string
+          created_at: string
+          id: string
+          note_text: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          coach_id: string
+          created_at?: string
+          id?: string
+          note_text: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          coach_id?: string
+          created_at?: string
+          id?: string
+          note_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rebrand_gap_analysis: {
+        Row: {
+          created_at: string
+          current_term: string
+          harvest_id: string
+          id: string
+          status: string
+          target_term: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_term: string
+          harvest_id: string
+          id?: string
+          status?: string
+          target_term: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_term?: string
+          harvest_id?: string
+          id?: string
+          status?: string
+          target_term?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rebrand_gap_analysis_harvest_id_fkey"
+            columns: ["harvest_id"]
+            isOneToOne: false
+            referencedRelation: "rebrand_harvests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rebrand_harvests: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          job_title: string
+          job_url: string | null
+          keywords: Json
+          nomenclature: Json
+          problem_language: Json
+          qualifications: Json
+          raw_description: string
+          responsibilities: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          job_title: string
+          job_url?: string | null
+          keywords?: Json
+          nomenclature?: Json
+          problem_language?: Json
+          qualifications?: Json
+          raw_description: string
+          responsibilities?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          job_title?: string
+          job_url?: string | null
+          keywords?: Json
+          nomenclature?: Json
+          problem_language?: Json
+          qualifications?: Json
+          raw_description?: string
+          responsibilities?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rebrand_progress: {
+        Row: {
+          chapter_id: string
+          completed_at: string | null
+          id: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          completed_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          completed_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
