@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
     // CALLBACK: Google redirects here after user authorizes
     // =========================================
     if (url.searchParams.has("code")) {
+      console.log("Gmail OAuth callback received with authorization code");
       const code = url.searchParams.get("code")!;
       const state = url.searchParams.get("state") || "";
 
@@ -92,6 +93,7 @@ Deno.serve(async (req) => {
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
         console.error("Token exchange failed:", errorText);
+        console.error("Redirect URI used:", getRedirectUri());
         return Response.redirect(
           `${getAppUrl()}/settings/gmail?error=token_exchange_failed`,
           302
@@ -100,6 +102,7 @@ Deno.serve(async (req) => {
 
       const tokens = await tokenResponse.json();
       const { access_token, refresh_token, expires_in } = tokens;
+      console.log("Token exchange successful, got access_token:", !!access_token, "refresh_token:", !!refresh_token);
 
       // Get the user's email address from Google
       const userInfoResponse = await fetch(GOOGLE_USERINFO_URL, {
@@ -152,10 +155,9 @@ Deno.serve(async (req) => {
       console.log(`Gmail connected for user ${userId} (${email})`);
 
       // Redirect the user back to the Gmail settings page
-      return Response.redirect(
-        `${getAppUrl()}/settings/gmail?connected=true`,
-        302
-      );
+      const redirectUrl = `${getAppUrl()}/settings/gmail?connected=true`;
+      console.log("Redirecting to:", redirectUrl);
+      return Response.redirect(redirectUrl, 302);
     }
 
     // =========================================

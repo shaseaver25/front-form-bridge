@@ -113,7 +113,7 @@ export function EmailComposeDialog({
         ? appendUnsubscribeFooter(formData.body_html, constituentId)
         : formData.body_html;
 
-      const { data, error } = await supabase.functions.invoke("send-microsoft-email", {
+      const { data, error } = await supabase.functions.invoke("send-gmail-email", {
         body: {
           recipient_email: formData.recipient_email,
           recipient_name: formData.recipient_name,

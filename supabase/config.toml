@@ -28,10 +28,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.gmail-sync]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-calendar-sync]
-verify_jwt = true
+verify_jwt = false
+
+[functions.send-gmail-email]
+verify_jwt = false
 
 [functions.chip-triage]
 verify_jwt = false
