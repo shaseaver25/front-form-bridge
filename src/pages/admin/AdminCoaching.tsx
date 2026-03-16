@@ -225,9 +225,6 @@ export default function AdminCoaching() {
   );
 }
 
-function ClientDetail({
-  client,
-  onBack,
 }: {
   client: CoachingClient;
   onBack: () => void;
