@@ -110,12 +110,13 @@ export default function AdminCoachingDetail() {
     if (!userId) return;
     setLoading(true);
     try {
-      const [profileRes, progRes, harvestRes, gapRes, noteRes] = await Promise.all([
+      const [profileRes, progRes, harvestRes, gapRes, noteRes, reflRes] = await Promise.all([
         supabase.from("user_profiles").select("first_name, last_name, email").eq("id", userId).single(),
         supabase.from("rebrand_progress").select("chapter_id, status, completed_at, started_at").eq("user_id", userId).order("started_at"),
         supabase.from("rebrand_harvests").select("id, job_title, company_name, created_at, keywords, problem_language, responsibilities, qualifications, nomenclature").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("rebrand_gap_analysis").select("id, current_term, target_term, status").eq("user_id", userId),
         supabase.from("rebrand_coach_notes").select("id, chapter_id, note_text, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("rebrand_reflections").select("id, chapter_id, question_key, response_html, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
       ]);
 
       setProfile(profileRes.data);
