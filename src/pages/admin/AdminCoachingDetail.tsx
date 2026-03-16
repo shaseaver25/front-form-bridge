@@ -59,6 +59,14 @@ interface CoachNote {
   created_at: string;
 }
 
+interface ReflectionRow {
+  id: string;
+  chapter_id: string;
+  question_key: string;
+  response_html: string;
+  updated_at: string;
+}
+
 const CHAPTER_LABELS: Record<string, string> = {
   intro: "Introduction",
   ch1: "Ch 1 — The Harvesting Framework",
