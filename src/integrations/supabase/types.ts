@@ -1446,6 +1446,74 @@ export type Database = {
         }
         Relationships: []
       }
+      escalation_queue: {
+        Row: {
+          affected_area: string | null
+          assigned_to: string | null
+          created_at: string
+          customer_user_id: string | null
+          details: Json | null
+          id: string
+          issue_summary: string
+          page_url: string | null
+          proposed_fix: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string | null
+          status: string
+          support_ticket_id: string | null
+          updated_at: string
+          webhook_response_code: number | null
+          webhook_sent: boolean | null
+        }
+        Insert: {
+          affected_area?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          customer_user_id?: string | null
+          details?: Json | null
+          id?: string
+          issue_summary: string
+          page_url?: string | null
+          proposed_fix?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          status?: string
+          support_ticket_id?: string | null
+          updated_at?: string
+          webhook_response_code?: number | null
+          webhook_sent?: boolean | null
+        }
+        Update: {
+          affected_area?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          customer_user_id?: string | null
+          details?: Json | null
+          id?: string
+          issue_summary?: string
+          page_url?: string | null
+          proposed_fix?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string | null
+          status?: string
+          support_ticket_id?: string | null
+          updated_at?: string
+          webhook_response_code?: number | null
+          webhook_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escalation_queue_support_ticket_id_fkey"
+            columns: ["support_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gmail_connections: {
         Row: {
           access_token: string | null
@@ -1819,6 +1887,48 @@ export type Database = {
           id?: string
           question_key?: string
           response_html?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          admin_notes: string | null
+          ai_resolved: boolean
+          ai_response: string | null
+          created_at: string
+          description: string
+          id: string
+          page_url: string | null
+          severity: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          ai_resolved?: boolean
+          ai_response?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          ai_resolved?: boolean
+          ai_response?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          page_url?: string | null
+          severity?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
