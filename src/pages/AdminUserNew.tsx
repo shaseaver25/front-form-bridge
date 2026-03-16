@@ -55,6 +55,17 @@ const roleOptions = [
     ],
   },
   {
+    value: "client",
+    label: "Coaching Client",
+    description: "Access to the client portal including Re:Brand coaching materials, progress tracking, and scheduled sessions.",
+    permissions: [
+      "Access client portal dashboard",
+      "View coaching materials",
+      "Track progress",
+      "View scheduled sessions",
+    ],
+  },
+  {
     value: "admin",
     label: "Admin",
     description: "Complete system access including user management and security settings. Use with caution.",
