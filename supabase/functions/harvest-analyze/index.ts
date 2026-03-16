@@ -50,25 +50,51 @@ Guidelines:
 - Qualifications should include both hard requirements and preferred attributes
 - Nomenclature should capture any proprietary terms, frameworks, or internal language patterns`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2048,
-        messages: [
-          {
-            role: "user",
-            content: `Analyze this job description and extract language patterns:\n\n${job_description}`,
-          },
-        ],
-        system: systemPrompt,
-      }),
-    });
+    // Truncate very long descriptions to avoid slow responses
+    const truncatedDescription = job_description.slice(0, 8000);
+
+    console.log("Calling Anthropic API...");
+
+    // Use AbortController for timeout (20s to stay within Edge Function limits)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+    let response;
+    try {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 1500,
+          messages: [
+            {
+              role: "user",
+              content: `Analyze this job description and extract language patterns:\n\n${truncatedDescription}`,
+            },
+          ],
+          system: systemPrompt,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      if (fetchErr instanceof DOMException && fetchErr.name === "AbortError") {
+        console.error("Anthropic API request timed out after 20s");
+        return new Response(
+          JSON.stringify({ error: "Analysis timed out. Please try with a shorter job description." }),
+          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw fetchErr;
+    }
+    clearTimeout(timeoutId);
+
+    console.log("Anthropic API responded with status:", response.status);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -83,6 +109,7 @@ Guidelines:
     const textContent = result.content?.[0]?.text;
 
     if (!textContent) {
+      console.error("No text content in Anthropic response:", JSON.stringify(result));
       return new Response(
         JSON.stringify({ error: "No response from AI. Please try again." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -92,11 +119,10 @@ Guidelines:
     // Parse the JSON from Claude's response
     let parsed;
     try {
-      // Try direct parse first, then extract from possible markdown code block
       const cleanText = textContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       parsed = JSON.parse(cleanText);
     } catch {
-      console.error("Failed to parse Claude response:", textContent);
+      console.error("Failed to parse Claude response:", textContent.slice(0, 500));
       return new Response(
         JSON.stringify({ error: "Failed to parse AI response. Please try again." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -110,6 +136,8 @@ Guidelines:
         parsed[key] = [];
       }
     }
+
+    console.log("Harvest analysis complete, returning results");
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
