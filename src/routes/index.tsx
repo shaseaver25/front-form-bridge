@@ -6,6 +6,7 @@
 import { lazy } from "react";
 import { RouteObject } from "react-router-dom";
 import { RequireAdmin } from "@/components/RequireAdmin";
+import { RequireClient } from "@/components/client/RequireClient";
 import { SuperAdminGuard } from "@/components/admin/SuperAdminGuard";
 import { TierGate } from "@/components/TierGate";
 
@@ -158,6 +159,9 @@ const VolunteerSignUp = lazy(() => import("@/pages/public/VolunteerSignUp"));
 const ExecSearchContacts = lazy(() => import("@/pages/exec-search/ExecSearchContacts"));
 const ExecSearchCompanies = lazy(() => import("@/pages/exec-search/ExecSearchCompanies"));
 const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
+
+// Client Portal
+const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
 
 // Route group types
 type RouteGroup = {
@@ -497,6 +501,18 @@ export const execSearchRoutes: RouteObject[] = [
   { path: "/exec-search/jobs", element: <ExecSearchJobs /> },
 ];
 
+// Client Portal routes
+export const clientRoutes: RouteObject[] = [
+  {
+    path: "/client/dashboard",
+    element: (
+      <RequireClient>
+        <ClientDashboard />
+      </RequireClient>
+    ),
+  },
+];
+
 // Misc routes
 export const miscRoutes: RouteObject[] = [
   { path: "/collaboration-demo", element: <CollaborationDemo /> },
@@ -525,6 +541,7 @@ export const allRoutes: RouteObject[] = [
   ...superAdminRoutes,
   ...legalRoutes,
   ...execSearchRoutes,
+  ...clientRoutes,
   ...miscRoutes,
   fallbackRoute,
 ];
