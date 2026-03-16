@@ -23,9 +23,7 @@ function getRedirectUri(): string {
 }
 
 function getAppUrl(): string {
-  // The frontend app URL — where to redirect the user after OAuth completes
-  // Check for a configured app URL, otherwise derive from Supabase URL
-  return Deno.env.get("APP_URL") || "https://tailoredu.org";
+  return Deno.env.get("APP_URL") || "https://front-form-bridge.lovable.app";
 }
 
 Deno.serve(async (req) => {
