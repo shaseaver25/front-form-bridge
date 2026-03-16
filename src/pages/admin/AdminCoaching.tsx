@@ -97,9 +97,9 @@ const statusVariant = (s: string) =>
 /* ========== Main Component ========== */
 
 export default function AdminCoaching() {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<CoachingClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClient, setSelectedClient] = useState<CoachingClient | null>(null);
 
   useEffect(() => {
     loadClients();
@@ -108,7 +108,6 @@ export default function AdminCoaching() {
   async function loadClients() {
     setLoading(true);
     try {
-      // Get all users with client role
       const { data: clientRoles } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -121,39 +120,25 @@ export default function AdminCoaching() {
 
       const clientIds = clientRoles.map((r) => r.user_id);
 
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from("user_profiles")
-        .select("id, first_name, last_name, email")
-        .in("id", clientIds);
+      const [profilesRes, progressRes, harvestsRes] = await Promise.all([
+        supabase.from("user_profiles").select("id, first_name, last_name, email").in("id", clientIds),
+        supabase.from("rebrand_progress").select("user_id, chapter_id, status, completed_at").in("user_id", clientIds),
+        supabase.from("rebrand_harvests").select("user_id, created_at").in("user_id", clientIds).order("created_at", { ascending: false }),
+      ]);
 
-      // Fetch all progress
-      const { data: progress } = await supabase
-        .from("rebrand_progress")
-        .select("user_id, chapter_id, status, completed_at")
-        .in("user_id", clientIds);
+      const profiles = profilesRes.data || [];
+      const progress = progressRes.data || [];
+      const harvests = harvestsRes.data || [];
 
-      // Fetch latest harvest dates per user
-      const { data: harvests } = await supabase
-        .from("rebrand_harvests")
-        .select("user_id, created_at")
-        .in("user_id", clientIds)
-        .order("created_at", { ascending: false });
-
-      const clientList: CoachingClient[] = (profiles || []).map((p) => {
-        const userProgress = (progress || []).filter(
-          (pr) => pr.user_id === p.id && pr.status === "complete"
-        );
-        const latestHarvest = (harvests || []).find((h) => h.user_id === p.id);
+      const clientList: CoachingClient[] = profiles.map((p) => {
+        const userProgress = progress.filter((pr) => pr.user_id === p.id && pr.status === "complete");
+        const latestHarvest = harvests.find((h) => h.user_id === p.id);
         const latestProgressDate = userProgress.reduce(
           (latest: string | null, pr) =>
             pr.completed_at && (!latest || pr.completed_at > latest) ? pr.completed_at : latest,
           null
         );
-        const lastActive = [latestProgressDate, latestHarvest?.created_at]
-          .filter(Boolean)
-          .sort()
-          .pop() || null;
+        const lastActive = [latestProgressDate, latestHarvest?.created_at].filter(Boolean).sort().pop() || null;
 
         return {
           id: p.id,
@@ -175,17 +160,6 @@ export default function AdminCoaching() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (selectedClient) {
-    return (
-      <Layout>
-        <ClientDetail
-          client={selectedClient}
-          onBack={() => setSelectedClient(null)}
-        />
-      </Layout>
-    );
   }
 
   return (
@@ -216,7 +190,7 @@ export default function AdminCoaching() {
               <Card
                 key={c.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedClient(c)}
+                onClick={() => navigate(`/admin/coaching/${c.id}`)}
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between mb-3">
@@ -244,7 +218,6 @@ export default function AdminCoaching() {
                         : "No activity"}
                     </span>
                   </div>
-                  {/* Progress bar */}
                   <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
@@ -263,8 +236,6 @@ export default function AdminCoaching() {
     </Layout>
   );
 }
-
-/* ========== Client Detail View ========== */
 
 function ClientDetail({
   client,
