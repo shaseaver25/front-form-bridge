@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { RebrandLayout } from "@/components/client/RebrandLayout";
 import { HarvestExercise } from "@/components/client/HarvestExercise";
 import { HarvestResults } from "@/components/client/HarvestResults";
+import { ChapterReflection } from "@/components/client/ChapterReflection";
 
 const TABS = ["Learn", "Exercise", "My Results"] as const;
 type Tab = typeof TABS[number];
