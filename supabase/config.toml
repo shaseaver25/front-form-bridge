@@ -34,13 +34,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.chip-triage]
-verify_jwt = true
+verify_jwt = false
 
 [functions.help-assistant]
 verify_jwt = false
 
 [functions.chip-tts]
-verify_jwt = true
+verify_jwt = false
 
 [functions.chip-voice-note]
-verify_jwt = true
+verify_jwt = false
