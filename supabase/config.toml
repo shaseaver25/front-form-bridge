@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.enrich-contact]
 verify_jwt = false
+
+[functions.harvest-analyze]
+verify_jwt = false
