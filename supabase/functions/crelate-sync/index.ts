@@ -929,8 +929,8 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     } catch {
       try {
         activities = await fetchAllPages("notes", apiKey);
-      } catch (e2) {
-        result.errors.push(`Both activities and notes endpoints failed: ${e2.message}`);
+      } catch (e2: unknown) {
+        result.errors.push(`Both activities and notes endpoints failed: ${(e2 as Error).message}`);
         return result;
       }
     }
