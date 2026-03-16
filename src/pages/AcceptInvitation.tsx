@@ -130,29 +130,46 @@ export default function AcceptInvitation() {
       }
 
       // Sign in the user
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: invitation!.email,
         password,
       });
 
       if (signInError) {
         console.error("Sign in error:", signInError);
-        // Account was created, just redirect to login
         toast({
           title: "Account Created!",
           description: "Your account has been created. Please sign in.",
         });
-        navigate("/auth");
+        navigate("/login");
         return;
+      }
+
+      // Determine redirect based on role
+      let redirectPath = "/login";
+      if (signInData?.user) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", signInData.user.id);
+        
+        const isAdmin = roles?.some((r) => r.role === "admin");
+        const isClient = roles?.some((r) => r.role === "client");
+        
+        if (isAdmin) {
+          redirectPath = "/";
+        } else if (isClient) {
+          redirectPath = "/client/dashboard";
+        }
       }
 
       toast({
         title: "Account Created!",
-        description: "Your account has been successfully created. Redirecting to dashboard...",
+        description: "Your account has been successfully created. Redirecting...",
       });
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate(redirectPath);
       }, 1500);
     } catch (error: unknown) {
       console.error("Error creating account:", error);
