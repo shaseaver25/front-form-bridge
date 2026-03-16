@@ -68,7 +68,7 @@ export function RequireAdmin({ children }: RequireAdminProps) {
   }
 
   if (isAdmin === false) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
