@@ -174,13 +174,13 @@ type RouteGroup = {
   routes: RouteObject[];
 };
 
-const ClientLogin = lazy(() => import("@/pages/ClientLogin"));
+const Login = lazy(() => import("@/pages/Login"));
 
 // Core routes (always loaded)
 export const coreRoutes: RouteObject[] = [
   { path: "/", element: <Index /> },
   { path: "/auth", element: <Auth /> },
-  { path: "/login", element: <ClientLogin /> },
+  { path: "/login", element: <Login /> },
   { path: "/landing", element: <Landing /> },
   { path: "/bootstrap", element: <Bootstrap /> },
   { path: "/setup", element: <SetupWizard /> },
