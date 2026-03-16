@@ -567,8 +567,8 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
     }
 
     console.log(`Contact sync complete: ${result.total} contacts, ${allEmails.length} emails, ${allPhones.length} phones, ${allUrls.length} urls, ${allAddresses.length} addresses, ${allCareerHistory.length} career entries, ${contactCompanyUpdates.length} company links`);
-  } catch (e) {
-    result.errors.push(`Contacts sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Contacts sync failed: ${(e as Error).message}`);
     result.failed = result.total;
   }
 
