@@ -162,6 +162,7 @@ const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
 
 // Client Portal
 const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
+const RebrandCoaching = lazy(() => import("@/pages/client/RebrandCoaching"));
 
 // Route group types
 type RouteGroup = {
