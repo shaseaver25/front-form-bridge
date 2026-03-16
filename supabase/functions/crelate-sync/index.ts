@@ -734,8 +734,8 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
     result.created = r.created;
     result.failed = r.failed;
     result.errors.push(...r.errors);
-  } catch (e) {
-    result.errors.push(`Placements sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Placements sync failed: ${(e as Error).message}`);
   }
 
   return result;
