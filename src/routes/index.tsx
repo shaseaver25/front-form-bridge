@@ -501,6 +501,18 @@ export const execSearchRoutes: RouteObject[] = [
   { path: "/exec-search/jobs", element: <ExecSearchJobs /> },
 ];
 
+// Client Portal routes
+export const clientRoutes: RouteObject[] = [
+  {
+    path: "/client/dashboard",
+    element: (
+      <RequireClient>
+        <ClientDashboard />
+      </RequireClient>
+    ),
+  },
+];
+
 // Misc routes
 export const miscRoutes: RouteObject[] = [
   { path: "/collaboration-demo", element: <CollaborationDemo /> },
