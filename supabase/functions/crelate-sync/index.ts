@@ -1179,8 +1179,8 @@ async function syncPipelineItems(apiKey: string, supabase: any): Promise<SyncRes
     }
 
     console.log(`Pipeline items sync: ${rows.length} items processed`);
-  } catch (e) {
-    result.errors.push(`Pipeline items sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Pipeline items sync failed: ${(e as Error).message}`);
   }
 
   return result;
