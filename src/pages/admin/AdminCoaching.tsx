@@ -224,9 +224,6 @@ export default function AdminCoaching() {
     </Layout>
   );
 }
-
-  onBack: () => void;
-}) {
   const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [harvests, setHarvests] = useState<HarvestRow[]>([]);
   const [gaps, setGaps] = useState<GapRow[]>([]);
