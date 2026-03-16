@@ -60,7 +60,7 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
   const normalizedKey = normalizeApiKey(apiKey);
   const baseHeaders = toHeaderRecord(init.headers);
 
-  const attempts = [
+  const attempts: { name: string; url: string; headers: Record<string, string> }[] = [
     {
       name: "header_only",
       url,
