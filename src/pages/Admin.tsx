@@ -226,6 +226,10 @@ export default function Admin() {
           <Button variant="outline" onClick={() => navigate("/admin/roles")}>
             Roles & Permissions
           </Button>
+          <Button variant="outline" onClick={() => navigate("/admin/coaching")}>
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Coaching Clients
+          </Button>
         </CardContent>
       </Card>
       </div>

@@ -446,6 +446,14 @@ export const adminRoutes: RouteObject[] = [
       </RequireAdmin>
     ),
   },
+  {
+    path: "/admin/coaching",
+    element: (
+      <RequireAdmin>
+        <AdminCoaching />
+      </RequireAdmin>
+    ),
+  },
 ];
 
 // Super Admin routes
