@@ -185,6 +185,7 @@ export const coreRoutes: RouteObject[] = [
   { path: "/bootstrap", element: <Bootstrap /> },
   { path: "/setup", element: <SetupWizard /> },
   { path: "/reset-password", element: <ResetPassword /> },
+  { path: "/accept-invitation", element: <AcceptInvitation /> },
   { path: "/auth/accept-invitation", element: <AcceptInvitation /> },
 ];
 
