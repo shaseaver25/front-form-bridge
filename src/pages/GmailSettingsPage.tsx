@@ -29,7 +29,23 @@ interface GmailConnection {
 export default function GmailSettingsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isConnecting, setIsConnecting] = useState(false);
+
+  // Handle OAuth callback params
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+
+    if (connected === "true") {
+      toast.success("Gmail connected successfully!");
+      queryClient.invalidateQueries({ queryKey: ["gmail-connection"] });
+      setSearchParams({}, { replace: true });
+    } else if (error) {
+      toast.error(`Gmail connection failed: ${error.replace(/_/g, " ")}`);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, queryClient]);
 
   // Fetch Gmail connection status
   const { data: connection, isLoading } = useQuery({

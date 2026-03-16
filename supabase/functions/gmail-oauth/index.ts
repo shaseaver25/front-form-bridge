@@ -155,10 +155,9 @@ Deno.serve(async (req) => {
       console.log(`Gmail connected for user ${userId} (${email})`);
 
       // Redirect the user back to the Gmail settings page
-      return Response.redirect(
-        `${getAppUrl()}/settings/gmail?connected=true`,
-        302
-      );
+      const redirectUrl = `${getAppUrl()}/settings/gmail?connected=true`;
+      console.log("Redirecting to:", redirectUrl);
+      return Response.redirect(redirectUrl, 302);
     }
 
     // =========================================

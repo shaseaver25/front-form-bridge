@@ -23,7 +23,7 @@ function getRedirectUri(): string {
 }
 
 function getAppUrl(): string {
-  return Deno.env.get("APP_URL") || "https://tailoredu.org";
+  return Deno.env.get("APP_URL") || "https://front-form-bridge.lovable.app";
 }
 
 Deno.serve(async (req) => {
