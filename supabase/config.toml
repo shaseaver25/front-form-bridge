@@ -12,9 +12,6 @@ verify_jwt = false
 [functions.accept-invitation]
 verify_jwt = false
 
-[functions.chip-tts]
-verify_jwt = false
-
 [functions.company-summary]
 verify_jwt = false
 
@@ -23,3 +20,27 @@ verify_jwt = false
 
 [functions.harvest-analyze]
 verify_jwt = false
+
+[functions.gmail-oauth]
+verify_jwt = false
+
+[functions.google-calendar-oauth]
+verify_jwt = false
+
+[functions.gmail-sync]
+verify_jwt = true
+
+[functions.google-calendar-sync]
+verify_jwt = true
+
+[functions.chip-triage]
+verify_jwt = true
+
+[functions.help-assistant]
+verify_jwt = true
+
+[functions.chip-tts]
+verify_jwt = true
+
+[functions.chip-voice-note]
+verify_jwt = true

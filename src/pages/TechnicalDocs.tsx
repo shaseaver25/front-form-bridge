@@ -1263,7 +1263,7 @@ CREATE TRIGGER on_qualification_stage
                         API Endpoints (12+ edge functions)
                       </h4>
                       <ul className="space-y-1 text-sm ml-6 list-disc text-muted-foreground">
-                        <li>New: <code className="text-xs bg-muted px-1 py-0.5 rounded">generate-embeddings</code> - OpenAI embeddings for semantic search</li>
+                        <li>New: <code className="text-xs bg-muted px-1 py-0.5 rounded">generate-embeddings</code> - Anthropic embeddings for semantic search</li>
                         <li>New: <code className="text-xs bg-muted px-1 py-0.5 rounded">quickbooks-oauth</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">quickbooks-callback</code>, <code className="text-xs bg-muted px-1 py-0.5 rounded">quickbooks-refresh-token</code></li>
                         <li>Fixed: <code className="text-xs bg-muted px-1 py-0.5 rounded">mailchimp-oauth</code> stateful flow with state token preservation</li>
                         <li>New: <code className="text-xs bg-muted px-1 py-0.5 rounded">mailchimp-fetch-data</code> utility endpoint</li>
@@ -1290,7 +1290,7 @@ CREATE TRIGGER on_qualification_stage
                         Phase 2 AI Features
                       </h4>
                       <ul className="space-y-1 text-sm ml-6 list-disc text-muted-foreground">
-                        <li>Activated: Semantic search in Content Repository using OpenAI embeddings</li>
+                        <li>Activated: Semantic search in Content Repository using Anthropic embeddings</li>
                         <li>Deployed: RAG-ready infrastructure for document semantic search</li>
                         <li>Feature flags for phased rollout of AI capabilities</li>
                       </ul>

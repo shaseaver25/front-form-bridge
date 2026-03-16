@@ -11,6 +11,8 @@ import {
   Mic,
   ArrowLeft,
   Home,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,10 +29,19 @@ import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { ChipVoiceNote } from "./ChipVoiceNote";
+import { sendTriageMessage } from "@/services/chipTriageService";
+
+interface MessageMeta {
+  action: "auto_fix" | "escalate" | "follow_up" | "info";
+  severity?: "low" | "medium" | "high" | "critical";
+  escalationId?: string;
+  ticketId?: string;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  meta?: MessageMeta;
 }
 
 interface SupportTicket {
@@ -165,6 +176,7 @@ export function ChipAssistant() {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [triageMode, setTriageMode] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -258,6 +270,19 @@ export function ChipAssistant() {
     );
   };
 
+  // Detect issue/problem intent from user message
+  const isIssueIntent = (text: string) => {
+    const lower = text.toLowerCase();
+    const issueKeywords = [
+      "broken", "not working", "doesn't work", "doesn't load",
+      "bug", "error", "issue", "problem", "crash", "fix",
+      "can't access", "won't open", "stuck", "frozen",
+      "report an issue", "something wrong", "not showing",
+      "failing", "failed", "glitch", "missing data",
+    ];
+    return issueKeywords.some((kw) => lower.includes(kw));
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isSending) return;
 
@@ -288,36 +313,80 @@ export function ChipAssistant() {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsSending(true);
 
+    // Decide whether to use triage mode
+    const shouldTriage = triageMode || isIssueIntent(userMessage);
+
     try {
-      const { data, error } = await supabase.functions.invoke("help-assistant", {
-        body: {
-          mode: "chat",
-          message: userMessage,
-          history: messages.map((m) => ({ role: m.role, content: m.content })),
-          context: {
-            page: location.pathname,
-            tier,
-            role: userRole,
-            browserInfo: {
-              userAgent: navigator.userAgent,
-              url: window.location.href,
-              viewport: { width: window.innerWidth, height: window.innerHeight },
+      if (shouldTriage) {
+        // Enter triage mode for this conversation
+        if (!triageMode) setTriageMode(true);
+
+        const triageCtx = {
+          page: location.pathname,
+          tier,
+          role: userRole,
+          browserInfo: {
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+          },
+        };
+
+        const triageData = await sendTriageMessage(
+          userMessage,
+          messages.map((m) => ({ role: m.role, content: m.content })),
+          triageCtx
+        );
+
+        const meta: MessageMeta = {
+          action: triageData.action,
+          severity: triageData.severity,
+          escalationId: triageData.escalationId,
+          ticketId: triageData.ticketId,
+        };
+
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: triageData.response, meta },
+        ]);
+
+        if (triageData.action === "escalate") {
+          toast("🔔 Escalated to Shannon for review", { duration: 5000 });
+        } else if (triageData.action === "auto_fix") {
+          toast.success("✅ Chip resolved the issue");
+        }
+      } else {
+        // Standard help-assistant flow
+        const { data, error } = await supabase.functions.invoke("help-assistant", {
+          body: {
+            mode: "chat",
+            message: userMessage,
+            history: messages.map((m) => ({ role: m.role, content: m.content })),
+            context: {
+              page: location.pathname,
+              tier,
+              role: userRole,
+              browserInfo: {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                viewport: { width: window.innerWidth, height: window.innerHeight },
+              },
             },
           },
-        },
-      });
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
 
-      // If AI created a support ticket
-      if (data.ticketId) {
-        toast.success(
-          data.aiResolved
-            ? "Issue logged — Chip provided a fix above."
-            : "Issue logged — our team will follow up."
-        );
+        // If AI created a support ticket
+        if (data.ticketId) {
+          toast.success(
+            data.aiResolved
+              ? "Issue logged — Chip provided a fix above."
+              : "Issue logged — our team will follow up."
+          );
+        }
       }
     } catch (err) {
       console.error("Chip assistant error:", err);
@@ -396,7 +465,7 @@ export function ChipAssistant() {
               {/* Home / new chat button - only show when there are messages */}
               {messages.length > 0 && view === "chat" && (
                 <button
-                  onClick={() => { setMessages([]); setInput(""); }}
+                  onClick={() => { setMessages([]); setInput(""); setTriageMode(false); }}
                   className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   title="New chat"
                 >
@@ -489,15 +558,40 @@ export function ChipAssistant() {
                       key={i}
                       className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div
-                        className={`rounded-xl px-3 py-2 text-xs max-w-[85%] leading-relaxed whitespace-pre-wrap ${
-                          m.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        }`}
-                      >
-                        {m.content}
-                      </div>
+                      {m.role === "assistant" && m.meta?.action === "escalate" ? (
+                        /* Escalation card */
+                        <div className="rounded-xl px-3 py-2.5 text-xs max-w-[85%] leading-relaxed whitespace-pre-wrap border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 text-foreground">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <Badge className="text-[9px] px-1.5 py-0 bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200 border-0">
+                              {m.meta.severity ?? "medium"} · escalated
+                            </Badge>
+                          </div>
+                          {m.content}
+                        </div>
+                      ) : m.role === "assistant" && m.meta?.action === "auto_fix" ? (
+                        /* Auto-fix card */
+                        <div className="rounded-xl px-3 py-2.5 text-xs max-w-[85%] leading-relaxed whitespace-pre-wrap border border-green-300 bg-green-50 dark:bg-green-950/30 dark:border-green-700 text-foreground">
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                            <Badge className="text-[9px] px-1.5 py-0 bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200 border-0">
+                              resolved
+                            </Badge>
+                          </div>
+                          {m.content}
+                        </div>
+                      ) : (
+                        /* Standard message bubble */
+                        <div
+                          className={`rounded-xl px-3 py-2 text-xs max-w-[85%] leading-relaxed whitespace-pre-wrap ${
+                            m.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          }`}
+                        >
+                          {m.content}
+                        </div>
+                      )}
                     </div>
                   ))}
 

@@ -147,6 +147,7 @@ const SaasCustomerDetailPage = lazy(() => import("@/pages/admin/SaasCustomerDeta
 const SaasTemplatesPage = lazy(() => import("@/pages/admin/SaasTemplatesPage"));
 const SchemaExportPage = lazy(() => import("@/pages/admin/SchemaExportPage"));
 const SuperAdminAccessLogPage = lazy(() => import("@/pages/admin/SuperAdminAccessLogPage"));
+const EscalationQueuePage = lazy(() => import("@/pages/admin/EscalationQueuePage"));
 
 // Legal
 const TermsOfServicePage = lazy(() => import("@/pages/TermsOfServicePage"));
@@ -461,6 +462,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <RequireAdmin>
         <AdminCoachingDetail />
+      </RequireAdmin>
+    ),
+  },
+  {
+    path: "/admin/escalations",
+    element: (
+      <RequireAdmin>
+        <EscalationQueuePage />
       </RequireAdmin>
     ),
   },

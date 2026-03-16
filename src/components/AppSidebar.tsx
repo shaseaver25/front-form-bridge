@@ -36,6 +36,7 @@ import {
   Send,
   UserSearch,
   Briefcase,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ import { useVoiceNotesAccess } from "@/hooks/useVoiceNotesAccess";
 import { useBoardsAccess } from "@/hooks/useBoardsAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { useSubscription, TIER_ORDER } from "@/hooks/useSubscription";
+import { useEscalationCount } from "@/hooks/useEscalationCount";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -93,6 +95,7 @@ const outreachItems: NavItem[] = [
 const adminItems: NavItem[] = [
   { title: "Integrations", url: "/integrations", icon: Link2 },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
+  { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
   { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
 ];
 
@@ -113,6 +116,7 @@ export function AppSidebar() {
   const { hasAccess: hasBoardsAccess, isLoading: loadingBoards } = useBoardsAccess();
   const { isSuperAdmin, isLoading: loadingSuperAdmin } = useSuperAdmin();
   const { tier, isActive, isLoading: loadingTier } = useSubscription();
+  const { data: pendingEscalations = 0 } = useEscalationCount();
 
   const hasTierAccess = (required: "professional" | "enterprise") => {
     // Super admins always pass; also pass while loading to avoid nav flicker
@@ -141,6 +145,8 @@ export function AppSidebar() {
         // Hide entirely if the subscription tier doesn't cover this item
         if (item.tierRequired && !hasTierAccess(item.tierRequired)) return null;
         const hasAccess = getProAccess(item.pro);
+        const showEscalationBadge =
+          item.title === "Escalations" && pendingEscalations > 0;
         return (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton asChild>
@@ -154,6 +160,14 @@ export function AppSidebar() {
                 {!collapsed && (
                   <>
                     <span className="flex-1">{item.title}</span>
+                    {showEscalationBadge && (
+                      <Badge
+                        variant="destructive"
+                        className="text-[10px] px-1.5 py-0 min-w-[18px] text-center"
+                      >
+                        {pendingEscalations > 9 ? "9+" : pendingEscalations}
+                      </Badge>
+                    )}
                     {item.pro && !hasAccess && (
                       <Badge
                         variant="secondary"

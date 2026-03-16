@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Activity, Clock, UserPlus, GraduationCap } from "lucide-react";
+import { Users, Activity, Clock, UserPlus, GraduationCap, AlertTriangle } from "lucide-react";
+import { useEscalationCount } from "@/hooks/useEscalationCount";
 import { formatDistanceToNow } from "date-fns";
 
 interface DashboardStats {
@@ -23,6 +24,7 @@ interface RecentActivity {
 
 export default function Admin() {
   const navigate = useNavigate();
+  const { data: pendingEscalations = 0 } = useEscalationCount();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
     activeToday: 0,
@@ -135,7 +137,7 @@ export default function Admin() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -163,6 +165,20 @@ export default function Admin() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingInvites}</div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className={pendingEscalations > 0 ? "border-amber-300 dark:border-amber-700" : ""}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Escalations</CardTitle>
+            <AlertTriangle className={`h-4 w-4 ${pendingEscalations > 0 ? "text-amber-500" : "text-muted-foreground"}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${pendingEscalations > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>
+              {pendingEscalations}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -229,6 +245,18 @@ export default function Admin() {
           <Button variant="outline" onClick={() => navigate("/admin/coaching")}>
             <GraduationCap className="mr-2 h-4 w-4" />
             Coaching Clients
+          </Button>
+          <Button
+            variant={pendingEscalations > 0 ? "default" : "outline"}
+            onClick={() => navigate("/admin/escalations")}
+          >
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Review Escalations
+            {pendingEscalations > 0 && (
+              <span className="ml-1.5 bg-white/20 rounded-full px-1.5 text-xs">
+                {pendingEscalations}
+              </span>
+            )}
           </Button>
         </CardContent>
       </Card>
