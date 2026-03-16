@@ -224,7 +224,6 @@ export default function AdminCoaching() {
     </Layout>
   );
 }
-  const [progress, setProgress] = useState<ProgressRow[]>([]);
   const [harvests, setHarvests] = useState<HarvestRow[]>([]);
   const [gaps, setGaps] = useState<GapRow[]>([]);
   const [notes, setNotes] = useState<CoachNote[]>([]);
