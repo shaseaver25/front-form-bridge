@@ -13,10 +13,12 @@ import {
   MessageSquarePlus,
   Send,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { RichTextDisplay } from "@/components/ui/rich-text-editor";
 
 interface ProfileData {
   first_name: string | null;
