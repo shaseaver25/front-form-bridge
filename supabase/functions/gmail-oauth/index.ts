@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
     // CALLBACK: Google redirects here after user authorizes
     // =========================================
     if (url.searchParams.has("code")) {
+      console.log("Gmail OAuth callback received with authorization code");
       const code = url.searchParams.get("code")!;
       const state = url.searchParams.get("state") || "";
 
