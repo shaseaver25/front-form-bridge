@@ -1794,6 +1794,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rebrand_reflections: {
+        Row: {
+          chapter_id: string
+          created_at: string
+          id: string
+          question_key: string
+          response_html: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chapter_id: string
+          created_at?: string
+          id?: string
+          question_key: string
+          response_html?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chapter_id?: string
+          created_at?: string
+          id?: string
+          question_key?: string
+          response_html?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
