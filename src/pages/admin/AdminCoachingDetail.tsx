@@ -77,6 +77,12 @@ const CHAPTER_LABELS: Record<string, string> = {
   ch6: "Ch 6 — The Action Plan",
 };
 
+const QUESTION_LABELS: Record<string, string> = {
+  q1_three_words: "Three words a recruiter would use",
+  q2_industry_function: "Industry/function positioning",
+  q3_brand_gap: "Brand gap assessment",
+};
+
 const CATEGORY_META = [
   { key: "keywords" as const, label: "Keywords", color: "#C8A96E" },
   { key: "problem_language" as const, label: "Problem Language", color: "#6366F1" },
