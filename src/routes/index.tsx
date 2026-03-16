@@ -6,6 +6,7 @@
 import { lazy } from "react";
 import { RouteObject } from "react-router-dom";
 import { RequireAdmin } from "@/components/RequireAdmin";
+import { RequireClient } from "@/components/client/RequireClient";
 import { SuperAdminGuard } from "@/components/admin/SuperAdminGuard";
 import { TierGate } from "@/components/TierGate";
 
