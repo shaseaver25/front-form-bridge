@@ -897,8 +897,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
     result.nextOffset = result.nextCursor;
     console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, hasMore=${result.hasMore}`);
-  } catch (e) {
-    result.errors.push(`Documents sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Documents sync failed: ${(e as Error).message}`);
   }
 
   return result;
