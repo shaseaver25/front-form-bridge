@@ -9,10 +9,6 @@ const corsHeaders = {
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL_API_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 
-/**
- * Refresh the Google access token using the refresh token.
- * Returns the new access token and updates the database.
- */
 async function refreshAccessToken(
   supabase: any,
   connectionId: string,
@@ -42,7 +38,6 @@ async function refreshAccessToken(
     Date.now() + (tokens.expires_in || 3600) * 1000
   ).toISOString();
 
-  // Update the stored access token
   await supabase
     .from("gmail_connections")
     .update({
@@ -54,9 +49,6 @@ async function refreshAccessToken(
   return tokens.access_token;
 }
 
-/**
- * Get a valid access token, refreshing if expired.
- */
 async function getValidToken(
   supabase: any,
   connection: any
@@ -64,7 +56,6 @@ async function getValidToken(
   const expiresAt = new Date(connection.token_expires_at);
   const now = new Date();
 
-  // Refresh if token expires within 5 minutes
   if (expiresAt.getTime() - now.getTime() < 5 * 60 * 1000) {
     if (!connection.refresh_token) {
       throw new Error("No refresh token available. Please reconnect Gmail.");
@@ -79,9 +70,6 @@ async function getValidToken(
   return connection.access_token;
 }
 
-/**
- * Parse email address from a header value like "John Doe <john@example.com>"
- */
 function parseEmailHeader(header: string): { name: string; email: string } {
   const match = header.match(/^(.+?)\s*<(.+?)>$/);
   if (match) {
@@ -90,9 +78,6 @@ function parseEmailHeader(header: string): { name: string; email: string } {
   return { name: "", email: header.trim() };
 }
 
-/**
- * Extract header value from Gmail message headers array
- */
 function getHeader(headers: any[], name: string): string {
   const header = headers.find(
     (h: any) => h.name.toLowerCase() === name.toLowerCase()
@@ -100,8 +85,56 @@ function getHeader(headers: any[], name: string): string {
   return header?.value || "";
 }
 
+/**
+ * Build an email-to-contact lookup map from crm_contact_emails.
+ */
+async function buildContactEmailMap(supabase: any): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("crm_contact_emails")
+      .select("contact_id, value")
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.error("Error fetching contact emails for matching:", error);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    for (const row of data) {
+      if (row.value) {
+        map.set(row.value.toLowerCase().trim(), row.contact_id);
+      }
+    }
+
+    if (data.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  console.log(`Built contact email map with ${map.size} entries`);
+  return map;
+}
+
+/**
+ * Find a matched contact_id from a set of email addresses.
+ */
+function findMatchedContact(
+  emailMap: Map<string, string>,
+  addresses: string[]
+): string | null {
+  for (const addr of addresses) {
+    const contactId = emailMap.get(addr.toLowerCase().trim());
+    if (contactId) return contactId;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -111,7 +144,6 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Authenticate the calling user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -151,7 +183,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch the user's Gmail connection
     const { data: connection, error: connError } = await supabase
       .from("gmail_connections")
       .select("*")
@@ -169,10 +200,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get a valid access token
     const accessToken = await getValidToken(supabase, connection);
 
-    // Fetch recent messages (last 50, from the last 7 days)
+    // Build contact email lookup map for matching
+    const contactEmailMap = await buildContactEmailMap(supabase);
+
     const sevenDaysAgo = Math.floor(
       (Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000
     );
@@ -197,9 +229,9 @@ Deno.serve(async (req) => {
     console.log(`Found ${messageIds.length} messages to sync`);
 
     let processed = 0;
+    let matched = 0;
     let errors = 0;
 
-    // Fetch each message's metadata (in batches to avoid rate limits)
     for (const msg of messageIds) {
       try {
         const msgResponse = await fetch(
@@ -238,7 +270,12 @@ Deno.serve(async (req) => {
           ? new Date(parseInt(msgData.internalDate)).toISOString()
           : null;
 
-        // Upsert into gmail_messages
+        // Match against CRM contacts
+        const allAddresses = [fromEmail, ...toEmails, ...ccEmails].filter(Boolean);
+        const matchedContactId = findMatchedContact(contactEmailMap, allAddresses);
+
+        if (matchedContactId) matched++;
+
         await supabase.from("gmail_messages").upsert(
           {
             user_id: user.id,
@@ -254,6 +291,7 @@ Deno.serve(async (req) => {
             internal_date: internalDate,
             label_ids: msgData.labelIds || [],
             is_read: !(msgData.labelIds || []).includes("UNREAD"),
+            matched_contact_id: matchedContactId,
           },
           {
             onConflict: "user_id,gmail_message_id",
@@ -262,7 +300,6 @@ Deno.serve(async (req) => {
 
         processed++;
 
-        // Small delay to avoid Gmail API rate limits
         if (processed % 10 === 0) {
           await new Promise((r) => setTimeout(r, 200));
         }
@@ -272,19 +309,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update last sync timestamp
     await supabase
       .from("gmail_connections")
       .update({ last_sync_at: new Date().toISOString() })
       .eq("id", connection.id);
 
     console.log(
-      `Gmail sync complete: ${processed} processed, ${errors} errors`
+      `Gmail sync complete: ${processed} processed, ${matched} matched to contacts, ${errors} errors`
     );
 
     return new Response(
       JSON.stringify({
         processed,
+        matched,
         errors,
         total: messageIds.length,
       }),
