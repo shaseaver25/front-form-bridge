@@ -93,6 +93,7 @@ export default function AdminCoachingDetail() {
   const [harvests, setHarvests] = useState<HarvestRow[]>([]);
   const [gaps, setGaps] = useState<GapRow[]>([]);
   const [notes, setNotes] = useState<CoachNote[]>([]);
+  const [reflections, setReflections] = useState<ReflectionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedHarvest, setExpandedHarvest] = useState<string | null>(null);
   const [noteChapter, setNoteChapter] = useState("");
