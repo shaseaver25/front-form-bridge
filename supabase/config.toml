@@ -37,7 +37,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.help-assistant]
-verify_jwt = true
+verify_jwt = false
 
 [functions.chip-tts]
 verify_jwt = true

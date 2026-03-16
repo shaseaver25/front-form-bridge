@@ -60,7 +60,7 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
   const normalizedKey = normalizeApiKey(apiKey);
   const baseHeaders = toHeaderRecord(init.headers);
 
-  const attempts = [
+  const attempts: { name: string; url: string; headers: Record<string, string> }[] = [
     {
       name: "header_only",
       url,
@@ -567,8 +567,8 @@ async function syncContacts(apiKey: string, supabase: any): Promise<SyncResult> 
     }
 
     console.log(`Contact sync complete: ${result.total} contacts, ${allEmails.length} emails, ${allPhones.length} phones, ${allUrls.length} urls, ${allAddresses.length} addresses, ${allCareerHistory.length} career entries, ${contactCompanyUpdates.length} company links`);
-  } catch (e) {
-    result.errors.push(`Contacts sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Contacts sync failed: ${(e as Error).message}`);
     result.failed = result.total;
   }
 
@@ -614,8 +614,8 @@ async function syncCompanies(apiKey: string, supabase: any): Promise<SyncResult>
     result.created = r.created;
     result.failed = r.failed;
     result.errors.push(...r.errors);
-  } catch (e) {
-    result.errors.push(`Companies sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Companies sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -686,8 +686,8 @@ async function syncJobs(apiKey: string, supabase: any): Promise<SyncResult> {
     result.created = r.created;
     result.failed = r.failed;
     result.errors.push(...r.errors);
-  } catch (e) {
-    result.errors.push(`Jobs sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Jobs sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -734,8 +734,8 @@ async function syncPlacements(apiKey: string, supabase: any): Promise<SyncResult
     result.created = r.created;
     result.failed = r.failed;
     result.errors.push(...r.errors);
-  } catch (e) {
-    result.errors.push(`Placements sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Placements sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -887,8 +887,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             result.failed++;
           }
         }
-      } catch (contactErr) {
-        console.warn(`Error for contact ${contact.crelate_id}: ${contactErr.message}`);
+      } catch (contactErr: unknown) {
+        console.warn(`Error for contact ${contact.crelate_id}: ${(contactErr as Error).message}`);
       }
     }
 
@@ -897,8 +897,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
     result.nextOffset = result.nextCursor;
     console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, hasMore=${result.hasMore}`);
-  } catch (e) {
-    result.errors.push(`Documents sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Documents sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -929,8 +929,8 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     } catch {
       try {
         activities = await fetchAllPages("notes", apiKey);
-      } catch (e2) {
-        result.errors.push(`Both activities and notes endpoints failed: ${e2.message}`);
+      } catch (e2: unknown) {
+        result.errors.push(`Both activities and notes endpoints failed: ${(e2 as Error).message}`);
         return result;
       }
     }
@@ -1090,8 +1090,8 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
         console.log("Contact notes already exist, skipping population to avoid duplicates");
       }
     }
-  } catch (e) {
-    result.errors.push(`Activities sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Activities sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -1179,8 +1179,8 @@ async function syncPipelineItems(apiKey: string, supabase: any): Promise<SyncRes
     }
 
     console.log(`Pipeline items sync: ${rows.length} items processed`);
-  } catch (e) {
-    result.errors.push(`Pipeline items sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Pipeline items sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -1218,8 +1218,8 @@ async function syncSources(apiKey: string, supabase: any): Promise<SyncResult> {
       result.failed = r.failed;
       result.errors.push(...r.errors);
     }
-  } catch (e) {
-    result.errors.push(`Sources sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Sources sync failed: ${(e as Error).message}`);
   }
 
   return result;
@@ -1298,8 +1298,8 @@ Deno.serve(async (req) => {
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
-      } catch (e) {
-        return new Response(JSON.stringify({ success: false, error: e.message }), {
+      } catch (e: unknown) {
+        return new Response(JSON.stringify({ success: false, error: (e as Error).message }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -1388,9 +1388,9 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (e) {
+  } catch (e: unknown) {
     console.error("Edge function error:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
