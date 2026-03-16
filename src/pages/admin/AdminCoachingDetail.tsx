@@ -13,10 +13,12 @@ import {
   MessageSquarePlus,
   Send,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { RichTextDisplay } from "@/components/ui/rich-text-editor";
 
 interface ProfileData {
   first_name: string | null;
@@ -57,6 +59,14 @@ interface CoachNote {
   created_at: string;
 }
 
+interface ReflectionRow {
+  id: string;
+  chapter_id: string;
+  question_key: string;
+  response_html: string;
+  updated_at: string;
+}
+
 const CHAPTER_LABELS: Record<string, string> = {
   intro: "Introduction",
   ch1: "Ch 1 — The Harvesting Framework",
@@ -65,6 +75,12 @@ const CHAPTER_LABELS: Record<string, string> = {
   ch4: "Ch 4 — The Nomenclature Gap",
   ch5: "Ch 5 — The Rewrite",
   ch6: "Ch 6 — The Action Plan",
+};
+
+const QUESTION_LABELS: Record<string, string> = {
+  q1_three_words: "Three words a recruiter would use",
+  q2_industry_function: "Industry/function positioning",
+  q3_brand_gap: "Brand gap assessment",
 };
 
 const CATEGORY_META = [
@@ -83,6 +99,7 @@ export default function AdminCoachingDetail() {
   const [harvests, setHarvests] = useState<HarvestRow[]>([]);
   const [gaps, setGaps] = useState<GapRow[]>([]);
   const [notes, setNotes] = useState<CoachNote[]>([]);
+  const [reflections, setReflections] = useState<ReflectionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedHarvest, setExpandedHarvest] = useState<string | null>(null);
   const [noteChapter, setNoteChapter] = useState("");
@@ -99,12 +116,13 @@ export default function AdminCoachingDetail() {
     if (!userId) return;
     setLoading(true);
     try {
-      const [profileRes, progRes, harvestRes, gapRes, noteRes] = await Promise.all([
+      const [profileRes, progRes, harvestRes, gapRes, noteRes, reflRes] = await Promise.all([
         supabase.from("user_profiles").select("first_name, last_name, email").eq("id", userId).single(),
         supabase.from("rebrand_progress").select("chapter_id, status, completed_at, started_at").eq("user_id", userId).order("started_at"),
         supabase.from("rebrand_harvests").select("id, job_title, company_name, created_at, keywords, problem_language, responsibilities, qualifications, nomenclature").eq("user_id", userId).order("created_at", { ascending: false }),
         supabase.from("rebrand_gap_analysis").select("id, current_term, target_term, status").eq("user_id", userId),
         supabase.from("rebrand_coach_notes").select("id, chapter_id, note_text, created_at").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase.from("rebrand_reflections").select("id, chapter_id, question_key, response_html, updated_at").eq("user_id", userId).order("updated_at", { ascending: false }),
       ]);
 
       setProfile(profileRes.data);
@@ -121,6 +139,7 @@ export default function AdminCoachingDetail() {
       );
       setGaps((gapRes.data || []) as GapRow[]);
       setNotes((noteRes.data || []) as CoachNote[]);
+      setReflections((reflRes.data || []) as ReflectionRow[]);
     } catch (e) {
       console.error("Error loading client detail:", e);
     } finally {
@@ -277,6 +296,37 @@ export default function AdminCoachingDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Client Reflections */}
+        {reflections.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <BookOpen className="h-4 w-4" /> Client Reflections ({reflections.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(CHAPTER_LABELS).map(([chId, chLabel]) => {
+                const chapterReflections = reflections.filter((r) => r.chapter_id === chId);
+                if (chapterReflections.length === 0) return null;
+                return (
+                  <div key={chId} className="space-y-2">
+                    <p className="text-sm font-semibold" style={{ color: "#1B2A4A" }}>{chLabel}</p>
+                    {chapterReflections.map((r) => (
+                      <div key={r.id} className="border-l-2 pl-3 py-1" style={{ borderColor: "#6366F1" }}>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          {QUESTION_LABELS[r.question_key] || r.question_key} •{" "}
+                          {format(new Date(r.updated_at), "MMM d, yyyy")}
+                        </p>
+                        <RichTextDisplay content={r.response_html} />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Harvests */}
         <Card>

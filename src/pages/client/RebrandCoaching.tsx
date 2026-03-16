@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { RebrandLayout } from "@/components/client/RebrandLayout";
 import { HarvestExercise } from "@/components/client/HarvestExercise";
 import { HarvestResults } from "@/components/client/HarvestResults";
+import { ChapterReflection } from "@/components/client/ChapterReflection";
 
 const TABS = ["Learn", "Exercise", "My Results"] as const;
 type Tab = typeof TABS[number];
@@ -161,15 +162,26 @@ function IntroExercise() {
       <h2 style={{ fontFamily: "'Playfair Display', serif", color: "#1B2A4A", fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>
         Getting Started
       </h2>
-      <div className="space-y-4" style={{ fontFamily: "'Lato', sans-serif", color: "#374151", fontSize: "0.9375rem", lineHeight: 1.75 }}>
+      <div className="space-y-6" style={{ fontFamily: "'Lato', sans-serif", color: "#374151", fontSize: "0.9375rem", lineHeight: 1.75 }}>
         <p>Before we dive into Harvesting, take a moment to reflect on your current professional brand:</p>
-        <ol className="list-decimal pl-6 space-y-3">
-          <li>What three words would a recruiter use to describe you after reading your LinkedIn?</li>
-          <li>What industry or function do your current materials position you for?</li>
-          <li>What is the gap between where your brand is now and where you want it to be?</li>
-        </ol>
+
+        <div className="space-y-6">
+          <div>
+            <p className="font-medium">1. What three words would a recruiter use to describe you after reading your LinkedIn?</p>
+            <ChapterReflection chapterId="intro" questionKey="q1_three_words" label="Your answer" />
+          </div>
+          <div>
+            <p className="font-medium">2. What industry or function do your current materials position you for?</p>
+            <ChapterReflection chapterId="intro" questionKey="q2_industry_function" label="Your answer" />
+          </div>
+          <div>
+            <p className="font-medium">3. What is the gap between where your brand is now and where you want it to be?</p>
+            <ChapterReflection chapterId="intro" questionKey="q3_brand_gap" label="Your answer" />
+          </div>
+        </div>
+
         <p className="text-sm" style={{ color: "#9CA3AF" }}>
-          Jot your thoughts down — we'll revisit these answers in Chapter 3 during the Brand Audit.
+          Your answers are saved privately — only you and your coach can see them. We'll revisit these in Chapter 3 during the Brand Audit.
         </p>
       </div>
     </div>
