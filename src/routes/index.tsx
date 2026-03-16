@@ -512,6 +512,14 @@ export const clientRoutes: RouteObject[] = [
       </RequireClient>
     ),
   },
+  {
+    path: "/client/coaching/rebrand",
+    element: (
+      <RequireClient>
+        <RebrandCoaching />
+      </RequireClient>
+    ),
+  },
 ];
 
 // Misc routes
