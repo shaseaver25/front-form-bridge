@@ -887,8 +887,8 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
             result.failed++;
           }
         }
-      } catch (contactErr) {
-        console.warn(`Error for contact ${contact.crelate_id}: ${contactErr.message}`);
+      } catch (contactErr: unknown) {
+        console.warn(`Error for contact ${contact.crelate_id}: ${(contactErr as Error).message}`);
       }
     }
 
