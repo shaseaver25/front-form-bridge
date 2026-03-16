@@ -162,6 +162,7 @@ const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
 
 // Client Portal
 const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
+const RebrandCoaching = lazy(() => import("@/pages/client/RebrandCoaching"));
 
 // Route group types
 type RouteGroup = {
@@ -508,6 +509,14 @@ export const clientRoutes: RouteObject[] = [
     element: (
       <RequireClient>
         <ClientDashboard />
+      </RequireClient>
+    ),
+  },
+  {
+    path: "/client/coaching/rebrand",
+    element: (
+      <RequireClient>
+        <RebrandCoaching />
       </RequireClient>
     ),
   },
