@@ -291,6 +291,37 @@ export default function AdminCoachingDetail() {
           </CardContent>
         </Card>
 
+        {/* Client Reflections */}
+        {reflections.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <BookOpen className="h-4 w-4" /> Client Reflections ({reflections.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(CHAPTER_LABELS).map(([chId, chLabel]) => {
+                const chapterReflections = reflections.filter((r) => r.chapter_id === chId);
+                if (chapterReflections.length === 0) return null;
+                return (
+                  <div key={chId} className="space-y-2">
+                    <p className="text-sm font-semibold" style={{ color: "#1B2A4A" }}>{chLabel}</p>
+                    {chapterReflections.map((r) => (
+                      <div key={r.id} className="border-l-2 pl-3 py-1" style={{ borderColor: "#6366F1" }}>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          {QUESTION_LABELS[r.question_key] || r.question_key} •{" "}
+                          {format(new Date(r.updated_at), "MMM d, yyyy")}
+                        </p>
+                        <RichTextDisplay content={r.response_html} />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Harvests */}
         <Card>
           <CardHeader>
