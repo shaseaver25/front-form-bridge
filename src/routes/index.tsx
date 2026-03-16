@@ -138,6 +138,7 @@ const AdminActivityLog = lazy(() => import("@/pages/AdminActivityLog"));
 
 // Admin Coaching
 const AdminCoaching = lazy(() => import("@/pages/admin/AdminCoaching"));
+const AdminCoachingDetail = lazy(() => import("@/pages/admin/AdminCoachingDetail"));
 
 // Super Admin
 const SaasCustomersPage = lazy(() => import("@/pages/admin/SaasCustomersPage"));
@@ -451,6 +452,14 @@ export const adminRoutes: RouteObject[] = [
     element: (
       <RequireAdmin>
         <AdminCoaching />
+      </RequireAdmin>
+    ),
+  },
+  {
+    path: "/admin/coaching/:userId",
+    element: (
+      <RequireAdmin>
+        <AdminCoachingDetail />
       </RequireAdmin>
     ),
   },
