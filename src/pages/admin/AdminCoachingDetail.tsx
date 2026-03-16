@@ -133,6 +133,7 @@ export default function AdminCoachingDetail() {
       );
       setGaps((gapRes.data || []) as GapRow[]);
       setNotes((noteRes.data || []) as CoachNote[]);
+      setReflections((reflRes.data || []) as ReflectionRow[]);
     } catch (e) {
       console.error("Error loading client detail:", e);
     } finally {
