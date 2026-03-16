@@ -1,48 +1,45 @@
 
 
-## Pipeline Page Rework
+## Plan: Fix Gmail OAuth + Create Gmail Send + Update Compose Dialog
 
-### The Problem
+### Current State
+- The `gmail-oauth` edge function is deployed and responding (confirmed via curl test -- returns 401 as expected without auth)
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` secrets exist in Supabase
+- The redirect URI `https://rzhcefyigmkavddjjxvg.supabase.co/functions/v1/gmail-oauth` is configured in Google Console
+- Edge function logs show only boot/shutdown -- no request-level logs, suggesting the callback may fail at Google's token exchange step
+- `GmailSettingsPage` does NOT handle `?connected=true` or `?error=` query params after OAuth redirect
+- `gmail-sync` has `verify_jwt = true` which causes ES256 signature failures (known issue in this project)
+- No `send-gmail-email` edge function exists yet
+- `EmailComposeDialog` currently calls `send-microsoft-email` (which doesn't exist)
 
-The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
+### Changes
 
-1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
-2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
+#### 1. Fix GmailSettingsPage to handle OAuth callback
+- Add `useSearchParams` to detect `?connected=true` and `?error=` params
+- Show success/error toasts and refetch connection data on return
 
-Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
+#### 2. Add logging to gmail-oauth edge function
+- Add `console.log` statements at key points (callback entry, token exchange, redirect) to debug the 404
+- Add error details to the redirect URL so users see what went wrong
 
-### Recommendation
+#### 3. Fix gmail-sync JWT issue
+- Change `verify_jwt` to `false` in `config.toml` for `gmail-sync`
+- Add internal JWT validation via `supabase.auth.getUser()` (same pattern as other functions)
 
-**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
+#### 4. Create `send-gmail-email` edge function
+- Authenticate the calling user via internal JWT validation
+- Fetch their `gmail_connections` record, refresh token if expired
+- Use Gmail API `POST /gmail/v1/users/me/messages/send` to send email as the user
+- Log the send to `email_log` table
+- Add to `config.toml` with `verify_jwt = false`
 
-1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
-   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
-   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
+#### 5. Update EmailComposeDialog to use Gmail
+- Change from `send-microsoft-email` to `send-gmail-email`
+- Keep the same UI and form fields
 
-2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
+#### 6. Update google-calendar-oauth fallback URL
+- Change hardcoded fallback from `tailoredu.org` to `front-form-bridge.lovable.app`
 
-3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
-
-### What the new Pipeline Analytics tab will show (from real data)
-
-- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
-- **Stage distribution**: Count per stage with visual bars
-- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
-- **Recent activity**: Latest stage changes
-
-### Technical approach
-
-- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
-- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
-- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
-- Remove `RecruitmentPipeline.tsx` and its route
-- Update sidebar to remove the "Recruiting" entry
-- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
-
-### Files to modify
-- `src/pages/PipelineDashboard.tsx` — full rewrite
-- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
-- `src/components/AppSidebar.tsx` — remove Recruiting nav item
-- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
-- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
+### Prerequisite (User Action)
+Your Google Cloud Console redirect URI is confirmed set. If you still get a 404 after these fixes, the enhanced logging will show exactly where it fails.
 
