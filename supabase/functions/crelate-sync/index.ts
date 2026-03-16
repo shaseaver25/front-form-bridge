@@ -1218,8 +1218,8 @@ async function syncSources(apiKey: string, supabase: any): Promise<SyncResult> {
       result.failed = r.failed;
       result.errors.push(...r.errors);
     }
-  } catch (e) {
-    result.errors.push(`Sources sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    result.errors.push(`Sources sync failed: ${(e as Error).message}`);
   }
 
   return result;
