@@ -160,6 +160,9 @@ const ExecSearchContacts = lazy(() => import("@/pages/exec-search/ExecSearchCont
 const ExecSearchCompanies = lazy(() => import("@/pages/exec-search/ExecSearchCompanies"));
 const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
 
+// Client Portal
+const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
+
 // Route group types
 type RouteGroup = {
   path: string;
