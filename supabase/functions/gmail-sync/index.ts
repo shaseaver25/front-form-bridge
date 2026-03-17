@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
 
         await supabase.from("gmail_messages").upsert(
           {
-            user_id: user.id,
+            user_id: connection.user_id,
             connection_id: connection.id,
             gmail_message_id: msg.id,
             thread_id: msgData.threadId || null,
