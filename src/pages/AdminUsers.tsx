@@ -40,7 +40,6 @@ interface UserWithRole {
 
 export default function AdminUsers() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserWithRole[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
