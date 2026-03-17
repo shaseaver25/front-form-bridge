@@ -42,7 +42,7 @@ export default function AcceptInvitation() {
         description: "This invitation link is invalid or missing.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/login");
     }
   }, [token]);
 
