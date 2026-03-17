@@ -59,7 +59,7 @@ export default function AcceptInvitation() {
           description: data?.error || "This invitation link has expired or has already been used.",
           variant: "destructive",
         });
-        navigate("/auth");
+        navigate("/login");
         return;
       }
 
