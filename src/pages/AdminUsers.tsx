@@ -23,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserPlus, MoreVertical, Mail, Key, KeyRound, Ban, Trash2, CheckCircle, Clock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { SetPasswordDialog } from "@/components/admin/SetPasswordDialog";
 
 interface UserWithRole {
