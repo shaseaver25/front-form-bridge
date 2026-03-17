@@ -44,6 +44,7 @@ import { useBurndownAccess } from "@/hooks/useBurndownAccess";
 import { useVoiceNotesAccess } from "@/hooks/useVoiceNotesAccess";
 import { useBoardsAccess } from "@/hooks/useBoardsAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useSubscription, TIER_ORDER } from "@/hooks/useSubscription";
 import { useEscalationCount } from "@/hooks/useEscalationCount";
 import type { LucideIcon } from "lucide-react";
@@ -115,6 +116,7 @@ export function AppSidebar() {
   const { hasAccess: hasVoiceNotesAccess, isLoading: loadingVoice } = useVoiceNotesAccess();
   const { hasAccess: hasBoardsAccess, isLoading: loadingBoards } = useBoardsAccess();
   const { isSuperAdmin, isLoading: loadingSuperAdmin } = useSuperAdmin();
+  const { isAdmin, isLoading: loadingAdmin } = useIsAdmin();
   const { tier, isActive, isLoading: loadingTier } = useSubscription();
   const { data: pendingEscalations = 0 } = useEscalationCount();
 
@@ -213,10 +215,12 @@ export function AppSidebar() {
           <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
-        </SidebarGroup>
+        {!loadingAdmin && isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {!loadingSuperAdmin && isSuperAdmin && (
           <>
