@@ -177,10 +177,17 @@ export default function AdminUsers() {
 
       if (error) throw error;
 
-      toast.success(`Password reset link sent to ${email}`);
+      toast({
+        title: "Password Reset Sent",
+        description: `A password reset link has been sent to ${email}`,
+      });
     } catch (error) {
       console.error("Error sending password reset:", error);
-      toast.error("Failed to send password reset email.");
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email.",
+        variant: "destructive",
+      });
     }
   }
 

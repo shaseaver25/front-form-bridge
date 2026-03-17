@@ -162,10 +162,17 @@ export default function AdminUserEdit() {
 
       if (error) throw error;
 
-      toast.success(`Password reset email sent to ${email}`);
+      toast({
+        title: "Password Reset Sent",
+        description: `Password reset email sent to ${email}`,
+      });
     } catch (error) {
       console.error("Error sending password reset:", error);
-      toast.error("Failed to send password reset email.");
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email.",
+        variant: "destructive",
+      });
     } finally {
       setSendingReset(false);
     }
