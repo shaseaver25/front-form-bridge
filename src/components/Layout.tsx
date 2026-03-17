@@ -25,7 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if (!session) {
-        navigate("/auth");
+        navigate("/login");
       }
     });
 
