@@ -20,16 +20,30 @@ const Layout = ({ children }: LayoutProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session first
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
+        setLoading(false);
         navigate("/login");
+        return;
       }
+
+      // Check if user is client-only (no admin role) — redirect to client portal
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
+
+      const isAdmin = roles?.some((r) => r.role === "admin");
+      if (!isAdmin) {
+        // Client-only users should not see CRM pages
+        navigate("/client/dashboard", { replace: true });
+        return;
+      }
+
+      setUser(session.user);
+      setLoading(false);
     });
 
-    // Listen for changes — only update user ref when ID changes to avoid re-renders
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -39,7 +53,6 @@ const Layout = ({ children }: LayoutProps) => {
         navigate("/login");
         return;
       }
-      // Only update state if user identity actually changed (avoid re-renders on token refresh)
       setUser((prev) => {
         const newUser = session?.user ?? null;
         if (prev?.id === newUser?.id) return prev;
@@ -51,7 +64,6 @@ const Layout = ({ children }: LayoutProps) => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Log super admin page visits (must be before any early returns to satisfy hooks rules)
   useSuperAdminAccessLog();
 
   if (loading) {
