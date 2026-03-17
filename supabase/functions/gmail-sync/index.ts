@@ -240,16 +240,6 @@ Deno.serve(async (req) => {
       connection = conn;
     }
 
-    if (connError || !connection) {
-      return new Response(
-        JSON.stringify({ error: "No active Gmail connection found" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 404,
-        }
-      );
-    }
-
     const accessToken = await getValidToken(supabase, connection);
 
     // Build contact email lookup map for matching
