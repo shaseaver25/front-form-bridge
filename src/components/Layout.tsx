@@ -25,7 +25,7 @@ const Layout = ({ children }: LayoutProps) => {
       setUser(session?.user ?? null);
       setLoading(false);
       if (!session) {
-        navigate("/auth");
+        navigate("/login");
       }
     });
 
@@ -36,7 +36,7 @@ const Layout = ({ children }: LayoutProps) => {
       if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED" && !session) {
         setUser(null);
         setLoading(false);
-        navigate("/auth");
+        navigate("/login");
         return;
       }
       // Only update state if user identity actually changed (avoid re-renders on token refresh)

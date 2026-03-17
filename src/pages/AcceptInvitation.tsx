@@ -42,7 +42,7 @@ export default function AcceptInvitation() {
         description: "This invitation link is invalid or missing.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/login");
     }
   }, [token]);
 
@@ -59,7 +59,7 @@ export default function AcceptInvitation() {
           description: data?.error || "This invitation link has expired or has already been used.",
           variant: "destructive",
         });
-        navigate("/auth");
+        navigate("/login");
         return;
       }
 
@@ -71,7 +71,7 @@ export default function AcceptInvitation() {
         description: "Failed to verify invitation. Please try again.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/login");
     } finally {
       setLoading(false);
     }

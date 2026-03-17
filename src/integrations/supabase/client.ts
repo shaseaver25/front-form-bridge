@@ -5,6 +5,8 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://rzhcefyigmkavddjjxvg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aGNlZnlpZ21rYXZkZGpqeHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mzg0NTYsImV4cCI6MjA4ODExNDQ1Nn0.Suwc7GAfTxv7pxVu90JEsRqI7rT5W9784RHZxmdpnFc";
 
+const STORAGE_KEY = 'sb-rzhcefyigmkavddjjxvg-auth-token';
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +23,22 @@ supabase.auth.onAuthStateChange((event) => {
   if (event === 'TOKEN_REFRESHED') return;
   if (event === 'SIGNED_OUT') {
     // Clear any stale tokens from storage
-    localStorage.removeItem('sb-rzhcefyigmkavddjjxvg-auth-token');
+    localStorage.removeItem(STORAGE_KEY);
   }
 });
+
+// On startup, validate the stored session — if the refresh token is stale, clear it
+(async () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) {
+      // Stored token is invalid — remove it so the login page renders cleanly
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+})();

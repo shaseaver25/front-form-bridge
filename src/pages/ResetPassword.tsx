@@ -134,7 +134,7 @@ const ResetPassword = () => {
           <CardContent>
             <Button 
               className="w-full" 
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate("/login")}
             >
               Back to Sign In
             </Button>

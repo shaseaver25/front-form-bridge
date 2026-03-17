@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,14 +11,15 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
-  // Set page title
   useEffect(() => {
     document.title = "AvidEdge — Client Portal";
     return () => { document.title = "AvidEdge Search"; };
   }, []);
 
-  // Auto-redirect if already authenticated
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
@@ -80,10 +81,195 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const redirectUrl = "https://front-form-bridge.lovable.app/reset-password";
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: redirectUrl,
+      });
+
+      if (resetError) {
+        setError(resetError.message);
+      } else {
+        setResetSent(true);
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#F5F2ED" }}>
         <Loader2 className="h-6 w-6 animate-spin" style={{ color: "#C8A96E" }} />
+      </div>
+    );
+  }
+
+  // Forgot password view
+  if (showForgotPassword) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ backgroundColor: "#F5F2ED" }}
+      >
+        <div className="w-full" style={{ maxWidth: 420 }}>
+          <div
+            className="rounded-xl"
+            style={{
+              backgroundColor: "#FFFFFF",
+              padding: "40px 48px",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => { setShowForgotPassword(false); setError(null); setResetSent(false); }}
+              className="inline-flex items-center gap-1 mb-6 transition-colors"
+              style={{ fontFamily: "'Lato', sans-serif", fontSize: 14, color: "#C8A96E" }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </button>
+
+            <div className="text-center">
+              <h1
+                className="tracking-tight mb-1"
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#1B2A4A",
+                }}
+              >
+                Reset Password
+              </h1>
+              <p
+                style={{
+                  fontFamily: "'Lato', sans-serif",
+                  fontSize: 14,
+                  color: "#555555",
+                  marginTop: 8,
+                }}
+              >
+                Enter your email and we'll send you a reset link
+              </p>
+            </div>
+
+            <div
+              className="mx-auto"
+              style={{ width: 60, height: 1, backgroundColor: "#C8A96E", marginTop: 24, marginBottom: 24 }}
+            />
+
+            {resetSent ? (
+              <div
+                style={{
+                  backgroundColor: "rgba(200, 169, 110, 0.1)",
+                  borderLeft: "3px solid #C8A96E",
+                  borderRadius: "0 6px 6px 0",
+                  padding: "16px",
+                  fontFamily: "'Lato', sans-serif",
+                  fontSize: 14,
+                  color: "#1B2A4A",
+                }}
+              >
+                Check your inbox for a password reset link. It may take a minute to arrive.
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword}>
+                <div className="mb-5">
+                  <label
+                    htmlFor="reset-email"
+                    style={{
+                      fontFamily: "'Lato', sans-serif",
+                      fontSize: 13,
+                      color: "#555555",
+                      display: "block",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    placeholder="you@company.com"
+                    className="w-full outline-none transition-colors duration-200"
+                    style={{
+                      fontFamily: "'Lato', sans-serif",
+                      fontSize: 15,
+                      border: "1px solid #E0DCD6",
+                      borderRadius: 8,
+                      padding: "14px 16px",
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = "#C8A96E")}
+                    onBlur={(e) => (e.target.style.borderColor = "#E0DCD6")}
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    className="mb-5"
+                    style={{
+                      backgroundColor: "rgba(226, 75, 74, 0.08)",
+                      borderLeft: "3px solid #E24B4A",
+                      borderRadius: "0 6px 6px 0",
+                      padding: "12px 16px",
+                      fontFamily: "'Lato', sans-serif",
+                      fontSize: 13,
+                      color: "#791F1F",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full transition-colors duration-200 disabled:opacity-60"
+                  style={{
+                    backgroundColor: "#1B2A4A",
+                    color: "#FFFFFF",
+                    fontFamily: "'Lato', sans-serif",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    letterSpacing: "0.5px",
+                    borderRadius: 8,
+                    height: 48,
+                    border: "none",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading) (e.target as HTMLButtonElement).style.backgroundColor = "#243656";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.target as HTMLButtonElement).style.backgroundColor = "#1B2A4A";
+                  }}
+                >
+                  {loading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Sending…
+                    </span>
+                  ) : (
+                    "Send Reset Link"
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -94,7 +280,6 @@ export default function Login() {
       style={{ backgroundColor: "#F5F2ED" }}
     >
       <div className="w-full" style={{ maxWidth: 420 }}>
-        {/* Login Card */}
         <div
           className="rounded-xl"
           style={{
@@ -253,7 +438,7 @@ export default function Login() {
               disabled={loading}
               className="w-full transition-colors duration-200 disabled:opacity-60"
               style={{
-                backgroundColor: loading ? "#1B2A4A" : "#1B2A4A",
+                backgroundColor: "#1B2A4A",
                 color: "#FFFFFF",
                 fontFamily: "'Lato', sans-serif",
                 fontSize: 15,
@@ -280,6 +465,25 @@ export default function Login() {
                 "Sign In"
               )}
             </button>
+
+            {/* Forgot password link */}
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(true); setError(null); }}
+                style={{
+                  fontFamily: "'Lato', sans-serif",
+                  fontSize: 13,
+                  color: "#C8A96E",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "none",
+                }}
+              >
+                Forgot your password?
+              </button>
+            </div>
           </form>
         </div>
 

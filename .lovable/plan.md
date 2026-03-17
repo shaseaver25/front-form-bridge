@@ -1,67 +1,48 @@
 
-Goal: fix the login issue for `shannon@tailoredu.org` and remove the auth-flow confusion that is making this harder to diagnose.
 
-What I found
-- The user record exists in Supabase, is email-confirmed, has a stored password, and has the `admin` role.
-- Supabase rejected the exact password that was submitted (`AvidCRM26!`) with `invalid_credentials`.
-- There was also a stale refresh-token error earlier, which means the preview likely had an old valid session cached. That can make it look like “preview login works” even when a fresh password login does not.
-- The app currently has two different login routes:
-  - `/auth` = CRM auth page with forgot-password
-  - `/login` = client portal login page without forgot-password
-- Redirects are inconsistent:
-  - `Layout` sends logged-out users to `/auth`
-  - `RequireAdmin` and `RequireClient` send users to `/login`
-  - invitation/bootstrap flows also point to `/login`
+## Pipeline Page Rework
 
-Conclusion
-- This is not a missing-user or missing-role problem.
-- The fresh password being entered is not the current password in Supabase.
-- The codebase also needs cleanup so there is one clear login entry point and a reliable recovery path.
+### The Problem
 
-Implementation plan
-1. Unify authentication entry points
-- Make `/login` the single public login route, matching the project memory.
-- Convert `/auth` into a redirect to `/login` or remove its separate sign-in logic.
-- Update all redirects/guards to send logged-out users to the same route.
+The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
 
-2. Add password recovery directly to `/login`
-- Bring the forgot-password flow into `src/pages/Login.tsx`.
-- Keep `/reset-password` as the destination for recovery links.
-- This gives users a recovery option from the route they are actually using.
+1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
+2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
 
-3. Harden stale-session handling
-- Update the Supabase client/session bootstrapping so invalid refresh tokens are cleared cleanly before users try to sign in again.
-- Standardize auth initialization so listeners and session checks behave consistently across pages.
+Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
 
-4. Improve login diagnostics
-- Keep generic user-facing messaging, but internally distinguish:
-  - bad password
-  - no role / inactive account
-  - stale session / refresh-token failure
-- This will make future debugging much easier without exposing sensitive details.
+### Recommendation
 
-5. Verify role-based redirect behavior
-- After a successful login:
-  - `admin` → `/`
-  - `client` → `/client/dashboard`
-  - no valid role → sign out and show activation message
+**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
 
-Files I would update
-- `src/pages/Login.tsx`
-- `src/pages/Auth.tsx`
-- `src/integrations/supabase/client.ts`
-- `src/components/Layout.tsx`
-- `src/components/RequireAdmin.tsx`
-- `src/components/client/RequireClient.tsx`
-- any route/navigation files still pointing to the wrong auth page, including invitation/bootstrap/logout paths
+1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
+   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
+   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
 
-Important technical note
-- The evidence shows Supabase itself is denying the typed password, so a code-only fix will not make that specific password work.
-- The immediate recovery path is to reset/set a new password for `shannon@tailoredu.org`, then implement the auth cleanup above so future sign-ins are consistent and self-service.
+2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
 
-Expected result after implementation
-- One login page for everyone
-- Clear password reset path from that page
-- No more confusion between `/auth` and `/login`
-- Cleaner handling of stale sessions
-- Correct redirect after sign-in based on role
+3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
+
+### What the new Pipeline Analytics tab will show (from real data)
+
+- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
+- **Stage distribution**: Count per stage with visual bars
+- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
+- **Recent activity**: Latest stage changes
+
+### Technical approach
+
+- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
+- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
+- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
+- Remove `RecruitmentPipeline.tsx` and its route
+- Update sidebar to remove the "Recruiting" entry
+- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
+
+### Files to modify
+- `src/pages/PipelineDashboard.tsx` — full rewrite
+- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
+- `src/components/AppSidebar.tsx` — remove Recruiting nav item
+- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
+- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
+
