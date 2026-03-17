@@ -144,60 +144,100 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Not authenticated" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid session" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
-    }
-
     const body = await req.json();
 
-    if (body.action !== "sync") {
-      return new Response(
-        JSON.stringify({ error: "Unknown action" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
+    // Support two auth modes:
+    // 1. Service-role call with connection_id (used by gmail-auto-sync cron)
+    // 2. User JWT call (used by manual sync from UI)
+    let connection: any;
 
-    const { data: connection, error: connError } = await supabase
-      .from("gmail_connections")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    if (body.connection_id) {
+      // Service-role path: verify service role key
+      const authHeader = req.headers.get("Authorization");
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      if (!authHeader || authHeader !== `Bearer ${serviceRoleKey}`) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized service call" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 401,
+          }
+        );
+      }
 
-    if (connError || !connection) {
-      return new Response(
-        JSON.stringify({ error: "No active Gmail connection found" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 404,
-        }
-      );
+      const { data: conn, error: connError } = await supabase
+        .from("gmail_connections")
+        .select("*")
+        .eq("id", body.connection_id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (connError || !conn) {
+        return new Response(
+          JSON.stringify({ error: "Connection not found" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404,
+          }
+        );
+      }
+      connection = conn;
+    } else {
+      // User JWT path (original behavior)
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: "Not authenticated" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 401,
+          }
+        );
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: "Invalid session" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 401,
+          }
+        );
+      }
+
+      if (body.action !== "sync") {
+        return new Response(
+          JSON.stringify({ error: "Unknown action" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          }
+        );
+      }
+
+      const { data: conn, error: connError } = await supabase
+        .from("gmail_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (connError || !conn) {
+        return new Response(
+          JSON.stringify({ error: "No active Gmail connection found" }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404,
+          }
+        );
+      }
+      connection = conn;
     }
 
     const accessToken = await getValidToken(supabase, connection);
@@ -278,7 +318,7 @@ Deno.serve(async (req) => {
 
         await supabase.from("gmail_messages").upsert(
           {
-            user_id: user.id,
+            user_id: connection.user_id,
             connection_id: connection.id,
             gmail_message_id: msg.id,
             thread_id: msgData.threadId || null,
