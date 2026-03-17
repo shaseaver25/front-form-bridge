@@ -15,11 +15,12 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, Loader2, KeyRound } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminUserEdit() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
