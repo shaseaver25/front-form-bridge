@@ -95,7 +95,7 @@ export default function SetupWizard() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
-        navigate("/auth");
+        navigate("/login");
         return;
       }
 

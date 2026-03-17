@@ -71,7 +71,7 @@ export default function AcceptInvitation() {
         description: "Failed to verify invitation. Please try again.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/login");
     } finally {
       setLoading(false);
     }

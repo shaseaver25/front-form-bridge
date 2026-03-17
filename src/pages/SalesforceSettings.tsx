@@ -30,7 +30,7 @@ export default function SalesforceSettings() {
           description: "Please log in to configure Salesforce settings.",
           variant: "destructive",
         });
-        navigate("/auth");
+        navigate("/login");
       } else {
         setIsAuthenticated(true);
       }
