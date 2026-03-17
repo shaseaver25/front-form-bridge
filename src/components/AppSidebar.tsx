@@ -215,10 +215,12 @@ export function AppSidebar() {
           <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
-        </SidebarGroup>
+        {!loadingAdmin && isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {!loadingSuperAdmin && isSuperAdmin && (
           <>
