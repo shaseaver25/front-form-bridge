@@ -171,15 +171,12 @@ export default function AdminUsers() {
 
   async function handleSendPasswordReset(userId: string, email: string) {
     try {
-      const { error } = await supabase.functions.invoke("send-password-reset", {
-        body: { 
-          email, 
-          redirectUrl: window.location.origin 
-        }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://front-form-bridge.lovable.app/reset-password",
       });
-      
+
       if (error) throw error;
-      
+
       toast({
         title: "Password Reset Sent",
         description: `A password reset link has been sent to ${email}`,
