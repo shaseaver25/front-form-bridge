@@ -1,48 +1,51 @@
 
 
-## Pipeline Page Rework
+## Goal
 
-### The Problem
+Enable automatic daily Gmail sync so Juliet (and Shannon) get their emails synced once per day, with matched emails appearing in client correspondence automatically.
 
-The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
+## Current State
 
-1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
-2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
+- Gmail sync edge function exists and works when triggered manually
+- "Auto-Sync" toggle exists in the UI but has **no backend cron job** -- it is a dead toggle
+- Contact matching already works during sync (cross-references `crm_contact_emails`)
+- Unmatched emails (from people not in contacts) are stored but invisible in the CRM
 
-Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
+## What Needs to Happen
 
-### Recommendation
+### 1. Create a daily cron job for Gmail auto-sync
 
-**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
+Use `pg_cron` + `pg_net` to call the `gmail-sync` edge function once per day for each user who has `auto_sync_enabled = true`.
 
-1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
-   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
-   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
+This requires a small wrapper edge function (`gmail-auto-sync`) that:
+- Queries all `gmail_connections` where `is_active = true` AND `auto_sync_enabled = true`
+- Calls the existing sync logic for each connection (using the service role key, not a user JWT)
+- The existing `gmail-sync` function needs a minor update to support service-role invocation (currently requires a user JWT)
 
-2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
+Schedule: once daily (e.g., 6 AM UTC).
 
-3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
+### 2. Update `gmail-sync` to support service-role calls
 
-### What the new Pipeline Analytics tab will show (from real data)
+Add an alternative auth path: if called with a `connection_id` in the body (and authenticated via service role), skip the user JWT check and sync that specific connection directly. This lets the cron-triggered wrapper call it per-connection.
 
-- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
-- **Stage distribution**: Count per stage with visual bars
-- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
-- **Recent activity**: Latest stage changes
+### 3. No changes needed for contact matching
 
-### Technical approach
+The existing matching logic in `gmail-sync` already cross-references all email addresses against `crm_contact_emails` and sets `matched_contact_id`. The `ContactCorrespondence` component already displays matched emails. This works automatically -- no extra setup per user.
 
-- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
-- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
-- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
-- Remove `RecruitmentPipeline.tsx` and its route
-- Update sidebar to remove the "Recruiting" entry
-- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
+## Files to create/update
 
-### Files to modify
-- `src/pages/PipelineDashboard.tsx` — full rewrite
-- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
-- `src/components/AppSidebar.tsx` — remove Recruiting nav item
-- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
-- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
+- **Create** `supabase/functions/gmail-auto-sync/index.ts` -- cron-triggered wrapper
+- **Update** `supabase/functions/gmail-sync/index.ts` -- support service-role auth path
+- **Update** `supabase/config.toml` -- add `gmail-auto-sync` function config
+- **SQL** -- create `pg_cron` job to call `gmail-auto-sync` daily
+
+## What Juliet needs to do
+
+1. Connect her Gmail on the Gmail Settings page (OAuth flow)
+2. Turn on the "Auto-Sync" toggle
+3. That's it -- emails will sync daily and matched ones appear in contact correspondence automatically
+
+## Unmatched emails
+
+Emails from people not in contacts are stored but not surfaced anywhere. No change proposed here unless you want a separate "unmatched emails" view.
 
