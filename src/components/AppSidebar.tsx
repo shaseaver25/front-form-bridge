@@ -116,6 +116,7 @@ export function AppSidebar() {
   const { hasAccess: hasVoiceNotesAccess, isLoading: loadingVoice } = useVoiceNotesAccess();
   const { hasAccess: hasBoardsAccess, isLoading: loadingBoards } = useBoardsAccess();
   const { isSuperAdmin, isLoading: loadingSuperAdmin } = useSuperAdmin();
+  const { isAdmin, isLoading: loadingAdmin } = useIsAdmin();
   const { tier, isActive, isLoading: loadingTier } = useSubscription();
   const { data: pendingEscalations = 0 } = useEscalationCount();
 
