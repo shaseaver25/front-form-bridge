@@ -127,7 +127,7 @@ export function AppSidebar() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     toast.success("Signed out successfully");
-    navigate("/auth");
+    navigate("/login");
   };
 
   const getProAccess = (pro?: string) => {
