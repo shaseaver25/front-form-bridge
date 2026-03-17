@@ -44,6 +44,7 @@ import { useBurndownAccess } from "@/hooks/useBurndownAccess";
 import { useVoiceNotesAccess } from "@/hooks/useVoiceNotesAccess";
 import { useBoardsAccess } from "@/hooks/useBoardsAccess";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useSubscription, TIER_ORDER } from "@/hooks/useSubscription";
 import { useEscalationCount } from "@/hooks/useEscalationCount";
 import type { LucideIcon } from "lucide-react";
