@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { redirectUserByRole, signOutAndClearSession, isStaleSessionError, clearStoredAuthState } from "@/lib/authUtils";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,30 +24,12 @@ export default function Login() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        await redirectByRole(session.user.id);
+        const err = await redirectUserByRole(session.user.id, navigate);
+        if (err) setError(err);
       }
       setCheckingSession(false);
     });
   }, []);
-
-  const redirectByRole = async (userId: string) => {
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-
-    const isAdmin = roles?.some((r) => r.role === "admin");
-    const isClient = roles?.some((r) => r.role === "client");
-
-    if (isAdmin) {
-      navigate("/", { replace: true });
-    } else if (isClient) {
-      navigate("/client/dashboard", { replace: true });
-    } else {
-      await supabase.auth.signOut();
-      setError("Your account hasn't been activated yet. Please contact your AvidEdge representative.");
-    }
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +43,16 @@ export default function Login() {
       });
 
       if (authError) {
-        if (authError.message?.toLowerCase().includes("rate limit")) {
+        const msg = authError.message || "";
+
+        // Stale session — auto-clear and prompt retry
+        if (isStaleSessionError(msg)) {
+          clearStoredAuthState();
+          setError("Your session was stale and has been cleared. Please try signing in again.");
+          return;
+        }
+
+        if (msg.toLowerCase().includes("rate limit")) {
           setError("Too many sign-in attempts. Please wait a moment and try again.");
         } else {
           setError("Invalid email or password. Please try again.");
@@ -73,12 +65,21 @@ export default function Login() {
         return;
       }
 
-      await redirectByRole(data.user.id);
+      const roleError = await redirectUserByRole(data.user.id, navigate);
+      if (roleError) setError(roleError);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClearSession = async () => {
+    await signOutAndClearSession();
+    setEmail("");
+    setPassword("");
+    setError(null);
+    setError("Session cleared — please try signing in again.");
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -482,6 +483,26 @@ export default function Login() {
                 }}
               >
                 Forgot your password?
+              </button>
+            </div>
+
+            {/* Self-heal: clear session */}
+            <div className="text-center mt-2">
+              <button
+                type="button"
+                onClick={handleClearSession}
+                style={{
+                  fontFamily: "'Lato', sans-serif",
+                  fontSize: 12,
+                  color: "#999999",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "2px",
+                }}
+              >
+                Having trouble signing in? Clear session
               </button>
             </div>
           </form>

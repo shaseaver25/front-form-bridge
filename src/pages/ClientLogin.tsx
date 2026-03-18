@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { redirectUserByRole, isStaleSessionError, clearStoredAuthState } from "@/lib/authUtils";
 
 export default function ClientLogin() {
   const navigate = useNavigate();
@@ -23,7 +24,12 @@ export default function ClientLogin() {
       });
 
       if (error) {
-        toast.error(error.message);
+        if (isStaleSessionError(error.message)) {
+          clearStoredAuthState();
+          toast.error("Your session was stale and has been cleared. Please try signing in again.");
+        } else {
+          toast.error(error.message);
+        }
         return;
       }
 
@@ -32,18 +38,9 @@ export default function ClientLogin() {
         return;
       }
 
-      // Check role from user_roles table
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id);
-
-      const isAdmin = roles?.some((r) => r.role === "admin");
-
-      if (isAdmin) {
-        navigate("/", { replace: true });
-      } else {
-        navigate("/client/dashboard", { replace: true });
+      const roleError = await redirectUserByRole(data.user.id, navigate);
+      if (roleError) {
+        toast.error(roleError);
       }
     } catch (err) {
       toast.error("An unexpected error occurred.");

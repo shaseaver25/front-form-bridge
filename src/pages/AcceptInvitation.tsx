@@ -146,32 +146,21 @@ export default function AcceptInvitation() {
         return;
       }
 
-      // Determine redirect based on role
-      let redirectPath = "/login";
-      if (signInData?.user) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", signInData.user.id);
-        
-        const isAdmin = roles?.some((r) => r.role === "admin");
-        const isClient = roles?.some((r) => r.role === "client");
-        
-        if (isAdmin) {
-          redirectPath = "/";
-        } else if (isClient) {
-          redirectPath = "/client/dashboard";
-        }
-      }
-
       toast({
         title: "Account Created!",
         description: "Your account has been successfully created. Redirecting...",
       });
 
-      setTimeout(() => {
-        navigate(redirectPath);
-      }, 1500);
+      if (signInData?.user) {
+        setTimeout(async () => {
+          const roleError = await redirectUserByRole(signInData.user.id, navigate);
+          if (roleError) {
+            toast({ title: "Notice", description: roleError, variant: "destructive" });
+          }
+        }, 1500);
+      } else {
+        setTimeout(() => navigate("/login"), 1500);
+      }
     } catch (error: unknown) {
       console.error("Error creating account:", error);
       toast({

@@ -82,7 +82,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     setResetLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: "https://front-form-bridge.lovable.app/reset-password",
       });
 
       if (error) {
