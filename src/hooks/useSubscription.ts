@@ -26,7 +26,7 @@ export function useSubscription(): SubscriptionResult {
         .maybeSingle();
 
       if (error) {
-        console.error("Error reading subscription config:", error);
+        // Table may not exist yet — silently fall back to defaults
         return null;
       }
 

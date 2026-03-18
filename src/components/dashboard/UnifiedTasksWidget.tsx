@@ -81,8 +81,9 @@ export function UnifiedTasksWidget() {
       .is('completed_at', null)
       .order('due_date', { ascending: true, nullsFirst: false });
 
-    if (grantError) console.error('Failed to fetch grant tasks:', grantError);
-    if (boardError) console.error('Failed to fetch board tasks:', boardError);
+    // Tables may not exist yet — silently fall back to empty
+    if (grantError && grantError.code !== 'PGRST205') console.error('Failed to fetch grant tasks:', grantError);
+    if (boardError && boardError.code !== 'PGRST205') console.error('Failed to fetch board tasks:', boardError);
 
     const unified: UnifiedTask[] = [];
 
