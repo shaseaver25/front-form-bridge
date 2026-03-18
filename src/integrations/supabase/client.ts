@@ -5,8 +5,6 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://rzhcefyigmkavddjjxvg.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6aGNlZnlpZ21rYXZkZGpqeHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mzg0NTYsImV4cCI6MjA4ODExNDQ1Nn0.Suwc7GAfTxv7pxVu90JEsRqI7rT5W9784RHZxmdpnFc";
 
-const STORAGE_KEY = 'sb-rzhcefyigmkavddjjxvg-auth-token';
-
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
@@ -18,27 +16,59 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   }
 });
 
-// Handle stale refresh tokens: clear invalid session so user can re-login
-supabase.auth.onAuthStateChange((event) => {
-  if (event === 'TOKEN_REFRESHED') return;
+/**
+ * Centralized cleanup for stale auth state.
+ * Inline here to avoid circular imports with authUtils.
+ */
+function purgeLocalAuth() {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("sb-") || key.startsWith("supabase.auth"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+// Listen for auth state changes and handle stale sessions
+supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
-    // Clear any stale tokens from storage
-    localStorage.removeItem(STORAGE_KEY);
+    // User signed out — purge any remaining local tokens
+    purgeLocalAuth();
+    return;
+  }
+
+  if (event === 'TOKEN_REFRESHED' && !session) {
+    // Token refresh was attempted but returned no session — stale refresh token
+    console.warn('[auth] Token refresh failed — clearing stale session');
+    purgeLocalAuth();
+    return;
   }
 });
 
 // On startup, validate the stored session — if the refresh token is stale, clear it
 (async () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    const hasStoredKeys = (() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("sb-")) return true;
+      }
+      return false;
+    })();
+    if (!hasStoredKeys) return;
 
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error || !session) {
       // Stored token is invalid — remove it so the login page renders cleanly
-      localStorage.removeItem(STORAGE_KEY);
+      purgeLocalAuth();
     }
   } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    purgeLocalAuth();
   }
 })();

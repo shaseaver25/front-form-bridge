@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Building2, Loader2, Eye, EyeOff } from "lucide-react";
+import { redirectUserByRole } from "@/lib/authUtils";
 
 interface LoginModalProps {
   open: boolean;
@@ -62,7 +63,13 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     } else {
       toast.success("Signed in successfully!");
       onOpenChange(false);
-      navigate("/");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const roleError = await redirectUserByRole(user.id, navigate);
+        if (roleError) toast.error(roleError);
+      } else {
+        navigate("/");
+      }
     }
   };
 
@@ -75,7 +82,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     setResetLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: "https://front-form-bridge.lovable.app/reset-password",
       });
 
       if (error) {
