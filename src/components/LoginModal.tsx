@@ -63,7 +63,13 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
     } else {
       toast.success("Signed in successfully!");
       onOpenChange(false);
-      navigate("/");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const roleError = await redirectUserByRole(user.id, navigate);
+        if (roleError) toast.error(roleError);
+      } else {
+        navigate("/");
+      }
     }
   };
 
