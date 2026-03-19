@@ -120,6 +120,7 @@ const coachingGroup: CollapsibleNavGroup = {
   icon: GraduationCap,
   children: [
     { title: "Coaching Admin", url: "/admin/coaching", icon: ShieldCheck },
+    { title: "Coaching Clients", url: "/admin/coaching-clients", icon: Users },
     { title: "Courses", url: "/help/training", icon: BookOpen },
     { title: "Client View", url: "/client/coaching/rebrand", icon: UserCheck },
   ],
