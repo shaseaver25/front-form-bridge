@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
     );
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  // Service-role client for DB writes (callback path)
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     const url = new URL(req.url);
