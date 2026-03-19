@@ -166,7 +166,6 @@ Deno.serve(async (req) => {
       const body = await req.json();
 
       if (body.action === "initiate") {
-        // Get the authenticated user from the Authorization header
         const authHeader = req.headers.get("Authorization");
         if (!authHeader) {
           return new Response(
@@ -178,13 +177,19 @@ Deno.serve(async (req) => {
           );
         }
 
-        const token = authHeader.replace("Bearer ", "");
+        // Create a user-scoped client with anon key + user's auth header
+        const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+        const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+
         const {
           data: { user },
           error: userError,
-        } = await supabase.auth.getUser(token);
+        } = await supabaseAuth.auth.getUser();
 
         if (userError || !user) {
+          console.error("Auth validation failed:", userError?.message);
           return new Response(
             JSON.stringify({ error: "Invalid session" }),
             {
