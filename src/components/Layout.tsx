@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Building2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 import { SupportModeBanner } from "./admin/SupportModeBanner";
 import { ChipAssistant } from "./chip/ChipAssistant";
