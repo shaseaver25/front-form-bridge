@@ -17,7 +17,7 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    document.title = "AvidEdge — Client Portal";
+    document.title = "AvidEdge — Staff Login";
     return () => { document.title = "AvidEdge Search"; };
   }, []);
 
