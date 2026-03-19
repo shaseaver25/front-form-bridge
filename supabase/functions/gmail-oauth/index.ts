@@ -122,15 +122,14 @@ Deno.serve(async (req) => {
 
       // Upsert the connection record
       // First check if a connection already exists for this user
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from("gmail_connections")
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (existing) {
-        // Update existing connection
-        await supabase
+        await supabaseAdmin
           .from("gmail_connections")
           .update({
             email,
@@ -141,8 +140,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", existing.id);
       } else {
-        // Create new connection
-        await supabase.from("gmail_connections").insert({
+        await supabaseAdmin.from("gmail_connections").insert({
           user_id: userId,
           email,
           access_token,
