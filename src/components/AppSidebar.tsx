@@ -134,12 +134,16 @@ const legalGroup: CollapsibleNavGroup = {
   ],
 };
 
-const adminItems: NavItem[] = [
-  { title: "Integrations", url: "/integrations", icon: Link2 },
-  { title: "Admin", url: "/admin", icon: ShieldCheck },
-  { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
-  { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
-];
+const adminGroup: CollapsibleNavGroup = {
+  title: "Admin",
+  icon: ShieldCheck,
+  children: [
+    { title: "Integrations", url: "/integrations", icon: Link2 },
+    { title: "Admin", url: "/admin", icon: ShieldCheck },
+    { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
+    { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
+  ],
+};
 
 const superAdminItems: NavItem[] = [
   { title: "Customers", url: "/admin/customers", icon: Building2 },
