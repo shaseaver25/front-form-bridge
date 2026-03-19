@@ -45,10 +45,8 @@ interface Escalation {
   status: string;
   customer_user_id: string | null;
   assigned_to: string | null;
-  admin_response: string | null;
-  approved_at: string | null;
-  rejected_at: string | null;
-  applied_at: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
   webhook_sent: boolean;
   created_at: string;
   updated_at: string;
