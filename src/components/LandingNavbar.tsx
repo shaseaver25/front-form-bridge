@@ -85,10 +85,8 @@ const LandingNavbar = ({ onLoginClick, scrollToSection }: LandingNavbarProps) =>
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary tracking-tight">
-              <span className="text-primary">/</span>AvidEdge
-            </span>
+          <Link to="/" className="flex items-center">
+            <img src={avidEdgeLogo} alt="AvidEdge" className="h-8" />
           </Link>
 
           {/* Desktop Navigation */}

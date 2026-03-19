@@ -97,12 +97,7 @@ const Layout = ({ children }: LayoutProps) => {
               </SidebarTrigger>
 
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold text-foreground leading-tight">AvidEdge Search</h1>
-                </div>
+                <img src={avidEdgeLogo} alt="AvidEdge" className="h-7" />
               </div>
 
               <div className="flex-1" />
