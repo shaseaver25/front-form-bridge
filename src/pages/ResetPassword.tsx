@@ -147,10 +147,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8 gap-3">
-          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">cM CRM</h1>
+          <img src={avidEdgeLogo} alt="AvidEdge" className="h-10" />
         </div>
 
         <Card>

@@ -103,7 +103,7 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-center gap-3 mb-2">
-            <img src="/assets/avidedge-logo.png" alt="AvidEdge" className="h-8" />
+            <img src={avidEdgeLogo} alt="AvidEdge" className="h-8" />
             <DialogTitle className="text-2xl">AvidEdge</DialogTitle>
           </div>
           <DialogDescription className="text-center">

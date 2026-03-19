@@ -336,10 +336,7 @@ export default function SetupWizard() {
         {/* Logo + title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">cM CRM</span>
+            <img src={avidEdgeLogo} alt="AvidEdge" className="h-7" />
           </div>
           <p className="text-muted-foreground text-sm">Let's get your CRM set up</p>
         </div>
