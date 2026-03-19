@@ -284,18 +284,22 @@ export function AppSidebar() {
           <SidebarGroupContent>{renderNavItems(workItems)}</SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Executive Search collapsible */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Executive Search
-          </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(execSearchItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(execSearchGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Outreach collapsible */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Outreach
-          </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(outreachGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Coaching collapsible group */}
