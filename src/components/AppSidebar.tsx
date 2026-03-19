@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -8,10 +9,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarFooter,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +42,11 @@ import {
   UserSearch,
   Briefcase,
   AlertTriangle,
+  GraduationCap,
+  BookOpen,
+  UserCheck,
+  Scale,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -54,8 +64,13 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   pro?: string;
-  /** If set, the item is hidden when the subscription tier is below this level */
   tierRequired?: "professional" | "enterprise";
+}
+
+interface CollapsibleNavGroup {
+  title: string;
+  icon: LucideIcon;
+  children: { title: string; url: string; icon: LucideIcon }[];
 }
 
 const mainNavItems: NavItem[] = [
@@ -64,7 +79,6 @@ const mainNavItems: NavItem[] = [
   { title: "Companies", url: "/sites", icon: Building2 },
   { title: "Jobs", url: "/grants", icon: FileText, tierRequired: "professional" },
   { title: "Pipeline", url: "/pipeline", icon: TrendingUp },
-  
   { title: "Placements", url: "/placements", icon: ClipboardCheck },
 ];
 
@@ -93,13 +107,31 @@ const outreachItems: NavItem[] = [
   { title: "Content", url: "/content-repository", icon: FolderOpen },
 ];
 
+const coachingGroup: CollapsibleNavGroup = {
+  title: "Coaching",
+  icon: GraduationCap,
+  children: [
+    { title: "Coaching Admin", url: "/admin/coaching", icon: ShieldCheck },
+    { title: "Courses", url: "/help/training", icon: BookOpen },
+    { title: "Client View", url: "/client/coaching/rebrand", icon: UserCheck },
+  ],
+};
+
+const legalGroup: CollapsibleNavGroup = {
+  title: "Legal",
+  icon: Scale,
+  children: [
+    { title: "Terms of Service", url: "/legal/terms", icon: FileText },
+    { title: "Privacy Notice", url: "/legal/privacy", icon: FileText },
+  ],
+};
+
 const adminItems: NavItem[] = [
   { title: "Integrations", url: "/integrations", icon: Link2 },
   { title: "Admin", url: "/admin", icon: ShieldCheck },
   { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
   { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
 ];
-
 
 const superAdminItems: NavItem[] = [
   { title: "Customers", url: "/admin/customers", icon: Building2 },
@@ -121,7 +153,6 @@ export function AppSidebar() {
   const { data: pendingEscalations = 0 } = useEscalationCount();
 
   const hasTierAccess = (required: "professional" | "enterprise") => {
-    // Super admins always pass; also pass while loading to avoid nav flicker
     if (isSuperAdmin || loadingTier) return true;
     return isActive && TIER_ORDER.indexOf(tier) >= TIER_ORDER.indexOf(required);
   };
@@ -134,7 +165,6 @@ export function AppSidebar() {
 
   const getProAccess = (pro?: string) => {
     if (!pro) return true;
-    // While loading, assume access to avoid showing Pro badge prematurely
     if (pro === "burndown") return loadingBurndown || hasBurndownAccess;
     if (pro === "voice") return loadingVoice || hasVoiceNotesAccess;
     if (pro === "boards") return loadingBoards || hasBoardsAccess;
@@ -144,7 +174,6 @@ export function AppSidebar() {
   const renderNavItems = (items: NavItem[]) => (
     <SidebarMenu>
       {items.map((item) => {
-        // Hide entirely if the subscription tier doesn't cover this item
         if (item.tierRequired && !hasTierAccess(item.tierRequired)) return null;
         const hasAccess = getProAccess(item.pro);
         const showEscalationBadge =
@@ -173,7 +202,7 @@ export function AppSidebar() {
                     {item.pro && !hasAccess && (
                       <Badge
                         variant="secondary"
-                        className="bg-[#FF6B35] text-white text-[10px] px-1.5 py-0"
+                        className="bg-accent text-accent-foreground text-[10px] px-1.5 py-0"
                       >
                         Pro
                       </Badge>
@@ -187,6 +216,48 @@ export function AppSidebar() {
       })}
     </SidebarMenu>
   );
+
+  const renderCollapsibleGroup = (group: CollapsibleNavGroup) => {
+    const isChildActive = group.children.some((c) => location.pathname.startsWith(c.url));
+
+    return (
+      <SidebarMenuItem key={group.title}>
+        <Collapsible defaultOpen={isChildActive} className="group/collapsible">
+          <CollapsibleTrigger asChild>
+            <SidebarMenuButton className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50 transition-colors w-full">
+              <group.icon className="w-4 h-4 shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 text-left">{group.title}</span>
+                  <ChevronRight className="w-3.5 h-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                </>
+              )}
+            </SidebarMenuButton>
+          </CollapsibleTrigger>
+          {!collapsed && (
+            <CollapsibleContent>
+              <SidebarMenuSub>
+                {group.children.map((child) => (
+                  <SidebarMenuSubItem key={child.title}>
+                    <SidebarMenuSubButton asChild>
+                      <NavLink
+                        to={child.url}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        activeClassName="text-primary font-medium"
+                      >
+                        <child.icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{child.title}</span>
+                      </NavLink>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                ))}
+              </SidebarMenuSub>
+            </CollapsibleContent>
+          )}
+        </Collapsible>
+      </SidebarMenuItem>
+    );
+  };
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
@@ -213,6 +284,24 @@ export function AppSidebar() {
             Outreach
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Coaching collapsible group */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(coachingGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Legal collapsible group */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(legalGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
 
         {!loadingAdmin && isAdmin && (
