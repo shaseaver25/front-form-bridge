@@ -105,10 +105,11 @@ export default function EscalationQueuePage() {
     setProcessing(true);
     try {
       const now = new Date().toISOString();
+      const { data: { user } } = await supabase.auth.getUser();
       const patch: Record<string, unknown> = {
         status: action === "approve" ? "approved" : "rejected",
-        admin_response: adminNotes.trim() || null,
-        ...(action === "approve" ? { approved_at: now } : { rejected_at: now }),
+        resolved_at: now,
+        resolved_by: user?.id ?? null,
       };
 
       const { error } = await (supabase as any)
