@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 const FooterSection = ({ scrollToSection }: { scrollToSection: (id: string) => void }) => {
   return (
