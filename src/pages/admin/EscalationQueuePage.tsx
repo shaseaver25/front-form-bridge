@@ -398,15 +398,6 @@ export default function EscalationQueuePage() {
                       className="text-sm min-h-[80px] resize-none"
                     />
                   </div>
-                ) : selected.admin_response ? (
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                      Admin Response
-                    </h4>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
-                      {selected.admin_response}
-                    </p>
-                  </div>
                 ) : null}
 
                 {/* Action buttons */}
