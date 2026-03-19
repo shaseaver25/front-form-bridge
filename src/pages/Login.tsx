@@ -312,7 +312,7 @@ export default function Login() {
                 fontWeight: 400,
               }}
             >
-              Client Portal
+              Staff Login
             </p>
           </div>
 
