@@ -322,8 +322,11 @@ export function AppSidebar() {
 
         {!loadingAdmin && isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(adminGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
           </SidebarGroup>
         )}
 
