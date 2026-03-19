@@ -123,9 +123,7 @@ const ResetPassword = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img src={avidEdgeLogo} alt="AvidEdge" className="h-10" />
             </div>
             <CardTitle className="text-center">Invalid or Expired Link</CardTitle>
             <CardDescription className="text-center">
