@@ -131,7 +131,6 @@ export default function EscalationQueuePage() {
       }
 
       // Log admin action
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await (supabase as any).from("admin_activity_log").insert({
           admin_user_id: user.id,
