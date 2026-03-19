@@ -1,48 +1,32 @@
 
 
-## Pipeline Page Rework
+# Fix Gmail OAuth 403 Issue
 
-### The Problem
+## What's happening
 
-The current Pipeline Dashboard (`/pipeline`) has two tabs that don't match this business:
+The 403 occurs because the `gmail-oauth` edge function validates the user's JWT using `supabase.auth.getUser(token)`. This project uses ES256-signed tokens (signing-keys system), and while `verify_jwt = false` is correctly set in `config.toml` (so the gateway doesn't block the request), the internal auth validation with `getUser()` makes a network round-trip that can intermittently fail or be slow. The recommended approach is to use `getClaims()` for faster, local JWT verification.
 
-1. **Gift Pipeline Health** — queries a `major_gift_opportunities` table with nonprofit fundraising concepts (donor acquisition cost, gift sizes, cultivation/solicitation stages). This is a staffing/recruiting business.
-2. **Programming Health** — queries `programs`, `program_beneficiaries`, and `outcome_metrics` tables. These are nonprofit program management concepts.
+Additionally, the function creates its Supabase client with the **service role key** but then calls `auth.getUser(token)` — this works but is suboptimal. The client should be created with the **anon key** and the user's Authorization header for proper token validation.
 
-Meanwhile, the **Recruitment Pipeline** (`/recruitment-pipeline`) is the page that actually matches the business — it shows candidates flowing through hiring stages (new → screening → submitted → interview → offer → placed). This is the real pipeline for a staffing/recruiting firm.
+## Plan
 
-### Recommendation
+### 1. Update `gmail-oauth` edge function auth validation
 
-**Merge into a single Pipeline page** that serves as the recruitment pipeline dashboard with added analytics:
+In `supabase/functions/gmail-oauth/index.ts`, change the initiate (POST) path to:
 
-1. **Replace `/pipeline`** content with a redesigned page that has two tabs:
-   - **Pipeline Board** — the current Recruitment Pipeline kanban (candidates by stage), with drag-and-drop to move candidates between stages
-   - **Pipeline Analytics** — summary metrics built from real `crm_pipeline_items` and `crm_placements` data: total candidates, stage distribution, conversion rates, placement rate, time-in-stage
+- Create a **user-scoped** Supabase client using `SUPABASE_ANON_KEY` + the user's Authorization header
+- Replace `supabase.auth.getUser(token)` with `supabase.auth.getClaims(token)` for reliable ES256 token validation
+- Keep the service-role client separate for database writes (callback path)
 
-2. **Remove `/recruitment-pipeline`** as a separate route — fold it into `/pipeline`
+### 2. Redeploy the edge function
 
-3. **Update sidebar** — remove the "Recruiting" nav item since Pipeline now covers it
+Deploy the updated `gmail-oauth` function so the fix takes effect.
 
-### What the new Pipeline Analytics tab will show (from real data)
+## Technical details
 
-- **Summary cards**: Total candidates in pipeline, Placements this month, Conversion rate (submitted → placed), Active jobs with candidates
-- **Stage distribution**: Count per stage with visual bars
-- **Conversion funnel**: new → screening → submitted → interview → offer → placed, with drop-off rates
-- **Recent activity**: Latest stage changes
+The function will have two Supabase clients:
+- **Service-role client** (existing): used in the callback path to upsert `gmail_connections` records
+- **Auth client** (new): created with anon key + user's Authorization header, used only in the POST/initiate path to validate the caller's identity via `getClaims()`
 
-### Technical approach
-
-- Rewrite `PipelineDashboard.tsx` to use the recruitment pipeline board as its primary tab (move/adapt code from `RecruitmentPipeline.tsx`)
-- Add a new `RecruitmentAnalytics.tsx` component that queries `crm_pipeline_items` and `crm_placements` for the analytics tab
-- Add drag-and-drop to the pipeline board (same pattern as `SitesKanban.tsx`)
-- Remove `RecruitmentPipeline.tsx` and its route
-- Update sidebar to remove the "Recruiting" entry
-- Keep `GiftPipelineHealth.tsx` and `ProgrammingHealth.tsx` files but they'll no longer be referenced
-
-### Files to modify
-- `src/pages/PipelineDashboard.tsx` — full rewrite
-- `src/routes/index.tsx` — remove `/recruitment-pipeline` route
-- `src/components/AppSidebar.tsx` — remove Recruiting nav item
-- New: `src/components/pipeline/RecruitmentAnalytics.tsx`
-- Can delete: `src/pages/RecruitmentPipeline.tsx` (code absorbed into PipelineDashboard)
+This matches the pattern already used successfully by other edge functions in the project.
 
