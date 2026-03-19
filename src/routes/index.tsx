@@ -166,6 +166,7 @@ const ExecSearchCompanies = lazy(() => import("@/pages/exec-search/ExecSearchCom
 const ExecSearchJobs = lazy(() => import("@/pages/exec-search/ExecSearchJobs"));
 
 // Client Portal
+const ClientLogin = lazy(() => import("@/pages/client/ClientLogin"));
 const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
 const RebrandCoaching = lazy(() => import("@/pages/client/RebrandCoaching"));
 
