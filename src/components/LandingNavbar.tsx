@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 interface LandingNavbarProps {
   onLoginClick: () => void;
