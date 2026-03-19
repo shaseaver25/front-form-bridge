@@ -71,9 +71,7 @@ const Layout = ({ children }: LayoutProps) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto bg-primary rounded-lg flex items-center justify-center mb-4">
-            <Building2 className="w-6 h-6 text-primary-foreground animate-pulse" />
-          </div>
+          <img src={avidEdgeLogo} alt="AvidEdge" className="h-10 mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
