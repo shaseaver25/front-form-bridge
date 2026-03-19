@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Building2, Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -122,9 +123,7 @@ const ResetPassword = () => {
         <Card className="w-full max-w-md">
           <CardHeader>
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-primary-foreground" />
-              </div>
+              <img src={avidEdgeLogo} alt="AvidEdge" className="h-10" />
             </div>
             <CardTitle className="text-center">Invalid or Expired Link</CardTitle>
             <CardDescription className="text-center">
@@ -148,10 +147,7 @@ const ResetPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8 gap-3">
-          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">cM CRM</h1>
+          <img src={avidEdgeLogo} alt="AvidEdge" className="h-10" />
         </div>
 
         <Card>

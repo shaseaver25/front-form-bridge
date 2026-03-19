@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 const FooterSection = ({ scrollToSection }: { scrollToSection: (id: string) => void }) => {
   return (
@@ -8,10 +8,7 @@ const FooterSection = ({ scrollToSection }: { scrollToSection: (id: string) => v
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Search className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">AvidEdge Search</span>
+              <img src={avidEdgeLogo} alt="AvidEdge" className="h-8" />
             </div>
             <p className="text-sidebar-foreground/70 mb-2">A CRM by TailorEDU</p>
             <p className="text-sm text-sidebar-foreground/60 italic">

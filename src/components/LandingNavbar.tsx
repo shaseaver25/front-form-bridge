@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 interface LandingNavbarProps {
   onLoginClick: () => void;
@@ -85,10 +86,8 @@ const LandingNavbar = ({ onLoginClick, scrollToSection }: LandingNavbarProps) =>
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-primary tracking-tight">
-              <span className="text-primary">/</span>AvidEdge
-            </span>
+          <Link to="/" className="flex items-center">
+            <img src={avidEdgeLogo} alt="AvidEdge" className="h-8" />
           </Link>
 
           {/* Desktop Navigation */}

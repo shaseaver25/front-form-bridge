@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Building2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 import { redirectUserByRole } from "@/lib/authUtils";
 
 interface LoginModalProps {
@@ -102,10 +103,8 @@ const LoginModal = ({ open, onOpenChange }: LoginModalProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <DialogTitle className="text-2xl">cM CRM</DialogTitle>
+            <img src={avidEdgeLogo} alt="AvidEdge" className="h-8" />
+            <DialogTitle className="text-2xl">AvidEdge</DialogTitle>
           </div>
           <DialogDescription className="text-center">
             Sign in or create an account to access your fundraising dashboard

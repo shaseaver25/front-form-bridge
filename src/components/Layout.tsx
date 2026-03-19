@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Building2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import avidEdgeLogo from "@/assets/avidedge-logo.png";
 
 import { SupportModeBanner } from "./admin/SupportModeBanner";
 import { ChipAssistant } from "./chip/ChipAssistant";
@@ -70,9 +71,7 @@ const Layout = ({ children }: LayoutProps) => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto bg-primary rounded-lg flex items-center justify-center mb-4">
-            <Building2 className="w-6 h-6 text-primary-foreground animate-pulse" />
-          </div>
+          <img src={avidEdgeLogo} alt="AvidEdge" className="h-10 mx-auto mb-4 animate-pulse" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -98,12 +97,7 @@ const Layout = ({ children }: LayoutProps) => {
               </SidebarTrigger>
 
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold text-foreground leading-tight">AvidEdge Search</h1>
-                </div>
+                <img src={avidEdgeLogo} alt="AvidEdge" className="h-7" />
               </div>
 
               <div className="flex-1" />
