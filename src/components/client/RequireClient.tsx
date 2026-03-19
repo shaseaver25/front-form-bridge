@@ -39,7 +39,7 @@ export function RequireClient({ children }: RequireClientProps) {
   }
 
   if (!allowed) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/client/login" replace />;
   }
 
   return <>{children}</>;
