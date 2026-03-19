@@ -95,17 +95,25 @@ const workItems: NavItem[] = [
   },
 ];
 
-const execSearchItems: NavItem[] = [
-  { title: "ES Contacts", url: "/exec-search/contacts", icon: UserSearch },
-  { title: "ES Companies", url: "/exec-search/companies", icon: Building2 },
-  { title: "ES Jobs", url: "/exec-search/jobs", icon: Briefcase },
-];
+const execSearchGroup: CollapsibleNavGroup = {
+  title: "Executive Search",
+  icon: UserSearch,
+  children: [
+    { title: "ES Contacts", url: "/exec-search/contacts", icon: UserSearch },
+    { title: "ES Companies", url: "/exec-search/companies", icon: Building2 },
+    { title: "ES Jobs", url: "/exec-search/jobs", icon: Briefcase },
+  ],
+};
 
-const outreachItems: NavItem[] = [
-  { title: "Email Outreach", url: "/email-marketing", icon: Mail },
-  { title: "Campaigns", url: "/campaigns", icon: Send },
-  { title: "Content", url: "/content-repository", icon: FolderOpen },
-];
+const outreachGroup: CollapsibleNavGroup = {
+  title: "Outreach",
+  icon: Mail,
+  children: [
+    { title: "Email Outreach", url: "/email-marketing", icon: Mail },
+    { title: "Campaigns", url: "/campaigns", icon: Send },
+    { title: "Content", url: "/content-repository", icon: FolderOpen },
+  ],
+};
 
 const coachingGroup: CollapsibleNavGroup = {
   title: "Coaching",
@@ -126,12 +134,16 @@ const legalGroup: CollapsibleNavGroup = {
   ],
 };
 
-const adminItems: NavItem[] = [
-  { title: "Integrations", url: "/integrations", icon: Link2 },
-  { title: "Admin", url: "/admin", icon: ShieldCheck },
-  { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
-  { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
-];
+const adminGroup: CollapsibleNavGroup = {
+  title: "Admin",
+  icon: ShieldCheck,
+  children: [
+    { title: "Integrations", url: "/integrations", icon: Link2 },
+    { title: "Admin", url: "/admin", icon: ShieldCheck },
+    { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
+    { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
+  ],
+};
 
 const superAdminItems: NavItem[] = [
   { title: "Customers", url: "/admin/customers", icon: Building2 },
@@ -272,18 +284,22 @@ export function AppSidebar() {
           <SidebarGroupContent>{renderNavItems(workItems)}</SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Executive Search collapsible */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Executive Search
-          </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(execSearchItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(execSearchGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Outreach collapsible */}
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
-            Outreach
-          </SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(outreachItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(outreachGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Coaching collapsible group */}
@@ -306,8 +322,11 @@ export function AppSidebar() {
 
         {!loadingAdmin && isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>Admin</SidebarGroupLabel>
-            <SidebarGroupContent>{renderNavItems(adminItems)}</SidebarGroupContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {renderCollapsibleGroup(adminGroup)}
+            </SidebarMenu>
+          </SidebarGroupContent>
           </SidebarGroup>
         )}
 
