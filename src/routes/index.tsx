@@ -536,6 +536,10 @@ export const execSearchRoutes: RouteObject[] = [
 // Client Portal routes
 export const clientRoutes: RouteObject[] = [
   {
+    path: "/client/login",
+    element: <ClientLogin />,
+  },
+  {
     path: "/client/dashboard",
     element: (
       <RequireClient>
