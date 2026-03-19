@@ -165,7 +165,7 @@ export default function EscalationQueuePage() {
 
   const openDetail = (escalation: Escalation) => {
     setSelected(escalation);
-    setAdminNotes(escalation.admin_response ?? "");
+    setAdminNotes("");
   };
 
   return (
