@@ -45,10 +45,8 @@ interface Escalation {
   status: string;
   customer_user_id: string | null;
   assigned_to: string | null;
-  admin_response: string | null;
-  approved_at: string | null;
-  rejected_at: string | null;
-  applied_at: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
   webhook_sent: boolean;
   created_at: string;
   updated_at: string;
@@ -107,10 +105,11 @@ export default function EscalationQueuePage() {
     setProcessing(true);
     try {
       const now = new Date().toISOString();
+      const { data: { user } } = await supabase.auth.getUser();
       const patch: Record<string, unknown> = {
         status: action === "approve" ? "approved" : "rejected",
-        admin_response: adminNotes.trim() || null,
-        ...(action === "approve" ? { approved_at: now } : { rejected_at: now }),
+        resolved_at: now,
+        resolved_by: user?.id ?? null,
       };
 
       const { error } = await (supabase as any)
@@ -132,7 +131,6 @@ export default function EscalationQueuePage() {
       }
 
       // Log admin action
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await (supabase as any).from("admin_activity_log").insert({
           admin_user_id: user.id,
@@ -166,7 +164,7 @@ export default function EscalationQueuePage() {
 
   const openDetail = (escalation: Escalation) => {
     setSelected(escalation);
-    setAdminNotes(escalation.admin_response ?? "");
+    setAdminNotes("");
   };
 
   return (
@@ -364,16 +362,10 @@ export default function EscalationQueuePage() {
                     <span className="text-muted-foreground text-xs">Created</span>
                     <p>{format(new Date(selected.created_at), "MMM d, yyyy h:mm a")}</p>
                   </div>
-                  {selected.approved_at && (
+                  {selected.resolved_at && (
                     <div>
-                      <span className="text-muted-foreground text-xs">Approved</span>
-                      <p>{format(new Date(selected.approved_at), "MMM d, yyyy h:mm a")}</p>
-                    </div>
-                  )}
-                  {selected.rejected_at && (
-                    <div>
-                      <span className="text-muted-foreground text-xs">Rejected</span>
-                      <p>{format(new Date(selected.rejected_at), "MMM d, yyyy h:mm a")}</p>
+                      <span className="text-muted-foreground text-xs">Resolved</span>
+                      <p>{format(new Date(selected.resolved_at), "MMM d, yyyy h:mm a")}</p>
                     </div>
                   )}
                 </div>
@@ -404,15 +396,6 @@ export default function EscalationQueuePage() {
                       placeholder="Add notes (required for rejection)..."
                       className="text-sm min-h-[80px] resize-none"
                     />
-                  </div>
-                ) : selected.admin_response ? (
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                      Admin Response
-                    </h4>
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
-                      {selected.admin_response}
-                    </p>
                   </div>
                 ) : null}
 
