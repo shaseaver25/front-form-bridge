@@ -363,16 +363,10 @@ export default function EscalationQueuePage() {
                     <span className="text-muted-foreground text-xs">Created</span>
                     <p>{format(new Date(selected.created_at), "MMM d, yyyy h:mm a")}</p>
                   </div>
-                  {selected.approved_at && (
+                  {selected.resolved_at && (
                     <div>
-                      <span className="text-muted-foreground text-xs">Approved</span>
-                      <p>{format(new Date(selected.approved_at), "MMM d, yyyy h:mm a")}</p>
-                    </div>
-                  )}
-                  {selected.rejected_at && (
-                    <div>
-                      <span className="text-muted-foreground text-xs">Rejected</span>
-                      <p>{format(new Date(selected.rejected_at), "MMM d, yyyy h:mm a")}</p>
+                      <span className="text-muted-foreground text-xs">Resolved</span>
+                      <p>{format(new Date(selected.resolved_at), "MMM d, yyyy h:mm a")}</p>
                     </div>
                   )}
                 </div>
