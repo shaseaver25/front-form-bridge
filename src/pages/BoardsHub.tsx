@@ -461,12 +461,6 @@ export default function BoardsHub() {
                           Volunteers Needed
                         </Badge>
                       )}
-                      {board.is_board_initiative && (
-                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 gap-1">
-                          <Landmark className="w-3 h-3" />
-                          Board of Directors
-                        </Badge>
-                      )}
                       {board.priority && board.priority !== 'medium' && (
                         <Badge 
                           variant="outline" 

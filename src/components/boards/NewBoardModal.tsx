@@ -363,24 +363,6 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isBoardInitiative"
-                  checked={isBoardInitiative}
-                  onCheckedChange={(checked) => setIsBoardInitiative(checked === true)}
-                />
-                <div>
-                  <Label htmlFor="isBoardInitiative" className="text-sm cursor-pointer">
-                    <span className="flex items-center gap-2">
-                      <Landmark className="h-4 w-4 text-blue-600" />
-                      Board of Directors Initiative
-                    </span>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Mark as a project from the Board of Directors
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-between pt-4">

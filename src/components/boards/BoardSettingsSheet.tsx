@@ -235,29 +235,6 @@ export function BoardSettingsSheet({
 
             <Separator />
 
-            {/* Project Tags */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium">Project Tags</h3>
-              
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <Landmark className="h-5 w-5 text-blue-600" />
-                  <div className="space-y-0.5">
-                    <Label htmlFor="board-initiative" className="text-base font-medium">
-                      Board of Directors Initiative
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Mark as a project from the Board of Directors
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="board-initiative"
-                  checked={isBoardInitiative}
-                  onCheckedChange={handleBoardInitiativeToggle}
-                />
-              </div>
-            </div>
 
             <Separator />
 
