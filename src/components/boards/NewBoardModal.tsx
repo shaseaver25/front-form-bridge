@@ -138,7 +138,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
           linked_grant_id: linkedGrantId || null,
           linked_campaign_id: linkedCampaignId || null,
           volunteers_needed: volunteersNeeded,
-          is_board_initiative: isBoardInitiative,
+          
           created_by: user.id,
         })
         .select()
