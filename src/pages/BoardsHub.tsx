@@ -164,10 +164,6 @@ export default function BoardsHub() {
         board.board_members?.some((m: any) => m.user_id === currentUserId);
       return matchesSearch && matchesType && isMine;
     }
-    // For "board-of-directors" filter, only show board initiative projects
-    if (filter === "board-of-directors") {
-      return matchesSearch && matchesType && board.is_board_initiative;
-    }
     // For "all" filter, show every non-archived board
     if (filter === "all") {
       return matchesSearch && matchesType;
