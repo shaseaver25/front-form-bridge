@@ -58,7 +58,7 @@ export function BoardSettingsSheet({
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || '');
   const [volunteersNeeded, setVolunteersNeeded] = useState(board.volunteers_needed || false);
-  const [isBoardInitiative, setIsBoardInitiative] = useState(board.is_board_initiative || false);
+  
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const updateBoardMutation = useUpdateBoard();
