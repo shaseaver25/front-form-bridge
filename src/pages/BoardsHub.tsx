@@ -164,10 +164,6 @@ export default function BoardsHub() {
         board.board_members?.some((m: any) => m.user_id === currentUserId);
       return matchesSearch && matchesType && isMine;
     }
-    // For "board-of-directors" filter, only show board initiative projects
-    if (filter === "board-of-directors") {
-      return matchesSearch && matchesType && board.is_board_initiative;
-    }
     // For "all" filter, show every non-archived board
     if (filter === "all") {
       return matchesSearch && matchesType;
@@ -272,10 +268,6 @@ export default function BoardsHub() {
               <TabsTrigger value="ideas">
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Ideas
-              </TabsTrigger>
-              <TabsTrigger value="board-of-directors">
-                <Landmark className="w-4 h-4 mr-2" />
-                Board of Directors
               </TabsTrigger>
               <TabsTrigger value="archived">
                 <Archive className="w-4 h-4 mr-2" />
@@ -467,12 +459,6 @@ export default function BoardsHub() {
                         <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 gap-1">
                           <Users className="w-3 h-3" />
                           Volunteers Needed
-                        </Badge>
-                      )}
-                      {board.is_board_initiative && (
-                        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 gap-1">
-                          <Landmark className="w-3 h-3" />
-                          Board of Directors
                         </Badge>
                       )}
                       {board.priority && board.priority !== 'medium' && (

@@ -63,7 +63,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
   const [selectedColor, setSelectedColor] = useState(BOARD_COLORS[0].value);
   const [includeSuggestedTasks, setIncludeSuggestedTasks] = useState(true);
   const [volunteersNeeded, setVolunteersNeeded] = useState(false);
-  const [isBoardInitiative, setIsBoardInitiative] = useState(false);
+  
   const [isCreating, setIsCreating] = useState(false);
 
   const [grants, setGrants] = useState<{ id: string; title: string }[]>([]);
@@ -102,7 +102,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
     setSelectedColor(BOARD_COLORS[0].value);
     setIncludeSuggestedTasks(true);
     setVolunteersNeeded(false);
-    setIsBoardInitiative(false);
+    
   };
 
   const handleClose = () => {
@@ -138,7 +138,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
           linked_grant_id: linkedGrantId || null,
           linked_campaign_id: linkedCampaignId || null,
           volunteers_needed: volunteersNeeded,
-          is_board_initiative: isBoardInitiative,
+          
           created_by: user.id,
         })
         .select()
@@ -363,24 +363,6 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isBoardInitiative"
-                  checked={isBoardInitiative}
-                  onCheckedChange={(checked) => setIsBoardInitiative(checked === true)}
-                />
-                <div>
-                  <Label htmlFor="isBoardInitiative" className="text-sm cursor-pointer">
-                    <span className="flex items-center gap-2">
-                      <Landmark className="h-4 w-4 text-blue-600" />
-                      Board of Directors Initiative
-                    </span>
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Mark as a project from the Board of Directors
-                  </p>
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-between pt-4">

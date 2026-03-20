@@ -58,7 +58,7 @@ export function BoardSettingsSheet({
   const [name, setName] = useState(board.name);
   const [description, setDescription] = useState(board.description || '');
   const [volunteersNeeded, setVolunteersNeeded] = useState(board.volunteers_needed || false);
-  const [isBoardInitiative, setIsBoardInitiative] = useState(board.is_board_initiative || false);
+  
   const [showSaveAsTemplate, setShowSaveAsTemplate] = useState(false);
   const [showDuplicate, setShowDuplicate] = useState(false);
   const updateBoardMutation = useUpdateBoard();
@@ -168,21 +168,6 @@ export function BoardSettingsSheet({
     }
   };
 
-  const handleBoardInitiativeToggle = async (enabled: boolean) => {
-    setIsBoardInitiative(enabled);
-    const { error } = await supabase
-      .from('boards')
-      .update({ is_board_initiative: enabled })
-      .eq('id', board.id);
-
-    if (error) {
-      toast.error('Failed to update Board of Directors setting');
-      setIsBoardInitiative(!enabled);
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['boards'] });
-      toast.success(enabled ? 'Marked as Board of Directors initiative' : 'Removed Board of Directors designation');
-    }
-  };
 
   const handleArchive = async () => {
     try {
@@ -250,29 +235,6 @@ export function BoardSettingsSheet({
 
             <Separator />
 
-            {/* Project Tags */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium">Project Tags</h3>
-              
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <Landmark className="h-5 w-5 text-blue-600" />
-                  <div className="space-y-0.5">
-                    <Label htmlFor="board-initiative" className="text-base font-medium">
-                      Board of Directors Initiative
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Mark as a project from the Board of Directors
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="board-initiative"
-                  checked={isBoardInitiative}
-                  onCheckedChange={handleBoardInitiativeToggle}
-                />
-              </div>
-            </div>
 
             <Separator />
 
