@@ -168,21 +168,6 @@ export function BoardSettingsSheet({
     }
   };
 
-  const handleBoardInitiativeToggle = async (enabled: boolean) => {
-    setIsBoardInitiative(enabled);
-    const { error } = await supabase
-      .from('boards')
-      .update({ is_board_initiative: enabled })
-      .eq('id', board.id);
-
-    if (error) {
-      toast.error('Failed to update Board of Directors setting');
-      setIsBoardInitiative(!enabled);
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['boards'] });
-      toast.success(enabled ? 'Marked as Board of Directors initiative' : 'Removed Board of Directors designation');
-    }
-  };
 
   const handleArchive = async () => {
     try {
