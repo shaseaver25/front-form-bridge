@@ -102,7 +102,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
     setSelectedColor(BOARD_COLORS[0].value);
     setIncludeSuggestedTasks(true);
     setVolunteersNeeded(false);
-    setIsBoardInitiative(false);
+    
   };
 
   const handleClose = () => {
