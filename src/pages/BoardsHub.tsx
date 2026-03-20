@@ -269,10 +269,6 @@ export default function BoardsHub() {
                 <Lightbulb className="w-4 h-4 mr-2" />
                 Ideas
               </TabsTrigger>
-              <TabsTrigger value="board-of-directors">
-                <Landmark className="w-4 h-4 mr-2" />
-                Board of Directors
-              </TabsTrigger>
               <TabsTrigger value="archived">
                 <Archive className="w-4 h-4 mr-2" />
                 Archived
