@@ -63,7 +63,7 @@ export function NewBoardModal({ open, onOpenChange }: NewBoardModalProps) {
   const [selectedColor, setSelectedColor] = useState(BOARD_COLORS[0].value);
   const [includeSuggestedTasks, setIncludeSuggestedTasks] = useState(true);
   const [volunteersNeeded, setVolunteersNeeded] = useState(false);
-  const [isBoardInitiative, setIsBoardInitiative] = useState(false);
+  
   const [isCreating, setIsCreating] = useState(false);
 
   const [grants, setGrants] = useState<{ id: string; title: string }[]>([]);
