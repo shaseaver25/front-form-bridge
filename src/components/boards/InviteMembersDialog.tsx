@@ -27,6 +27,7 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useProjectCollaborators } from '@/hooks/useProjectCollaborators';
 import { boardKeys } from '@/hooks/useBoardData';
 import { InviteExternalCollaboratorDialog } from '@/components/collaborators/InviteExternalCollaboratorDialog';
+import { sendAssignmentNotification } from '@/hooks/useAssignmentNotification';
 
 interface BoardMember {
   id: string;
