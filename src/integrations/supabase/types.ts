@@ -722,6 +722,7 @@ export type Database = {
       crm_contacts: {
         Row: {
           average_rating: number | null
+          connections_count: number | null
           contact_type: string
           created_at: string | null
           created_by: string | null
@@ -734,6 +735,7 @@ export type Database = {
           enrichment_status: string | null
           enrichment_updated_at: string | null
           first_name: string | null
+          follower_count: number | null
           icon_attachment_url: string | null
           id: string
           is_unsubscribed: boolean | null
@@ -743,21 +745,27 @@ export type Database = {
           last_name: string
           last_reach_out_date: string | null
           latest_pinned_note: string | null
+          linkedin_url: string | null
           middle_name: string | null
           nick_name: string | null
           primary_company_id: string | null
           primary_owner_id: string | null
+          profile_image_url: string | null
           salary: number | null
           salary_details: string | null
           salutation: string | null
+          source: string | null
+          source_detail: string | null
           source_id: string | null
           status: string
           suffix: string | null
+          summary: string | null
           unsubscribed_at: string | null
           updated_at: string | null
         }
         Insert: {
           average_rating?: number | null
+          connections_count?: number | null
           contact_type?: string
           created_at?: string | null
           created_by?: string | null
@@ -770,6 +778,7 @@ export type Database = {
           enrichment_status?: string | null
           enrichment_updated_at?: string | null
           first_name?: string | null
+          follower_count?: number | null
           icon_attachment_url?: string | null
           id?: string
           is_unsubscribed?: boolean | null
@@ -779,21 +788,27 @@ export type Database = {
           last_name: string
           last_reach_out_date?: string | null
           latest_pinned_note?: string | null
+          linkedin_url?: string | null
           middle_name?: string | null
           nick_name?: string | null
           primary_company_id?: string | null
           primary_owner_id?: string | null
+          profile_image_url?: string | null
           salary?: number | null
           salary_details?: string | null
           salutation?: string | null
+          source?: string | null
+          source_detail?: string | null
           source_id?: string | null
           status?: string
           suffix?: string | null
+          summary?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Update: {
           average_rating?: number | null
+          connections_count?: number | null
           contact_type?: string
           created_at?: string | null
           created_by?: string | null
@@ -806,6 +821,7 @@ export type Database = {
           enrichment_status?: string | null
           enrichment_updated_at?: string | null
           first_name?: string | null
+          follower_count?: number | null
           icon_attachment_url?: string | null
           id?: string
           is_unsubscribed?: boolean | null
@@ -815,16 +831,21 @@ export type Database = {
           last_name?: string
           last_reach_out_date?: string | null
           latest_pinned_note?: string | null
+          linkedin_url?: string | null
           middle_name?: string | null
           nick_name?: string | null
           primary_company_id?: string | null
           primary_owner_id?: string | null
+          profile_image_url?: string | null
           salary?: number | null
           salary_details?: string | null
           salutation?: string | null
+          source?: string | null
+          source_detail?: string | null
           source_id?: string | null
           status?: string
           suffix?: string | null
+          summary?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
