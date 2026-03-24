@@ -1,0 +1,1 @@
+ALTER TABLE public.boards ADD COLUMN IF NOT EXISTS assigned_to uuid;
