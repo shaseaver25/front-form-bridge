@@ -14,6 +14,477 @@ export type Database = {
   }
   public: {
     Tables: {
+      board_automations: {
+        Row: {
+          action_config: Json
+          action_type: string
+          board_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          trigger_config: Json
+          trigger_type: string
+        }
+        Insert: {
+          action_config?: Json
+          action_type: string
+          board_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger_config?: Json
+          trigger_type: string
+        }
+        Update: {
+          action_config?: Json
+          action_type?: string
+          board_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger_config?: Json
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_automations_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_card_activity: {
+        Row: {
+          activity_type: string
+          card_id: string
+          created_at: string
+          details: Json
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          card_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          card_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_card_activity_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_card_comments: {
+        Row: {
+          card_id: string
+          content: string
+          created_at: string
+          id: string
+          is_ai_generated: boolean
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_ai_generated?: boolean
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_ai_generated?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_card_comments_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_card_dependencies: {
+        Row: {
+          card_id: string
+          created_at: string
+          depends_on_card_id: string
+          id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          depends_on_card_id: string
+          id?: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          depends_on_card_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_card_dependencies_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_card_dependencies_depends_on_card_id_fkey"
+            columns: ["depends_on_card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_card_subtasks: {
+        Row: {
+          card_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean
+          position: number
+          spawned_card_id: string | null
+          text: string
+        }
+        Insert: {
+          card_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          position?: number
+          spawned_card_id?: string | null
+          text: string
+        }
+        Update: {
+          card_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          position?: number
+          spawned_card_id?: string | null
+          text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_card_subtasks_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_card_subtasks_spawned_card_id_fkey"
+            columns: ["spawned_card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_cards: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          blocked_reason: string | null
+          board_id: string
+          column_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          headline: string
+          id: string
+          is_blocked: boolean
+          is_suggested: boolean
+          linked_board_id: string | null
+          linked_contact_id: string | null
+          linked_donation_id: string | null
+          linked_grant_id: string | null
+          parent_subtask_id: string | null
+          position: number
+          priority: string
+          question_for: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          blocked_reason?: string | null
+          board_id: string
+          column_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          headline: string
+          id?: string
+          is_blocked?: boolean
+          is_suggested?: boolean
+          linked_board_id?: string | null
+          linked_contact_id?: string | null
+          linked_donation_id?: string | null
+          linked_grant_id?: string | null
+          parent_subtask_id?: string | null
+          position?: number
+          priority?: string
+          question_for?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          blocked_reason?: string | null
+          board_id?: string
+          column_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          headline?: string
+          id?: string
+          is_blocked?: boolean
+          is_suggested?: boolean
+          linked_board_id?: string | null
+          linked_contact_id?: string | null
+          linked_donation_id?: string | null
+          linked_grant_id?: string | null
+          parent_subtask_id?: string | null
+          position?: number
+          priority?: string
+          question_for?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_cards_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_cards_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "board_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_columns: {
+        Row: {
+          board_id: string
+          column_type: string
+          created_at: string
+          id: string
+          is_done_column: boolean
+          position: number
+          title: string
+          wip_limit: number | null
+        }
+        Insert: {
+          board_id: string
+          column_type?: string
+          created_at?: string
+          id?: string
+          is_done_column?: boolean
+          position?: number
+          title: string
+          wip_limit?: number | null
+        }
+        Update: {
+          board_id?: string
+          column_type?: string
+          created_at?: string
+          id?: string
+          is_done_column?: boolean
+          position?: number
+          title?: string
+          wip_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_columns_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_members: {
+        Row: {
+          added_at: string
+          board_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          board_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          board_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_members_board_id_fkey"
+            columns: ["board_id"]
+            isOneToOne: false
+            referencedRelation: "boards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_time_logs: {
+        Row: {
+          card_id: string
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_time_logs_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "board_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      boards: {
+        Row: {
+          archived_at: string | null
+          board_type: string
+          column_order: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_archived: boolean
+          is_board_initiative: boolean | null
+          linked_campaign_id: string | null
+          linked_grant_id: string | null
+          linked_site_id: string | null
+          name: string
+          organization_id: string | null
+          settings: Json
+          theme_color: string
+          updated_at: string
+          volunteers_needed: boolean | null
+        }
+        Insert: {
+          archived_at?: string | null
+          board_type?: string
+          column_order?: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_board_initiative?: boolean | null
+          linked_campaign_id?: string | null
+          linked_grant_id?: string | null
+          linked_site_id?: string | null
+          name: string
+          organization_id?: string | null
+          settings?: Json
+          theme_color?: string
+          updated_at?: string
+          volunteers_needed?: boolean | null
+        }
+        Update: {
+          archived_at?: string | null
+          board_type?: string
+          column_order?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_archived?: boolean
+          is_board_initiative?: boolean | null
+          linked_campaign_id?: string | null
+          linked_grant_id?: string | null
+          linked_site_id?: string | null
+          name?: string
+          organization_id?: string | null
+          settings?: Json
+          theme_color?: string
+          updated_at?: string
+          volunteers_needed?: boolean | null
+        }
+        Relationships: []
+      }
       crm_activities: {
         Row: {
           activity_type: string
@@ -722,6 +1193,7 @@ export type Database = {
       crm_contacts: {
         Row: {
           average_rating: number | null
+          connections_count: number | null
           contact_type: string
           created_at: string | null
           created_by: string | null
@@ -734,6 +1206,7 @@ export type Database = {
           enrichment_status: string | null
           enrichment_updated_at: string | null
           first_name: string | null
+          follower_count: number | null
           icon_attachment_url: string | null
           id: string
           is_unsubscribed: boolean | null
@@ -743,21 +1216,27 @@ export type Database = {
           last_name: string
           last_reach_out_date: string | null
           latest_pinned_note: string | null
+          linkedin_url: string | null
           middle_name: string | null
           nick_name: string | null
           primary_company_id: string | null
           primary_owner_id: string | null
+          profile_image_url: string | null
           salary: number | null
           salary_details: string | null
           salutation: string | null
+          source: string | null
+          source_detail: string | null
           source_id: string | null
           status: string
           suffix: string | null
+          summary: string | null
           unsubscribed_at: string | null
           updated_at: string | null
         }
         Insert: {
           average_rating?: number | null
+          connections_count?: number | null
           contact_type?: string
           created_at?: string | null
           created_by?: string | null
@@ -770,6 +1249,7 @@ export type Database = {
           enrichment_status?: string | null
           enrichment_updated_at?: string | null
           first_name?: string | null
+          follower_count?: number | null
           icon_attachment_url?: string | null
           id?: string
           is_unsubscribed?: boolean | null
@@ -779,21 +1259,27 @@ export type Database = {
           last_name: string
           last_reach_out_date?: string | null
           latest_pinned_note?: string | null
+          linkedin_url?: string | null
           middle_name?: string | null
           nick_name?: string | null
           primary_company_id?: string | null
           primary_owner_id?: string | null
+          profile_image_url?: string | null
           salary?: number | null
           salary_details?: string | null
           salutation?: string | null
+          source?: string | null
+          source_detail?: string | null
           source_id?: string | null
           status?: string
           suffix?: string | null
+          summary?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Update: {
           average_rating?: number | null
+          connections_count?: number | null
           contact_type?: string
           created_at?: string | null
           created_by?: string | null
@@ -806,6 +1292,7 @@ export type Database = {
           enrichment_status?: string | null
           enrichment_updated_at?: string | null
           first_name?: string | null
+          follower_count?: number | null
           icon_attachment_url?: string | null
           id?: string
           is_unsubscribed?: boolean | null
@@ -815,16 +1302,21 @@ export type Database = {
           last_name?: string
           last_reach_out_date?: string | null
           latest_pinned_note?: string | null
+          linkedin_url?: string | null
           middle_name?: string | null
           nick_name?: string | null
           primary_company_id?: string | null
           primary_owner_id?: string | null
+          profile_image_url?: string | null
           salary?: number | null
           salary_details?: string | null
           salutation?: string | null
+          source?: string | null
+          source_detail?: string | null
           source_id?: string | null
           status?: string
           suffix?: string | null
+          summary?: string | null
           unsubscribed_at?: string | null
           updated_at?: string | null
         }
