@@ -48,7 +48,7 @@ export const useProjectCollaborators = (projectId: string, projectType: string =
 
       const { data: profiles, error: profilesError } = await supabase
         .from('user_profiles')
-        .select('id, first_name, last_name, user_type')
+        .select('id, first_name, last_name')
         .in('id', userIds);
 
       if (profilesError) {
