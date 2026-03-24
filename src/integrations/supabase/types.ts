@@ -425,6 +425,7 @@ export type Database = {
       boards: {
         Row: {
           archived_at: string | null
+          assigned_to: string | null
           board_type: string
           column_order: Json
           created_at: string
@@ -445,6 +446,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          assigned_to?: string | null
           board_type?: string
           column_order?: Json
           created_at?: string
@@ -465,6 +467,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          assigned_to?: string | null
           board_type?: string
           column_order?: Json
           created_at?: string
