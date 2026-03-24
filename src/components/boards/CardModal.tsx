@@ -66,6 +66,7 @@ import {
 } from "@/hooks/useBoardData";
 import { useRealtimeCardDetails } from "@/hooks/useRealtimeCardDetails";
 import { toast } from "sonner";
+import { sendAssignmentNotification } from "@/hooks/useAssignmentNotification";
 
 type CardDependency = {
   id: string;
@@ -179,11 +180,22 @@ export function CardModal({ card, columns, isOpen, onClose }: CardModalProps) {
       setIsSaving(true);
       try {
         await dispatch.updateCard(card.id, updates);
+
+        // Send notification when task is assigned to someone new
+        if (updates.assigned_to && updates.assigned_to !== card.assigned_to) {
+          sendAssignmentNotification({
+            assigneeUserId: updates.assigned_to,
+            itemName: card.headline,
+            itemType: 'task',
+            projectName: state.board?.name,
+            itemId: card.board_id,
+          }).catch(console.error);
+        }
       } finally {
         setIsSaving(false);
       }
     },
-    [card.id, dispatch]
+    [card.id, card.assigned_to, card.headline, card.board_id, state.board?.name, dispatch]
   );
 
   const handleColumnChange = async (newColumnId: string) => {

@@ -27,6 +27,7 @@ import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useProjectCollaborators } from '@/hooks/useProjectCollaborators';
 import { boardKeys } from '@/hooks/useBoardData';
 import { InviteExternalCollaboratorDialog } from '@/components/collaborators/InviteExternalCollaboratorDialog';
+import { sendAssignmentNotification } from '@/hooks/useAssignmentNotification';
 
 interface BoardMember {
   id: string;
@@ -89,6 +90,14 @@ export function InviteMembersDialog({
 
       toast.success('Member added to board');
       invalidateMembers();
+
+      // Send email notification to the added member
+      sendAssignmentNotification({
+        assigneeUserId: userId,
+        itemName: boardName,
+        itemType: 'project',
+        itemId: boardId,
+      }).catch(console.error);
     } catch (error: unknown) {
       console.error('Error adding member:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to add member');
