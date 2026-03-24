@@ -285,35 +285,19 @@ function KanbanBoardViewContent() {
           </Popover>
 
           {/* Members & Invite */}
-          <div className="hidden lg:flex items-center gap-2">
-            <div className="flex -space-x-2">
-              {state.members.slice(0, 3).map((member) => (
-                <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
-                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                    <Users className="h-3 w-3" />
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-              {state.members.length > 3 && (
-                <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs text-muted-foreground">
-                  +{state.members.length - 3}
-                </div>
-              )}
-            </div>
-            {permissions.canInviteMembers && board && (
-              <InviteMembersDialog
-                boardId={board.id}
-                boardName={board.name}
-                existingMembers={state.members.map(m => ({
-                  id: m.id,
-                  user_id: m.user_id,
-                  role: m.role || 'member',
-                  added_at: m.added_at || new Date().toISOString(),
-                }))}
-                createdBy={board.created_by}
-              />
-            )}
-          </div>
+          {board && (
+            <InviteMembersDialog
+              boardId={board.id}
+              boardName={board.name}
+              existingMembers={state.members.map(m => ({
+                id: m.id,
+                user_id: m.user_id,
+                role: m.role || 'member',
+                added_at: m.added_at || new Date().toISOString(),
+              }))}
+              createdBy={board.created_by}
+            />
+          )}
 
           {/* AI Agenda Parser */}
           <AiAgendaParser />
