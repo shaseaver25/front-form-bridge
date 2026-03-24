@@ -66,6 +66,7 @@ import {
 } from "@/hooks/useBoardData";
 import { useRealtimeCardDetails } from "@/hooks/useRealtimeCardDetails";
 import { toast } from "sonner";
+import { sendAssignmentNotification } from "@/hooks/useAssignmentNotification";
 
 type CardDependency = {
   id: string;
