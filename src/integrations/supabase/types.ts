@@ -2217,6 +2217,39 @@ export type Database = {
           },
         ]
       }
+      project_collaborators: {
+        Row: {
+          access_expires_at: string | null
+          id: string
+          invited_at: string | null
+          project_id: string
+          project_type: string
+          role: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          id?: string
+          invited_at?: string | null
+          project_id: string
+          project_type?: string
+          role?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          id?: string
+          invited_at?: string | null
+          project_id?: string
+          project_type?: string
+          role?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rebrand_coach_notes: {
         Row: {
           chapter_id: string
