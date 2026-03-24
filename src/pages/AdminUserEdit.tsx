@@ -118,20 +118,12 @@ export default function AdminUserEdit() {
 
       if (profileError) throw profileError;
 
-      // Update user role - delete and insert instead of upsert
-      await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      // Update user role via edge function to avoid RLS self-lock
+      const { data: roleResult, error: roleError } = await supabase.functions.invoke("update-user-role", {
+        body: { userId, newRole: formData.role },
+      });
 
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert({
-          user_id: userId,
-          role: formData.role as "admin" | "staff" | "viewer" | "project",
-        });
-
-      if (roleError) throw roleError;
+      if (roleError || roleResult?.error) throw new Error(roleResult?.error || roleError?.message || "Failed to update role");
 
       toast({
         title: "Success",
