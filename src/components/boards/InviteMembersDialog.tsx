@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, X, Search, ExternalLink, Globe } from 'lucide-react';
+import { UserPlus, X, Search, ExternalLink, Globe, Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -7,7 +7,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,19 +54,17 @@ export function InviteMembersDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [externalDialogOpen, setExternalDialogOpen] = useState(false);
   const { members: teamMembers, loading: loadingTeam, getDisplayName } = useTeamMembers();
-  const { 
-    collaborators: externalCollaborators, 
+  const {
+    collaborators: externalCollaborators,
     isLoading: loadingCollaborators,
     getDisplayName: getCollaboratorName,
-    refetch: refetchCollaborators
+    refetch: refetchCollaborators,
   } = useProjectCollaborators(boardId, 'board');
 
-  // Filter out already added members
-  const existingMemberIds = new Set([...existingMembers.map(m => m.user_id), createdBy]);
-  const availableMembers = teamMembers.filter(m => !existingMemberIds.has(m.id));
+  const existingMemberIds = new Set([...existingMembers.map((m) => m.user_id), createdBy]);
+  const availableMembers = teamMembers.filter((m) => !existingMemberIds.has(m.id));
 
-  // Filter by search
-  const filteredMembers = availableMembers.filter(member => {
+  const filteredMembers = availableMembers.filter((member) => {
     const displayName = getDisplayName(member).toLowerCase();
     return displayName.includes(search.toLowerCase());
   });
@@ -103,10 +100,7 @@ export function InviteMembersDialog({
   const handleRemoveMember = async (memberId: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('board_members')
-        .delete()
-        .eq('id', memberId);
+      const { error } = await supabase.from('board_members').delete().eq('id', memberId);
 
       if (error) throw error;
 
@@ -143,7 +137,6 @@ export function InviteMembersDialog({
   const handleRemoveExternalCollaborator = async (collaboratorId: string, userId: string) => {
     setIsLoading(true);
     try {
-      // Remove from project_collaborators
       const { error: collabError } = await supabase
         .from('project_collaborators')
         .delete()
@@ -151,7 +144,6 @@ export function InviteMembersDialog({
 
       if (collabError) throw collabError;
 
-      // Also remove from board_members if they were added there
       await supabase
         .from('board_members')
         .delete()
@@ -169,26 +161,24 @@ export function InviteMembersDialog({
   };
 
   const getMemberName = (userId: string) => {
-    const member = teamMembers.find(m => m.id === userId);
+    const member = teamMembers.find((m) => m.id === userId);
     return member ? getDisplayName(member) : 'Unknown User';
   };
 
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
   };
 
-  // Identify which existing members are external collaborators
-  const externalCollaboratorIds = new Set(externalCollaborators.map(c => c.user_id));
+  const externalCollaboratorIds = new Set(externalCollaborators.map((c) => c.user_id));
 
-  const handleExternalDialogClose = (open: boolean) => {
-    setExternalDialogOpen(open);
-    if (!open) {
-      // Refetch collaborators when dialog closes
+  const handleExternalDialogClose = (nextOpen: boolean) => {
+    setExternalDialogOpen(nextOpen);
+    if (!nextOpen) {
       refetchCollaborators();
       invalidateMembers();
     }
@@ -196,12 +186,11 @@ export function InviteMembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Invite
-        </Button>
-      </DialogTrigger>
+      <Button variant="outline" size="sm" type="button" onClick={() => setOpen(true)}>
+        <Users className="h-4 w-4 mr-2" />
+        Team
+      </Button>
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Manage Board Members</DialogTitle>
@@ -211,7 +200,6 @@ export function InviteMembersDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Current Members */}
           {existingMembers.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Current Members</h4>
@@ -274,14 +262,13 @@ export function InviteMembersDialog({
             </div>
           )}
 
-          {/* External Collaborators (pending invitations) */}
-          {!loadingCollaborators && externalCollaborators.filter(c => c.status === 'pending').length > 0 && (
+          {!loadingCollaborators && externalCollaborators.filter((c) => c.status === 'pending').length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Pending Invitations</h4>
               <ScrollArea className="max-h-32">
                 <div className="space-y-2">
                   {externalCollaborators
-                    .filter(c => c.status === 'pending')
+                    .filter((c) => c.status === 'pending')
                     .map((collaborator) => {
                       const name = getCollaboratorName(collaborator);
                       return (
@@ -319,7 +306,6 @@ export function InviteMembersDialog({
             </div>
           )}
 
-          {/* Add Members */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-muted-foreground">Add Members</h4>
             <div className="relative">
@@ -357,11 +343,7 @@ export function InviteMembersDialog({
                           </Avatar>
                           <span className="text-sm">{name}</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={isLoading}
-                        >
+                        <Button variant="ghost" size="sm" disabled={isLoading}>
                           <UserPlus className="h-4 w-4" />
                         </Button>
                       </div>
@@ -372,7 +354,6 @@ export function InviteMembersDialog({
             </ScrollArea>
           </div>
 
-          {/* External Collaborator Section */}
           <Separator />
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-muted-foreground">External Collaborators</h4>
