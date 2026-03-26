@@ -488,6 +488,182 @@ export type Database = {
         }
         Relationships: []
       }
+      briefing_room_clients: {
+        Row: {
+          client_email: string
+          client_logo_url: string | null
+          client_name: string
+          client_title: string | null
+          created_at: string | null
+          crm_company_id: string | null
+          crm_search_id: string
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+        }
+        Insert: {
+          client_email: string
+          client_logo_url?: string | null
+          client_name: string
+          client_title?: string | null
+          created_at?: string | null
+          crm_company_id?: string | null
+          crm_search_id: string
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+        }
+        Update: {
+          client_email?: string
+          client_logo_url?: string | null
+          client_name?: string
+          client_title?: string | null
+          created_at?: string | null
+          crm_company_id?: string | null
+          crm_search_id?: string
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+        }
+        Relationships: []
+      }
+      candidate_feedback: {
+        Row: {
+          client_id: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          presentation_id: string | null
+          reaction: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          presentation_id?: string | null
+          reaction?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          presentation_id?: string | null
+          reaction?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_feedback_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_room_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_feedback_presentation_id_fkey"
+            columns: ["presentation_id"]
+            isOneToOne: false
+            referencedRelation: "portal_presentations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_profiles: {
+        Row: {
+          board_structure: string | null
+          bonus_structure: string | null
+          comp_range_max: number | null
+          comp_range_min: number | null
+          company_id: string | null
+          company_story: string | null
+          competitive_landscape: string | null
+          created_at: string | null
+          culture_summary: string | null
+          decision_making_style: string | null
+          geographic_locations: Json | null
+          id: string
+          key_decision_makers: string | null
+          last_updated_by: string | null
+          off_limits_reason: string | null
+          off_limits_source: boolean | null
+          office_preference: string | null
+          pe_firm_context: string | null
+          pe_firm_name: string | null
+          preferred_candidate_geography: string | null
+          strategic_goals: string[] | null
+          strategic_posture: string | null
+          tech_stack: Json | null
+          updated_at: string | null
+          where_they_are: string | null
+          where_they_are_going: string | null
+        }
+        Insert: {
+          board_structure?: string | null
+          bonus_structure?: string | null
+          comp_range_max?: number | null
+          comp_range_min?: number | null
+          company_id?: string | null
+          company_story?: string | null
+          competitive_landscape?: string | null
+          created_at?: string | null
+          culture_summary?: string | null
+          decision_making_style?: string | null
+          geographic_locations?: Json | null
+          id?: string
+          key_decision_makers?: string | null
+          last_updated_by?: string | null
+          off_limits_reason?: string | null
+          off_limits_source?: boolean | null
+          office_preference?: string | null
+          pe_firm_context?: string | null
+          pe_firm_name?: string | null
+          preferred_candidate_geography?: string | null
+          strategic_goals?: string[] | null
+          strategic_posture?: string | null
+          tech_stack?: Json | null
+          updated_at?: string | null
+          where_they_are?: string | null
+          where_they_are_going?: string | null
+        }
+        Update: {
+          board_structure?: string | null
+          bonus_structure?: string | null
+          comp_range_max?: number | null
+          comp_range_min?: number | null
+          company_id?: string | null
+          company_story?: string | null
+          competitive_landscape?: string | null
+          created_at?: string | null
+          culture_summary?: string | null
+          decision_making_style?: string | null
+          geographic_locations?: Json | null
+          id?: string
+          key_decision_makers?: string | null
+          last_updated_by?: string | null
+          off_limits_reason?: string | null
+          off_limits_source?: boolean | null
+          office_preference?: string | null
+          pe_firm_context?: string | null
+          pe_firm_name?: string | null
+          preferred_candidate_geography?: string | null
+          strategic_goals?: string[] | null
+          strategic_posture?: string | null
+          tech_stack?: Json | null
+          updated_at?: string | null
+          where_they_are?: string | null
+          where_they_are_going?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_activities: {
         Row: {
           activity_type: string
@@ -920,6 +1096,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_connections: {
+        Row: {
+          created_at: string | null
+          crm_base_url: string
+          crm_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          crm_base_url: string
+          crm_name?: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          crm_base_url?: string
+          crm_name?: string
+          id?: string
+        }
+        Relationships: []
       }
       crm_contact_documents: {
         Row: {
@@ -1718,6 +1915,84 @@ export type Database = {
         }
         Relationships: []
       }
+      discovery_context: {
+        Row: {
+          client_reaction_insights: string | null
+          crm_search_id: string
+          cultural_context: string | null
+          generated_at: string | null
+          id: string
+          version: number | null
+          what_i_heard: string | null
+        }
+        Insert: {
+          client_reaction_insights?: string | null
+          crm_search_id: string
+          cultural_context?: string | null
+          generated_at?: string | null
+          id?: string
+          version?: number | null
+          what_i_heard?: string | null
+        }
+        Update: {
+          client_reaction_insights?: string | null
+          crm_search_id?: string
+          cultural_context?: string | null
+          generated_at?: string | null
+          id?: string
+          version?: number | null
+          what_i_heard?: string | null
+        }
+        Relationships: []
+      }
+      discovery_stakeholders: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          id: string
+          interview_date: string | null
+          notes: string | null
+          search_id: string | null
+          stakeholder_name: string
+          stakeholder_role: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          interview_date?: string | null
+          notes?: string | null
+          search_id?: string | null
+          stakeholder_name: string
+          stakeholder_role?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          id?: string
+          interview_date?: string | null
+          notes?: string | null
+          search_id?: string | null
+          stakeholder_name?: string
+          stakeholder_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovery_stakeholders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovery_stakeholders_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "crm_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_campaigns: {
         Row: {
           body_html: string | null
@@ -2217,6 +2492,142 @@ export type Database = {
           },
         ]
       }
+      job_profiles: {
+        Row: {
+          approved_at: string | null
+          approved_by_client_id: string | null
+          change_notes: string[] | null
+          company_story: string | null
+          created_at: string | null
+          crm_search_id: string
+          culture_summary: string | null
+          id: string
+          pe_context: string | null
+          status: string | null
+          strategic_goals: string | null
+          strategic_posture: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_client_id?: string | null
+          change_notes?: string[] | null
+          company_story?: string | null
+          created_at?: string | null
+          crm_search_id: string
+          culture_summary?: string | null
+          id?: string
+          pe_context?: string | null
+          status?: string | null
+          strategic_goals?: string | null
+          strategic_posture?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_client_id?: string | null
+          change_notes?: string[] | null
+          company_story?: string | null
+          created_at?: string | null
+          crm_search_id?: string
+          culture_summary?: string | null
+          id?: string
+          pe_context?: string | null
+          status?: string | null
+          strategic_goals?: string | null
+          strategic_posture?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_profiles_approved_by_client_id_fkey"
+            columns: ["approved_by_client_id"]
+            isOneToOne: false
+            referencedRelation: "briefing_room_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_presentations: {
+        Row: {
+          created_at: string | null
+          crm_candidate_id: string
+          crm_search_id: string
+          id: string
+          presentation_json: Json | null
+          published_at: string | null
+          shannons_take: string | null
+          skill_ratings: Json | null
+          status: string | null
+          support_framing: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crm_candidate_id: string
+          crm_search_id: string
+          id?: string
+          presentation_json?: Json | null
+          published_at?: string | null
+          shannons_take?: string | null
+          skill_ratings?: Json | null
+          status?: string | null
+          support_framing?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crm_candidate_id?: string
+          crm_search_id?: string
+          id?: string
+          presentation_json?: Json | null
+          published_at?: string | null
+          shannons_take?: string | null
+          skill_ratings?: Json | null
+          status?: string | null
+          support_framing?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      profile_synthesis_log: {
+        Row: {
+          company_id: string | null
+          fields_updated: string[] | null
+          id: string
+          model_used: string | null
+          stakeholder_count: number | null
+          synthesized_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          fields_updated?: string[] | null
+          id?: string
+          model_used?: string | null
+          stakeholder_count?: number | null
+          synthesized_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          fields_updated?: string[] | null
+          id?: string
+          model_used?: string | null
+          stakeholder_count?: number | null
+          synthesized_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_synthesis_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_collaborators: {
         Row: {
           access_expires_at: string | null
@@ -2420,6 +2831,42 @@ export type Database = {
         }
         Relationships: []
       }
+      search_milestones: {
+        Row: {
+          actual_date: string | null
+          created_at: string | null
+          crm_search_id: string
+          id: string
+          is_estimated: boolean | null
+          milestone_key: string
+          milestone_label: string
+          sort_order: number | null
+          target_date: string | null
+        }
+        Insert: {
+          actual_date?: string | null
+          created_at?: string | null
+          crm_search_id: string
+          id?: string
+          is_estimated?: boolean | null
+          milestone_key: string
+          milestone_label: string
+          sort_order?: number | null
+          target_date?: string | null
+        }
+        Update: {
+          actual_date?: string | null
+          created_at?: string | null
+          crm_search_id?: string
+          id?: string
+          is_estimated?: boolean | null
+          milestone_key?: string
+          milestone_label?: string
+          sort_order?: number | null
+          target_date?: string | null
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           admin_notes: string | null
@@ -2597,6 +3044,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      portal_crm_search_id: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "client"

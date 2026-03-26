@@ -141,6 +141,7 @@ const adminGroup: CollapsibleNavGroup = {
   children: [
     { title: "Integrations", url: "/integrations", icon: Link2 },
     { title: "Admin", url: "/admin", icon: ShieldCheck },
+    { title: "Companies", url: "/admin/companies", icon: Building2 },
     { title: "Escalations", url: "/admin/escalations", icon: AlertTriangle },
     { title: "Support Log", url: "/admin/support-access-log", icon: ShieldCheck },
   ],
