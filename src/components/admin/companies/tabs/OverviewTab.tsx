@@ -72,7 +72,7 @@ export function OverviewTab({ profile, onSave, onSaveAll, onDirty, savedField }:
           {saved("where_they_are")}
         </div>
         <Textarea
-          value={whereAre}
+          value={whereAre as string}
           onChange={(e) => { setWhereAre(e.target.value); onDirty(); }}
           onBlur={() => handleBlur("where_they_are", whereAre)}
           rows={3}
