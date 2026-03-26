@@ -14,11 +14,11 @@ const POSTURE_COLORS: Record<string, string> = {
 };
 
 export function OverviewTab({ profile, onSave, onSaveAll, onDirty, savedField }: ProfileTabProps) {
-  const [story, setStory] = useState(profile?.company_story ?? "");
-  const [whereAre, setWhereAre] = useState(profile?.where_they_are ?? "");
-  const [whereGoing, setWhereGoing] = useState(profile?.where_they_are_going ?? "");
-  const [posture, setPosture] = useState(profile?.strategic_posture ?? "");
-  const [goals, setGoals] = useState<string[]>(profile?.strategic_goals ?? []);
+  const [story, setStory] = useState((profile?.company_story as string) ?? "");
+  const [whereAre, setWhereAre] = useState((profile?.where_they_are as string) ?? "");
+  const [whereGoing, setWhereGoing] = useState((profile?.where_they_are_going as string) ?? "");
+  const [posture, setPosture] = useState((profile?.strategic_posture as string) ?? "");
+  const [goals, setGoals] = useState<string[]>((profile?.strategic_goals as string[]) ?? []);
   const [goalInput, setGoalInput] = useState("");
 
   const handleBlur = useCallback(
