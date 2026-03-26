@@ -146,6 +146,8 @@ const SaasCustomerNewPage = lazy(() => import("@/pages/admin/SaasCustomerNewPage
 const SaasCustomerDetailPage = lazy(() => import("@/pages/admin/SaasCustomerDetailPage"));
 const SaasTemplatesPage = lazy(() => import("@/pages/admin/SaasTemplatesPage"));
 const SchemaExportPage = lazy(() => import("@/pages/admin/SchemaExportPage"));
+const AdminCompanies = lazy(() => import("@/pages/admin/AdminCompanies"));
+const AdminCompanyDetail = lazy(() => import("@/pages/admin/AdminCompanyDetail"));
 const SuperAdminAccessLogPage = lazy(() => import("@/pages/admin/SuperAdminAccessLogPage"));
 const EscalationQueuePage = lazy(() => import("@/pages/admin/EscalationQueuePage"));
 
