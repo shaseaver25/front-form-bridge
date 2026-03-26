@@ -58,7 +58,7 @@ export function OverviewTab({ profile, onSave, onSaveAll, onDirty, savedField }:
           {saved("company_story")}
         </div>
         <Textarea
-          value={story}
+          value={story as string}
           onChange={(e) => { setStory(e.target.value); onDirty(); }}
           onBlur={() => handleBlur("company_story", story)}
           rows={4}
