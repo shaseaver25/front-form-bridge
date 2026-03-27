@@ -261,7 +261,7 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   {isExpanded ? (
                     <RichTextDisplay content={note.content} className="text-foreground" />
                   ) : (
-                    <p className="whitespace-pre-line text-foreground line-clamp-1">
+                    <p className="whitespace-pre-line text-foreground line-clamp-3">
                       {note.content.replace(/<[^>]*>/g, "")}
                     </p>
                   )}
