@@ -1058,6 +1058,7 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
     result.errors.push(...r.errors);
 
     // Also populate crm_contact_notes from activities that have content and a contact_id
+    // Uses per-record dedup via source_crelate_id to safely backfill without duplicates
     const noteRows = rows
       .filter(r => r.contact_id && (r.body || r.subject))
       .map(r => ({
@@ -1065,30 +1066,36 @@ async function syncActivities(apiKey: string, supabase: any): Promise<SyncResult
         content: [r.subject, r.body].filter(Boolean).join("\n\n"),
         is_pinned: r.is_pinned,
         created_at: r.scheduled_at || r.completed_at || new Date().toISOString(),
+        source_type: "sync",
+        source_crelate_id: r.crelate_id || null,
       }));
 
     if (noteRows.length > 0) {
-      console.log(`Populating ${noteRows.length} contact notes from activities...`);
-      // Clear existing auto-generated notes and re-insert
-      // Use insert (not upsert) since crm_contact_notes has no crelate_id yet for dedup
-      // First check if notes already exist
-      const { data: existingNotes } = await supabase
-        .from("crm_contact_notes")
-        .select("id")
-        .limit(1);
-      
-      if (!existingNotes || existingNotes.length === 0) {
-        for (let i = 0; i < noteRows.length; i += 500) {
-          const chunk = noteRows.slice(i, i + 500);
-          const { error } = await supabase.from("crm_contact_notes").insert(chunk);
+      console.log(`Backfilling ${noteRows.length} contact notes from activities...`);
+      let inserted = 0;
+      for (let i = 0; i < noteRows.length; i += 500) {
+        const chunk = noteRows.slice(i, i + 500);
+        // Filter out rows that already exist by source_crelate_id
+        const crelateIds = chunk.map(r => r.source_crelate_id).filter(Boolean);
+        let existingSet = new Set<string>();
+        if (crelateIds.length > 0) {
+          const { data: existing } = await supabase
+            .from("crm_contact_notes")
+            .select("source_crelate_id")
+            .in("source_crelate_id", crelateIds);
+          existingSet = new Set((existing || []).map((e: any) => e.source_crelate_id));
+        }
+        const newRows = chunk.filter(r => !r.source_crelate_id || !existingSet.has(r.source_crelate_id));
+        if (newRows.length > 0) {
+          const { error } = await supabase.from("crm_contact_notes").insert(newRows);
           if (error) {
             console.warn(`Contact notes insert chunk ${i} error: ${error.message}`);
+          } else {
+            inserted += newRows.length;
           }
         }
-        console.log(`Inserted ${noteRows.length} contact notes`);
-      } else {
-        console.log("Contact notes already exist, skipping population to avoid duplicates");
       }
+      console.log(`Backfilled ${inserted} new contact notes (${noteRows.length - inserted} already existed)`);
     }
   } catch (e: unknown) {
     result.errors.push(`Activities sync failed: ${(e as Error).message}`);
