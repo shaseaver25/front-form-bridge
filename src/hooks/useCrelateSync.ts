@@ -28,6 +28,7 @@ export function useCrelateSync() {
             // Documents use client-side batch loop with contactOffset
             let contactOffset = 0;
             let hasMore = true;
+            let consecutiveEmptyBatches = 0;
             while (hasMore) {
               const { data, error } = await supabase.functions.invoke("crelate-sync", {
                 body: { action: "sync", entity_type: "documents", cursor_offset: contactOffset },
@@ -40,6 +41,13 @@ export function useCrelateSync() {
               if (data?.results) allResults.push(...data.results);
               hasMore = data?.hasMore === true;
               contactOffset = data?.nextCursor || (contactOffset + 10);
+              // Circuit breaker: stop if 3 consecutive batches created nothing
+              const batchCreated = data?.results?.reduce((s: number, r: any) => s + (r.created || 0), 0) || 0;
+              consecutiveEmptyBatches = batchCreated === 0 ? consecutiveEmptyBatches + 1 : 0;
+              if (consecutiveEmptyBatches >= 3) {
+                console.warn("Document sync: 3 consecutive empty batches, stopping");
+                break;
+              }
             }
           } else {
             const { data, error } = await supabase.functions.invoke("crelate-sync", {
