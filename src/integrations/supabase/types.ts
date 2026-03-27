@@ -1402,6 +1402,7 @@ export type Database = {
       crm_contacts: {
         Row: {
           average_rating: number | null
+          birthday: string | null
           connections_count: number | null
           contact_type: string
           created_at: string | null
@@ -1445,6 +1446,7 @@ export type Database = {
         }
         Insert: {
           average_rating?: number | null
+          birthday?: string | null
           connections_count?: number | null
           contact_type?: string
           created_at?: string | null
@@ -1488,6 +1490,7 @@ export type Database = {
         }
         Update: {
           average_rating?: number | null
+          birthday?: string | null
           connections_count?: number | null
           contact_type?: string
           created_at?: string | null
@@ -1545,6 +1548,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_form_fields: {
+        Row: {
+          created_at: string | null
+          crelate_id: string | null
+          field_type: string
+          id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          crelate_id?: string | null
+          field_type?: string
+          id?: string
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          crelate_id?: string | null
+          field_type?: string
+          id?: string
+          value?: string
+        }
+        Relationships: []
       }
       crm_job_tags: {
         Row: {
