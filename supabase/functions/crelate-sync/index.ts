@@ -1402,7 +1402,7 @@ Deno.serve(async (req) => {
 
     const syncStatus = allErrors.length > 0
       ? (totalSynced > 0 ? "partial" : "failed")
-      : (totalFailed > 0 ? "partial" : "success");
+      : (totalFailed > 0 && totalSynced === 0 ? "failed" : totalFailed > 0 ? "partial" : "success");
 
     if (logEntry) {
       await supabase
