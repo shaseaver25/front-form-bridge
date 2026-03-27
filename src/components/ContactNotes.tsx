@@ -96,6 +96,11 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
         source: "note" as const,
       }));
 
+      // Build a set of note content strings to deduplicate activities
+      const noteContentSet = new Set(
+        manualNotes.map((n) => n.content.replace(/<[^>]*>/g, "").trim().toLowerCase())
+      );
+
       const activityNotes: Note[] = ((activitiesRes.data as any[]) || [])
         .map((a: any) => {
           const hasContent = a.body || a.subject;
@@ -110,6 +115,11 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
             activity_type: a.activity_type,
             subject: a.subject,
           };
+        })
+        // Skip activities that are duplicates of existing notes (matched by content/subject)
+        .filter((a) => {
+          const plainContent = a.content.replace(/<[^>]*>/g, "").trim().toLowerCase();
+          return !noteContentSet.has(plainContent);
         });
 
       const all = [...manualNotes, ...activityNotes].sort((a, b) => {
