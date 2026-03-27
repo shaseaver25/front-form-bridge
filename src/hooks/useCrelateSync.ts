@@ -14,7 +14,7 @@ export function useCrelateSync() {
       if (!data.success) throw new Error(data.error || "Connection failed");
       return data;
     },
-    onSuccess: () => toast.success("Connected to Crelate API successfully!"),
+    onSuccess: (data) => toast.success(`Connected to Crelate API (auth: ${data?.authMethod || 'ok'})`),
     onError: (e) => toast.error("Connection failed: " + e.message),
   });
 
