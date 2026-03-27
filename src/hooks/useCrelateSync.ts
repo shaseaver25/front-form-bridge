@@ -119,7 +119,14 @@ export function useCrelateSync() {
       const s = data.summary;
       toast.success(`Sync complete: ${s.created} created, ${s.updated} updated${s.failed > 0 ? `, ${s.failed} failed` : ""}`);
     },
-    onError: (e) => toast.error("Sync failed: " + e.message),
+    onError: (e) => {
+      const msg = e.message || "Unknown error";
+      if (msg.includes("403") || msg.includes("401")) {
+        toast.error("Sync auth error: Crelate rejected the request. Check API key permissions.");
+      } else {
+        toast.error("Sync failed: " + msg);
+      }
+    },
   });
 
   const { data: syncLogs, isLoading: logsLoading } = useQuery({
