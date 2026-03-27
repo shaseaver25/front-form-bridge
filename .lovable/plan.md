@@ -1,32 +1,31 @@
 
 
-# Fix Gmail OAuth 403 Issue
+# Fix: Notes & Activities Not Fully Loading
 
-## What's happening
+## Problem
+The Notes & Activity feed silently drops activities that have no `subject` and no `body`. For this contact, there are 2 activities in the database but only 1 shows — a "meeting" activity is hidden because both its `subject` and `body` fields are null. This pattern affects all contact pages where activities like calls, meetings, and tasks were synced without text content.
 
-The 403 occurs because the `gmail-oauth` edge function validates the user's JWT using `supabase.auth.getUser(token)`. This project uses ES256-signed tokens (signing-keys system), and while `verify_jwt = false` is correctly set in `config.toml` (so the gateway doesn't block the request), the internal auth validation with `getUser()` makes a network round-trip that can intermittently fail or be slow. The recommended approach is to use `getClaims()` for faster, local JWT verification.
+## Root Cause
+In `ContactNotes.tsx` line 89:
+```js
+.filter((a: any) => a.body || a.subject)
+```
+This removes any activity lacking both fields, making it invisible in the feed.
 
-Additionally, the function creates its Supabase client with the **service role key** but then calls `auth.getUser(token)` — this works but is suboptimal. The client should be created with the **anon key** and the user's Authorization header for proper token validation.
+## Solution
 
-## Plan
+### 1. Remove the filter — show all activities (ContactNotes.tsx)
+- Remove the `.filter((a: any) => a.body || a.subject)` gate
+- For activities with no subject/body, generate a display label from the activity type (e.g., "Meeting logged", "Call recorded", "Task created")
+- Update the `content` construction to handle null subject+body gracefully
 
-### 1. Update `gmail-oauth` edge function auth validation
+### 2. Improve activity display labels
+- Add a mapping of `activity_type` to human-readable labels (meeting → "Meeting", call → "Call", email_sent → "Email Sent", etc.)
+- When both subject and body are empty, use the label as the content so the card isn't blank
 
-In `supabase/functions/gmail-oauth/index.ts`, change the initiate (POST) path to:
+### 3. Fix forwardRef console warnings
+- The console shows warnings about `Badge` and `RichTextDisplay` not using `forwardRef` — these are non-blocking but should be cleaned up in `RichTextDisplay` to avoid noise
 
-- Create a **user-scoped** Supabase client using `SUPABASE_ANON_KEY` + the user's Authorization header
-- Replace `supabase.auth.getUser(token)` with `supabase.auth.getClaims(token)` for reliable ES256 token validation
-- Keep the service-role client separate for database writes (callback path)
-
-### 2. Redeploy the edge function
-
-Deploy the updated `gmail-oauth` function so the fix takes effect.
-
-## Technical details
-
-The function will have two Supabase clients:
-- **Service-role client** (existing): used in the callback path to upsert `gmail_connections` records
-- **Auth client** (new): created with anon key + user's Authorization header, used only in the POST/initiate path to validate the caller's identity via `getClaims()`
-
-This matches the pattern already used successfully by other edge functions in the project.
+## Files to Change
+- `src/components/ContactNotes.tsx` — remove filter, add fallback content for empty activities
 
