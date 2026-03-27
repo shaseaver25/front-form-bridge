@@ -809,6 +809,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     const existingSet = new Set((existingDocs || []).map((d: any) => d.crelate_id));
 
     let totalAttachments = 0;
+    let authFailures = 0;
 
     for (const contact of contacts) {
       try {
@@ -828,6 +829,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           if (listRes.status === 429 || listRes.status === 401 || listRes.status === 403) {
             console.warn(`${listRes.status} for contact ${contact.crelate_id} - skipping`);
             result.failed += 1;
+            authFailures++;
             await listRes.text(); // consume body
             continue;
           }
