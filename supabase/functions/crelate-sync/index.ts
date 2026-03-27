@@ -809,6 +809,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     const existingSet = new Set((existingDocs || []).map((d: any) => d.crelate_id));
 
     let totalAttachments = 0;
+    let authFailures = 0;
 
     for (const contact of contacts) {
       try {
@@ -828,6 +829,7 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
           if (listRes.status === 429 || listRes.status === 401 || listRes.status === 403) {
             console.warn(`${listRes.status} for contact ${contact.crelate_id} - skipping`);
             result.failed += 1;
+            authFailures++;
             await listRes.text(); // consume body
             continue;
           }
@@ -920,10 +922,18 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     }
 
     result.total = totalAttachments;
-    result.hasMore = hasMore;
-    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    // Stop pagination if every contact in this batch failed with auth errors
+    const allAuthFailed = authFailures >= contacts.length;
+    if (allAuthFailed) {
+      console.warn(`All ${contacts.length} contacts failed with auth errors — stopping document sync pagination`);
+      result.hasMore = false;
+      result.errors.push("Document API access denied (401/403/429 on all contacts). Check API key permissions for document endpoints.");
+    } else {
+      result.hasMore = hasMore;
+    }
+    result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
     result.nextOffset = result.nextCursor;
-    console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, hasMore=${result.hasMore}`);
+    console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, authFailed=${authFailures}/${contacts.length}, hasMore=${result.hasMore}`);
   } catch (e: unknown) {
     result.errors.push(`Documents sync failed: ${(e as Error).message}`);
   }
@@ -1392,7 +1402,7 @@ Deno.serve(async (req) => {
 
     const syncStatus = allErrors.length > 0
       ? (totalSynced > 0 ? "partial" : "failed")
-      : (totalFailed > 0 ? "partial" : "success");
+      : (totalFailed > 0 && totalSynced === 0 ? "failed" : totalFailed > 0 ? "partial" : "success");
 
     if (logEntry) {
       await supabase
