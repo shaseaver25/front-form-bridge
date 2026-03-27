@@ -115,13 +115,18 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
 
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
   const normalizedKey = normalizeApiKey(apiKey);
-  const url = `${CRELATE_BASE}/${endpoint}?api_key=${normalizedKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, normalizedKey) });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Crelate API error ${res.status}: ${text}`);
+  const url = `${CRELATE_BASE}/${endpoint}?offset=${offset}&limit=${limit}`;
+  
+  const { response, authAttempt } = await fetchCrelateWithAuthVariants(url, {}, normalizedKey);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`crelateGet FAILED: endpoint=${endpoint} status=${response.status} authAttempt=${authAttempt} keyLen=${normalizedKey.length} keyPrefix=${normalizedKey.substring(0, 4)}...`);
+    throw new Error(`Crelate API error ${response.status} (auth: ${authAttempt}): ${text}`);
   }
-  return res.json();
+  
+  console.log(`crelateGet OK: endpoint=${endpoint} authAttempt=${authAttempt}`);
+  return response.json();
 }
 
 async function fetchAllPages(endpoint: string, apiKey: string): Promise<any[]> {
@@ -1290,17 +1295,24 @@ Deno.serve(async (req) => {
     // Test connection
     if (action === "test") {
       try {
-        const testUrl = `${CRELATE_BASE}/contacts?api_key=${crelateApiKey}&offset=0&limit=1`;
-        const res = await fetch(testUrl, { headers: { "x-api-key": crelateApiKey } });
+        const normalizedKey = normalizeApiKey(crelateApiKey);
+        const testUrl = `${CRELATE_BASE}/contacts?offset=0&limit=1`;
+        const { response: res, authAttempt } = await fetchCrelateWithAuthVariants(testUrl, {}, normalizedKey);
         const responseText = await res.text();
+        console.log(`Test connection: status=${res.status} authAttempt=${authAttempt} keyLen=${normalizedKey.length}`);
         if (!res.ok) {
-          return new Response(JSON.stringify({ success: false, error: `API returned ${res.status}` }), {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: `API returned ${res.status} (auth: ${authAttempt})`,
+            detail: `Tried auth variants; last attempt "${authAttempt}" returned ${res.status}. Key length: ${normalizedKey.length}`,
+          }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         return new Response(JSON.stringify({ 
           success: true, 
           message: "Connected to Crelate API",
+          authMethod: authAttempt,
           preview: responseText.substring(0, 200),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
