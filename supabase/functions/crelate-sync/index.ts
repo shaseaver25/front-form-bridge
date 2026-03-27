@@ -922,10 +922,18 @@ async function syncDocuments(apiKey: string, supabase: any, cursorOffset = 0, ba
     }
 
     result.total = totalAttachments;
-    result.hasMore = hasMore;
-    result.nextCursor = hasMore ? cursorOffset + batchSize : undefined;
+    // Stop pagination if every contact in this batch failed with auth errors
+    const allAuthFailed = authFailures >= contacts.length;
+    if (allAuthFailed) {
+      console.warn(`All ${contacts.length} contacts failed with auth errors — stopping document sync pagination`);
+      result.hasMore = false;
+      result.errors.push("Document API access denied (401/403/429 on all contacts). Check API key permissions for document endpoints.");
+    } else {
+      result.hasMore = hasMore;
+    }
+    result.nextCursor = result.hasMore ? cursorOffset + batchSize : undefined;
     result.nextOffset = result.nextCursor;
-    console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, hasMore=${result.hasMore}`);
+    console.log(`Document sync batch done: ${result.created} created, ${result.failed} failed, authFailed=${authFailures}/${contacts.length}, hasMore=${result.hasMore}`);
   } catch (e: unknown) {
     result.errors.push(`Documents sync failed: ${(e as Error).message}`);
   }
