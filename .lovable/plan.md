@@ -1,118 +1,103 @@
 
-Root cause is now clear: this is primarily a data/storage problem, not a UI loading problem.
+## Fix: Crelate test passes but sync still returns 403
 
-What I verified
-- On the affected contact (`49817374-1bf9-4f08-bd1e-eac6be10cdb0`), `crm_contact_notes` returns zero rows.
-- That same contact has only 2 `crm_activities` rows, and both have:
-  - `subject = null`
-  - `body = null`
-- The preview network request for `crm_contact_notes` succeeds with `200` and returns `[]`.
-- The session replay shows the UI expanding “Meeting logged” and “Note”, which matches the fallback labels in `ContactNotes.tsx` for activities that have no text body.
+## What I found
+- The success case and failure case are real and reproducible from the current code/logs:
+  - `action: "test"` returns `success: true`
+  - `action: "sync", entity_type: "contacts"` returns `Contacts sync failed: Crelate API error 403`
+- The two paths are **not using the same request implementation**:
+  - **Test connection** uses a one-off fetch to `/contacts?offset=0&limit=1` with only `x-api-key`
+  - **Sync contacts** goes through `fetchAllPages -> crelateGet`, which sends the API key differently and requests larger paginated batches
+- There is already a more robust helper in the function, `fetchCrelateWithAuthVariants(...)`, but it is currently **unused**.
 
-Why the UI looks broken
-- `ContactNotes.tsx` is doing this:
-  - fetches `crm_contact_notes`
-  - fetches `crm_activities`
-  - if an activity has no text, it renders a fallback label like “Meeting logged”
-- So when you only see titles, that is because the database rows being rendered do not contain note body text.
+## Likely root cause
+This is most likely an **auth/request-shape mismatch**, not a frontend problem:
+- the key is valid enough for the simple connection test
+- but the sync path is using a different header/query combination than the test path
+- Crelate is rejecting the sync request format with 403
 
-Deeper systemic issue I found
-- This is widespread in the data, not just one contact:
-  - `crm_activities` with `activity_type='note'`: 1250 total, only 9 have any text, 1241 have no subject/body
-  - `meeting`: 183 total, only 1 has text
-  - `email_received`: 334 total, only 6 have text
-- That means the imported/synced activity dataset is mostly missing body content.
+A secondary possibility is a **restricted key scope** on the contacts endpoint, but the first thing to fix is the inconsistent request logic.
 
-Important code-level cause
-In `supabase/functions/crelate-sync/index.ts`:
-```ts
-const noteRows = rows
-  .filter(r => r.contact_id && (r.body || r.subject))
-```
-Then later:
-```ts
-const { data: existingNotes } = await supabase
-  .from("crm_contact_notes")
-  .select("id")
-  .limit(1);
+## Implementation plan
 
-if (!existingNotes || existingNotes.length === 0) {
-  // insert all noteRows
-} else {
-  console.log("Contact notes already exist, skipping population to avoid duplicates");
-}
-```
+### 1. Unify test and sync onto one Crelate request helper
+Refactor `supabase/functions/crelate-sync/index.ts` so both:
+- `action === "test"`
+- all sync fetches (`contacts`, `companies`, `jobs`, `activities`, etc.)
 
-That means:
-- The sync only populates `crm_contact_notes` if the entire table is empty.
-- Once even one note exists anywhere in the table, later imports/syncs never backfill notes for other contacts.
-- So a “complete data load into Supabase” would still not show note bodies in this UI unless:
-  1. those bodies were actually loaded into `crm_activities` or `crm_contact_notes`, and
-  2. the one-time table-empty gate did not block note creation.
+use the **same underlying request function**.
 
-Diagnosis summary
-1. The page is loading successfully.
-2. The current contact has no `crm_contact_notes`.
-3. The fallback activity rows have no stored text.
-4. The sync/import logic has a global guard that prevents note backfill after the first seed.
-5. Therefore the real fix is in the data ingestion/backfill path, not in the note card rendering.
+Planned approach:
+- replace direct `fetch(...)` inside `crelateGet`
+- route all v3 endpoint reads through `fetchCrelateWithAuthVariants(...)`
+- make the test endpoint call the exact same helper used by sync
 
-Implementation plan
-1. Fix note backfill logic in `crelate-sync`
-- Remove the global “only insert if crm_contact_notes is empty” behavior.
-- Replace it with per-record deduplication/backfill logic, e.g. insert missing notes per contact/content/timestamp instead of skipping the whole table.
-- Keep manual notes safe by only backfilling generated notes from activity-derived content.
+This removes the current “test path works, sync path differs” bug class entirely.
 
-2. Add a durable provenance field for generated notes
-- Add a column such as `source_type` / `source_activity_id` / `source_crelate_id` on `crm_contact_notes`.
-- This lets the app distinguish:
-  - manual notes
-  - synced/generated notes
-- It also makes deduplication and re-import safe.
+### 2. Make the first sync attempt match the known-good test request
+For `/api3/contacts`, make the first auth attempt mirror the currently successful test request as closely as possible:
+- same endpoint family
+- same lowercase `x-api-key` header
+- same query-param strategy where applicable
 
-3. Backfill note bodies from existing activity data where possible
-- Create a migration/backfill step that populates `crm_contact_notes` from existing `crm_activities` rows that do have text.
-- This will recover note bodies for records already present in the database.
+Then allow fallbacks only if needed.
 
-4. Improve the UI to avoid misleading output
-- In `ContactNotes.tsx`, separate:
-  - real notes with content
-  - activity events without content
-- Show empty-text activities as activity log items, not as if they were full notes.
-- Add a clear empty-state message like “No note body was imported for this activity.”
+This gives the sync path the best chance of matching the request shape Crelate already accepts.
 
-5. Audit the import source mapping
-- Review where your “complete data download” landed:
-  - if it populated `crm_contact_notes`, the UI should show it
-  - if it only populated `crm_activities` but those rows still lack body text, the source import mapping is incomplete
-- Confirm whether the raw source dataset contains note text that never made it into these two tables.
+### 3. Add endpoint-level auth diagnostics without exposing secrets
+Improve logs in `crelate-sync` so failed requests show:
+- endpoint name
+- auth attempt used (`header_only`, `query_only`, etc.)
+- status code
+- sanitized credential metadata only if needed (length/prefix/suffix, never full key)
 
-Technical details
+Example outcome in logs:
 ```text
-Current behavior
-Contact page
-  -> fetch crm_contact_notes (empty)
-  -> fetch crm_activities (2 rows, no text)
-  -> render fallback labels only
-
-Real fix path
-source import / sync
-  -> ensure note text lands in crm_activities and/or crm_contact_notes
-  -> backfill missing crm_contact_notes safely
-  -> render activities without pretending they are full notes
+contacts request failed with 403 using header_and_query
+retry succeeded with header_only
 ```
 
-Files and areas to change
-- `supabase/functions/crelate-sync/index.ts`
-  - remove table-empty guard
-  - implement per-note backfill logic
-- database migration
-  - add provenance/dedup fields to `crm_contact_notes`
-- `src/components/ContactNotes.tsx`
-  - distinguish contentful notes from textless activities
-  - improve empty/fallback messaging
+That will make future debugging much faster.
 
-Expected outcome after fix
-- Contacts with imported note bodies will display full note content.
-- Contacts with only textless activities will no longer look like “broken notes”; they will appear as activity events with explicit no-body messaging.
-- Future syncs/imports will correctly backfill missing notes instead of silently skipping because the table is no longer empty.
+### 4. Preserve existing special handling for document APIs
+Keep document sync on its existing v2-specific flow unless needed:
+- documents already use different endpoints and auth expectations
+- this bug is currently on the v3 contacts sync path
+
+So the change should target shared v3 reads first, not rewrite the whole integration.
+
+### 5. Improve the admin UI error message
+Update the sync failure surface so it no longer just says “Sync failed”.
+Show a clearer message when the edge function returns a 401/403-style upstream error, for example:
+- “Connection test passed, but Crelate rejected the contacts sync request.”
+- “This usually means the sync endpoint needs a different auth format or the key lacks contacts access.”
+
+This will make the state less confusing for admins.
+
+## Files to change
+- `supabase/functions/crelate-sync/index.ts`
+  - unify request logic
+  - use `fetchCrelateWithAuthVariants`
+  - add sanitized diagnostics
+- `src/hooks/useCrelateSync.ts`
+  - preserve and surface richer sync error text
+- optionally `src/pages/CrelateSettings.tsx`
+  - show clearer inline guidance in sync history or toast copy
+
+## Expected result
+After this fix:
+- if the issue is request-format mismatch, contacts sync should start working immediately
+- if the issue is true permission scope, the logs will clearly prove that and identify which endpoint/auth variant is blocked
+- the admin UI will stop giving the misleading impression that “connected” means “sync-ready”
+
+## Technical notes
+```text
+Current
+test -> custom fetch -> success
+sync -> crelateGet/fetchAllPages -> 403
+
+Planned
+test -> shared request helper
+sync -> same shared request helper
+logs -> include auth attempt + endpoint + status
+```
