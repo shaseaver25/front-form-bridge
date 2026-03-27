@@ -1295,17 +1295,24 @@ Deno.serve(async (req) => {
     // Test connection
     if (action === "test") {
       try {
-        const testUrl = `${CRELATE_BASE}/contacts?api_key=${crelateApiKey}&offset=0&limit=1`;
-        const res = await fetch(testUrl, { headers: { "x-api-key": crelateApiKey } });
+        const normalizedKey = normalizeApiKey(crelateApiKey);
+        const testUrl = `${CRELATE_BASE}/contacts?offset=0&limit=1`;
+        const { response: res, authAttempt } = await fetchCrelateWithAuthVariants(testUrl, {}, normalizedKey);
         const responseText = await res.text();
+        console.log(`Test connection: status=${res.status} authAttempt=${authAttempt} keyLen=${normalizedKey.length}`);
         if (!res.ok) {
-          return new Response(JSON.stringify({ success: false, error: `API returned ${res.status}` }), {
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: `API returned ${res.status} (auth: ${authAttempt})`,
+            detail: `Tried auth variants; last attempt "${authAttempt}" returned ${res.status}. Key length: ${normalizedKey.length}`,
+          }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         return new Response(JSON.stringify({ 
           success: true, 
           message: "Connected to Crelate API",
+          authMethod: authAttempt,
           preview: responseText.substring(0, 200),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
