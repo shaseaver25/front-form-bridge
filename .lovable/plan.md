@@ -1,103 +1,68 @@
 
-## Fix: Crelate test passes but sync still returns 403
 
-## What I found
-- The success case and failure case are real and reproducible from the current code/logs:
-  - `action: "test"` returns `success: true`
-  - `action: "sync", entity_type: "contacts"` returns `Contacts sync failed: Crelate API error 403`
-- The two paths are **not using the same request implementation**:
-  - **Test connection** uses a one-off fetch to `/contacts?offset=0&limit=1` with only `x-api-key`
-  - **Sync contacts** goes through `fetchAllPages -> crelateGet`, which sends the API key differently and requests larger paginated batches
-- There is already a more robust helper in the function, `fetchCrelateWithAuthVariants(...)`, but it is currently **unused**.
+## Import Crelate CSV Data into Supabase
 
-## Likely root cause
-This is most likely an **auth/request-shape mismatch**, not a frontend problem:
-- the key is valid enough for the simple connection test
-- but the sync path is using a different header/query combination than the test path
-- Crelate is rejecting the sync request format with 403
+### Current state
 
-A secondary possibility is a **restricted key scope** on the contacts endpoint, but the first thing to fix is the inconsistent request logic.
+Most data from these CSVs is **already synced** via the API:
 
-## Implementation plan
+| CSV File | CSV Rows | DB Rows | Status |
+|----------|----------|---------|--------|
+| Tags | ~15 | 16 (15 with crelate_id) | Already synced |
+| TagRelationships | ~2,541 | 2,541 (2,540 with crelate_id) | Already synced |
+| Urls | ~4,932 | 4,939 (4,920 with crelate_id) | Already synced |
+| TimelineItems | ~6,019 | 7,195 (all with crelate_id) | Already synced (DB has more) |
+| WorkflowItems | ~150 | 113 (110 with crelate_id) | **~40 missing** |
+| Portals | ~824 | 1 | **~823 missing** |
+| Users | ~14 | Reference only | N/A |
+| RelationshipTypes | ~6 | Reference only | N/A |
+| RelationshipGroups | ~1 | Reference only | N/A |
+| SubmittalTemplates | ~13 | No target table | Skip |
 
-### 1. Unify test and sync onto one Crelate request helper
-Refactor `supabase/functions/crelate-sync/index.ts` so both:
-- `action === "test"`
-- all sync fetches (`contacts`, `companies`, `jobs`, `activities`, etc.)
+### What to import
 
-use the **same underlying request function**.
+**1. WorkflowItems → `crm_pipeline_items` (~40 new records)**
 
-Planned approach:
-- replace direct `fetch(...)` inside `crelateGet`
-- route all v3 endpoint reads through `fetchCrelateWithAuthVariants(...)`
-- make the test endpoint call the exact same helper used by sync
+Map CSV columns to existing table:
+- `Id` → `crelate_id` (dedup key)
+- `TargetId` (contact crelate_id) → look up `contact_id` from `crm_contacts.crelate_id`
+- `JobId` → look up `job_id` from `crm_jobs.crelate_id`
+- `WorkflowItemStatusId` → `status` (map values like "Declined - Client", "Placed", "New", etc.)
+- `AverageRating` → `average_rating`
+- `ExecutiveSummaryHtml` → `executive_summary`
+- `LastActivityDateForThisJob` → `last_activity_date`
+- `LastStageChange` → `last_stage_change`
+- `CreatedOnSystem` → `created_at`
 
-This removes the current “test path works, sync path differs” bug class entirely.
+Only insert rows where `crelate_id` does not already exist in `crm_pipeline_items`.
 
-### 2. Make the first sync attempt match the known-good test request
-For `/api3/contacts`, make the first auth attempt mirror the currently successful test request as closely as possible:
-- same endpoint family
-- same lowercase `x-api-key` header
-- same query-param strategy where applicable
+**2. Portals → `briefing_room_clients` (~823 new records)**
 
-Then allow fallbacks only if needed.
+Map CSV columns:
+- `Id` → used as reference
+- `Name` → `client_name`
+- `AccountId` → `crm_company_id` (look up from `crm_companies.crelate_id`)
+- `CompanyName` → fallback for client name
+- `IsActive` → `is_active`
+- `crm_search_id` → link to the related job/search
 
-This gives the sync path the best chance of matching the request shape Crelate already accepts.
+This requires inspecting the Portals CSV more carefully to determine which fields map to `crm_search_id` and `client_email`.
 
-### 3. Add endpoint-level auth diagnostics without exposing secrets
-Improve logs in `crelate-sync` so failed requests show:
-- endpoint name
-- auth attempt used (`header_only`, `query_only`, etc.)
-- status code
-- sanitized credential metadata only if needed (length/prefix/suffix, never full key)
+**3. Skip**: Tags, TagRelationships, Urls, TimelineItems (already fully synced). SubmittalTemplates (no target table). Users, RelationshipTypes, RelationshipGroups (reference data only).
 
-Example outcome in logs:
-```text
-contacts request failed with 403 using header_and_query
-retry succeeded with header_only
-```
+### Implementation
 
-That will make future debugging much faster.
+Write a Python script that:
+1. Reads the CSV files
+2. Queries existing `crm_contacts` and `crm_jobs` by `crelate_id` to build lookup maps
+3. Transforms WorkflowItems rows into `crm_pipeline_items` inserts, skipping duplicates
+4. Transforms Portals rows into `briefing_room_clients` inserts
+5. Runs the inserts via `psql`
 
-### 4. Preserve existing special handling for document APIs
-Keep document sync on its existing v2-specific flow unless needed:
-- documents already use different endpoints and auth expectations
-- this bug is currently on the v3 contacts sync path
+### Technical details
 
-So the change should target shared v3 reads first, not rewrite the whole integration.
+- Uses `psql` with the pre-set env vars for database access
+- Deduplicates on `crelate_id` using `ON CONFLICT DO NOTHING` or pre-filtering
+- Status values from WorkflowItems (e.g., "Declined - Client", "Placed", "Interview") mapped to `crm_pipeline_items.status` values
+- Portals CSV needs deeper inspection of its column structure before finalizing the mapping
 
-### 5. Improve the admin UI error message
-Update the sync failure surface so it no longer just says “Sync failed”.
-Show a clearer message when the edge function returns a 401/403-style upstream error, for example:
-- “Connection test passed, but Crelate rejected the contacts sync request.”
-- “This usually means the sync endpoint needs a different auth format or the key lacks contacts access.”
-
-This will make the state less confusing for admins.
-
-## Files to change
-- `supabase/functions/crelate-sync/index.ts`
-  - unify request logic
-  - use `fetchCrelateWithAuthVariants`
-  - add sanitized diagnostics
-- `src/hooks/useCrelateSync.ts`
-  - preserve and surface richer sync error text
-- optionally `src/pages/CrelateSettings.tsx`
-  - show clearer inline guidance in sync history or toast copy
-
-## Expected result
-After this fix:
-- if the issue is request-format mismatch, contacts sync should start working immediately
-- if the issue is true permission scope, the logs will clearly prove that and identify which endpoint/auth variant is blocked
-- the admin UI will stop giving the misleading impression that “connected” means “sync-ready”
-
-## Technical notes
-```text
-Current
-test -> custom fetch -> success
-sync -> crelateGet/fetchAllPages -> 403
-
-Planned
-test -> shared request helper
-sync -> same shared request helper
-logs -> include auth attempt + endpoint + status
-```
