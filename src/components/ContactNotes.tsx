@@ -33,6 +33,17 @@ const activityTypeIcon = (type: string) => {
   }
 };
 
+const activityTypeLabel = (type: string): string => {
+  switch (type) {
+    case "email": return "Email";
+    case "call": return "Call recorded";
+    case "meeting": return "Meeting logged";
+    case "task": return "Task created";
+    case "note": return "Note";
+    default: return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ") : "Activity";
+  }
+};
+
 const ContactNotes = ({ contactId }: ContactNotesProps) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
