@@ -97,17 +97,20 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
       }));
 
       const activityNotes: Note[] = ((activitiesRes.data as any[]) || [])
-        .filter((a: any) => a.body || a.subject)
-        .map((a: any) => ({
-          id: a.id,
-          content: [a.subject, a.body].filter(Boolean).join("\n\n"),
-          is_pinned: a.is_pinned || false,
-          created_at: a.scheduled_at || a.created_at,
-          updated_at: a.created_at,
-          source: "activity" as const,
-          activity_type: a.activity_type,
-          subject: a.subject,
-        }));
+        .map((a: any) => {
+          const hasContent = a.body || a.subject;
+          const fallbackLabel = activityTypeLabel(a.activity_type);
+          return {
+            id: a.id,
+            content: hasContent ? [a.subject, a.body].filter(Boolean).join("\n\n") : fallbackLabel,
+            is_pinned: a.is_pinned || false,
+            created_at: a.scheduled_at || a.created_at,
+            updated_at: a.created_at,
+            source: "activity" as const,
+            activity_type: a.activity_type,
+            subject: a.subject,
+          };
+        });
 
       const all = [...manualNotes, ...activityNotes].sort((a, b) => {
         if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;

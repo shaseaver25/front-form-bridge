@@ -1993,6 +1993,75 @@ export type Database = {
           },
         ]
       }
+      discovery_transcripts: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          extracted_themes: Json | null
+          granola_note_id: string | null
+          id: string
+          included_in_synthesis: boolean | null
+          interview_date: string | null
+          key_quotes: string[] | null
+          raw_transcript: string
+          search_id: string | null
+          source_type: string | null
+          stakeholder_name: string | null
+          stakeholder_role: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          extracted_themes?: Json | null
+          granola_note_id?: string | null
+          id?: string
+          included_in_synthesis?: boolean | null
+          interview_date?: string | null
+          key_quotes?: string[] | null
+          raw_transcript: string
+          search_id?: string | null
+          source_type?: string | null
+          stakeholder_name?: string | null
+          stakeholder_role?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          extracted_themes?: Json | null
+          granola_note_id?: string | null
+          id?: string
+          included_in_synthesis?: boolean | null
+          interview_date?: string | null
+          key_quotes?: string[] | null
+          raw_transcript?: string
+          search_id?: string | null
+          source_type?: string | null
+          stakeholder_name?: string | null
+          stakeholder_role?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovery_transcripts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovery_transcripts_search_id_fkey"
+            columns: ["search_id"]
+            isOneToOne: false
+            referencedRelation: "crm_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_campaigns: {
         Row: {
           body_html: string | null
