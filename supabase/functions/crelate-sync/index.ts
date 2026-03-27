@@ -115,13 +115,18 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
 
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
   const normalizedKey = normalizeApiKey(apiKey);
-  const url = `${CRELATE_BASE}/${endpoint}?api_key=${normalizedKey}&offset=${offset}&limit=${limit}`;
-  const res = await fetch(url, { headers: withCrelateAuthHeaders({}, normalizedKey) });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Crelate API error ${res.status}: ${text}`);
+  const url = `${CRELATE_BASE}/${endpoint}?offset=${offset}&limit=${limit}`;
+  
+  const { response, authAttempt } = await fetchCrelateWithAuthVariants(url, {}, normalizedKey);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`crelateGet FAILED: endpoint=${endpoint} status=${response.status} authAttempt=${authAttempt} keyLen=${normalizedKey.length} keyPrefix=${normalizedKey.substring(0, 4)}...`);
+    throw new Error(`Crelate API error ${response.status} (auth: ${authAttempt}): ${text}`);
   }
-  return res.json();
+  
+  console.log(`crelateGet OK: endpoint=${endpoint} authAttempt=${authAttempt}`);
+  return response.json();
 }
 
 async function fetchAllPages(endpoint: string, apiKey: string): Promise<any[]> {
