@@ -1211,6 +1211,9 @@ export type Database = {
           created_by: string | null
           id: string
           is_pinned: boolean
+          source_activity_id: string | null
+          source_crelate_id: string | null
+          source_type: string
           updated_at: string | null
         }
         Insert: {
@@ -1220,6 +1223,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_pinned?: boolean
+          source_activity_id?: string | null
+          source_crelate_id?: string | null
+          source_type?: string
           updated_at?: string | null
         }
         Update: {
@@ -1229,6 +1235,9 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_pinned?: boolean
+          source_activity_id?: string | null
+          source_crelate_id?: string | null
+          source_type?: string
           updated_at?: string | null
         }
         Relationships: [

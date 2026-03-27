@@ -238,6 +238,8 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
           notes.map((note) => {
             const noteKey = `${note.source}-${note.id}`;
             const isExpanded = expandedNotes.has(noteKey);
+            const plainContent = note.content.replace(/<[^>]*>/g, "").trim();
+            const hasRealContent = note.source === "note" || (plainContent.length > 0 && plainContent !== activityTypeLabel(note.activity_type || ""));
 
             return (
               <div
@@ -254,26 +256,32 @@ const ContactNotes = ({ contactId }: ContactNotesProps) => {
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleExpand(noteKey); }}
                 >
                   <div className="flex items-center gap-2">
-                    {isExpanded
-                      ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                      : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    }
+                    {hasRealContent && (
+                      isExpanded
+                        ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    )}
                     {note.source === "activity" && note.activity_type && (
                       <Badge variant="secondary" className="text-xs gap-1">
                         {activityTypeIcon(note.activity_type)}
-                        {note.activity_type}
+                        {activityTypeLabel(note.activity_type)}
                       </Badge>
                     )}
                     {note.is_pinned && (
                       <Pin className="w-3 h-3 text-primary shrink-0" />
                     )}
+                    {!hasRealContent && (
+                      <span className="text-xs text-muted-foreground italic">No content recorded</span>
+                    )}
                   </div>
-                  {isExpanded ? (
-                    <RichTextDisplay content={note.content} className="text-foreground" />
-                  ) : (
-                    <p className="whitespace-pre-line text-foreground line-clamp-3">
-                      {note.content.replace(/<[^>]*>/g, "")}
-                    </p>
+                  {hasRealContent && (
+                    isExpanded ? (
+                      <RichTextDisplay content={note.content} className="text-foreground" />
+                    ) : (
+                      <p className="whitespace-pre-line text-foreground line-clamp-3">
+                        {plainContent}
+                      </p>
+                    )
                   )}
                   <span className="text-xs text-muted-foreground block pt-1">
                     {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
