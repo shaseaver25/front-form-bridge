@@ -56,38 +56,57 @@ async function fetchCrelateWithHeaderOnly(url: string, init: RequestInit, apiKey
   });
 }
 
-async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiKey: string) {
-  const normalizedKey = normalizeApiKey(apiKey);
-  const baseHeaders = toHeaderRecord(init.headers);
+type CrelateAuthAttemptName = "query_only" | "header_only" | "header_and_query" | "authorization_bearer";
 
-  const attempts: { name: string; url: string; headers: Record<string, string> }[] = [
+const CRELATE_AUTH_ATTEMPT_ORDER: CrelateAuthAttemptName[] = [
+  "query_only",
+  "header_only",
+  "header_and_query",
+  "authorization_bearer",
+];
+
+let preferredCrelateAuthAttempt: CrelateAuthAttemptName = "query_only";
+
+function buildCrelateAuthAttempts(url: string, normalizedKey: string) {
+  return [
     {
-      name: "header_only",
-      url,
-      headers: withCrelateAuthHeaders({}, normalizedKey),
-    },
-    {
-      name: "query_only",
+      name: "query_only" as const,
       url: withApiKeyQuery(url, normalizedKey),
       headers: {},
     },
     {
-      name: "header_and_query",
-      url: withApiKeyQuery(url, normalizedKey),
-      headers: withCrelateAuthHeaders({}, normalizedKey),
+      name: "header_only" as const,
+      url,
+      headers: { "x-api-key": normalizedKey },
     },
     {
-      name: "authorization_bearer",
+      name: "header_and_query" as const,
+      url: withApiKeyQuery(url, normalizedKey),
+      headers: { "x-api-key": normalizedKey },
+    },
+    {
+      name: "authorization_bearer" as const,
       url,
       headers: { Authorization: `Bearer ${normalizedKey}` },
     },
   ];
+}
+
+async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiKey: string) {
+  const normalizedKey = normalizeApiKey(apiKey);
+  const baseHeaders = toHeaderRecord(init.headers);
+  const attempts = buildCrelateAuthAttempts(url, normalizedKey);
+  const orderedAttemptNames = [
+    preferredCrelateAuthAttempt,
+    ...CRELATE_AUTH_ATTEMPT_ORDER.filter((name) => name !== preferredCrelateAuthAttempt),
+  ];
 
   let lastResponse: Response | null = null;
-  let lastAttempt = "none";
+  let lastAttempt: CrelateAuthAttemptName = preferredCrelateAuthAttempt;
 
-  for (let i = 0; i < attempts.length; i++) {
-    const attempt = attempts[i];
+  for (let i = 0; i < orderedAttemptNames.length; i++) {
+    const attemptName = orderedAttemptNames[i];
+    const attempt = attempts.find((candidate) => candidate.name === attemptName)!;
     const response = await fetch(attempt.url, {
       ...init,
       headers: {
@@ -96,16 +115,19 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
       },
     });
 
-    const isAuthFailure = response.status === 401 || response.status === 403;
-    if (!isAuthFailure) {
+    const isRetryableAuthFailure = response.status === 401 || response.status === 403;
+    if (!isRetryableAuthFailure) {
+      if (response.ok) {
+        preferredCrelateAuthAttempt = attempt.name;
+      }
       return { response, authAttempt: attempt.name };
     }
 
+    console.warn(`Crelate auth attempt failed: status=${response.status} authAttempt=${attempt.name}`);
     lastResponse = response;
     lastAttempt = attempt.name;
 
-    // Consume response body before next attempt to avoid resource leaks.
-    if (i < attempts.length - 1) {
+    if (i < orderedAttemptNames.length - 1) {
       await response.text();
     }
   }
@@ -116,15 +138,15 @@ async function fetchCrelateWithAuthVariants(url: string, init: RequestInit, apiK
 async function crelateGet(endpoint: string, apiKey: string, offset = 0, limit = PAGE_SIZE) {
   const normalizedKey = normalizeApiKey(apiKey);
   const url = `${CRELATE_BASE}/${endpoint}?offset=${offset}&limit=${limit}`;
-  
+
   const { response, authAttempt } = await fetchCrelateWithAuthVariants(url, {}, normalizedKey);
-  
+
   if (!response.ok) {
     const text = await response.text();
-    console.error(`crelateGet FAILED: endpoint=${endpoint} status=${response.status} authAttempt=${authAttempt} keyLen=${normalizedKey.length} keyPrefix=${normalizedKey.substring(0, 4)}...`);
+    console.error(`crelateGet FAILED: endpoint=${endpoint} status=${response.status} authAttempt=${authAttempt}`);
     throw new Error(`Crelate API error ${response.status} (auth: ${authAttempt}): ${text}`);
   }
-  
+
   console.log(`crelateGet OK: endpoint=${endpoint} authAttempt=${authAttempt}`);
   return response.json();
 }

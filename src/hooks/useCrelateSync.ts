@@ -121,7 +121,9 @@ export function useCrelateSync() {
     },
     onError: (e) => {
       const msg = e.message || "Unknown error";
-      if (msg.includes("403") || msg.includes("401")) {
+      if (msg.includes("429")) {
+        toast.error("Crelate rate-limited bad auth attempts. Wait 5 minutes, then retry.");
+      } else if (msg.includes("403") || msg.includes("401")) {
         toast.error("Sync auth error: Crelate rejected the request. Check API key permissions.");
       } else {
         toast.error("Sync failed: " + msg);
