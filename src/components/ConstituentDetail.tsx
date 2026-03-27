@@ -170,6 +170,12 @@ const ConstituentDetail = ({ open, onOpenChange, constituent }: ConstituentDetai
                       </Badge>
                     )}
                   </div>
+                  {constituent.birthday && (
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Birthday: {formatDate(constituent.birthday)}
+                    </p>
+                  )}
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {tags.map((tag) => (
