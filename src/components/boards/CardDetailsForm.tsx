@@ -454,7 +454,7 @@ export function CardDetailsForm({
           )}
         </div>
 
-        {/* Linked Contact / Constituent */}
+        {/* Linked Contact */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <Users className="h-3 w-3" />
