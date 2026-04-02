@@ -8,12 +8,7 @@ export function useUnifiedTasks(filters: TaskFilters) {
     queryFn: async () => {
       let query = supabase
         .from("unified_tasks")
-        .select(`
-          *,
-          constituent:constituents(id, first_name, last_name),
-          organization:organizations(id, name),
-          grant:grant_opportunities(id, title)
-        `)
+        .select("*")
         .order("due_date", { ascending: true, nullsFirst: false });
 
       if (filters.status !== "all") {
