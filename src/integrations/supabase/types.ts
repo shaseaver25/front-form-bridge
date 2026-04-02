@@ -3014,6 +3014,134 @@ export type Database = {
         }
         Relationships: []
       }
+      task_time_entries: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          notes: string | null
+          started_at: string
+          unified_task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          unified_task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          unified_task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_time_entries_unified_task_id_fkey"
+            columns: ["unified_task_id"]
+            isOneToOne: false
+            referencedRelation: "unified_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_tasks: {
+        Row: {
+          actual_time_minutes: number
+          assigned_to: string | null
+          completed_at: string | null
+          constituent_id: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          estimated_time_minutes: number | null
+          grant_opportunity_id: string | null
+          id: string
+          organization_id: string | null
+          outcome_amount: number | null
+          outcome_date: string | null
+          outcome_id: string | null
+          outcome_notes: string | null
+          outcome_type: string | null
+          priority: string
+          source: string
+          source_id: string | null
+          source_url: string | null
+          status: string
+          tags: string[] | null
+          task_category: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          actual_time_minutes?: number
+          assigned_to?: string | null
+          completed_at?: string | null
+          constituent_id?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          estimated_time_minutes?: number | null
+          grant_opportunity_id?: string | null
+          id?: string
+          organization_id?: string | null
+          outcome_amount?: number | null
+          outcome_date?: string | null
+          outcome_id?: string | null
+          outcome_notes?: string | null
+          outcome_type?: string | null
+          priority?: string
+          source?: string
+          source_id?: string | null
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          task_category?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          actual_time_minutes?: number
+          assigned_to?: string | null
+          completed_at?: string | null
+          constituent_id?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          estimated_time_minutes?: number | null
+          grant_opportunity_id?: string | null
+          id?: string
+          organization_id?: string | null
+          outcome_amount?: number | null
+          outcome_date?: string | null
+          outcome_id?: string | null
+          outcome_notes?: string | null
+          outcome_type?: string | null
+          priority?: string
+          source?: string
+          source_id?: string | null
+          source_url?: string | null
+          status?: string
+          tags?: string[] | null
+          task_category?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_invitations: {
         Row: {
           accepted_at: string | null
