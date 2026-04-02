@@ -41,12 +41,7 @@ export function useTaskDetail(taskId: string | null) {
       if (!taskId) return null;
       const { data, error } = await supabase
         .from("unified_tasks")
-        .select(`
-          *,
-          constituent:constituents(id, first_name, last_name),
-          organization:organizations(id, name),
-          grant:grant_opportunities(id, title)
-        `)
+        .select("*")
         .eq("id", taskId)
         .single();
       if (error) throw error;
