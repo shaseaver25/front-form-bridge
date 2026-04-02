@@ -458,7 +458,7 @@ export function CardDetailsForm({
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <Users className="h-3 w-3" />
-            Linked Constituent
+            Linked Contact
           </Label>
           {linkedConstituent ? (
             <div className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
