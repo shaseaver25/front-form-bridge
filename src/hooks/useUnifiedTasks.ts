@@ -54,7 +54,6 @@ export function useUnifiedTasks(filters: TaskFilters) {
         // Map board card status to unified task status
         let taskStatus: TaskStatus = "pending";
         if (card.completed_at) taskStatus = "completed";
-        else if (card.status === "in_progress" || card.status === "active") taskStatus = "in_progress";
 
         return {
           id: card.id,
