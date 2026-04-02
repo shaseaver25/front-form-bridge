@@ -34,7 +34,7 @@ export function useUnifiedTasks(filters: TaskFilters) {
       // Also fetch board_cards (project tasks) and merge them
       let boardQuery = supabase
         .from("board_cards")
-        .select("id, headline, description, status, priority, due_date, assigned_to, created_by, created_at, updated_at, completed_at, board_id, column_id, estimated_hours, actual_hours")
+        .select("id, headline, description, priority, due_date, assigned_to, created_by, created_at, updated_at, completed_at, board_id, column_id, estimated_hours, actual_hours")
         .order("due_date", { ascending: true, nullsFirst: false });
 
       if (filters.assignee !== "all") {
@@ -54,7 +54,6 @@ export function useUnifiedTasks(filters: TaskFilters) {
         // Map board card status to unified task status
         let taskStatus: TaskStatus = "pending";
         if (card.completed_at) taskStatus = "completed";
-        else if (card.status === "in_progress" || card.status === "active") taskStatus = "in_progress";
 
         return {
           id: card.id,
