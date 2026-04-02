@@ -454,11 +454,11 @@ export function CardDetailsForm({
           )}
         </div>
 
-        {/* Linked Contact / Constituent */}
+        {/* Linked Contact */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <Users className="h-3 w-3" />
-            Linked Constituent
+            Linked Contact
           </Label>
           {linkedConstituent ? (
             <div className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
@@ -490,7 +490,7 @@ export function CardDetailsForm({
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
                   <Users className="h-4 w-4 mr-2" />
-                  Link Constituent
+                  Link Contact
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-2" align="start">
@@ -498,7 +498,7 @@ export function CardDetailsForm({
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search constituents..."
+                      placeholder="Search contacts..."
                       value={constituentSearch}
                       onChange={(e) => setConstituentSearch(e.target.value)}
                       className="pl-8"
@@ -543,16 +543,16 @@ export function CardDetailsForm({
           )}
         </div>
 
-        {/* Linked Grant */}
+        {/* Linked Job */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <Building2 className="h-3 w-3" />
-            Linked Grant
+            Linked Job
           </Label>
           {card.linked_grant_id ? (
             <div className="p-2 bg-muted/50 rounded-md text-sm flex items-center justify-between">
               <span>
-                <span className="text-muted-foreground">Grant linked</span>
+                <span className="text-muted-foreground">Job linked</span>
               </span>
               <Button
                 variant="ghost"
@@ -566,21 +566,21 @@ export function CardDetailsForm({
             </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
-              Link Grant
+              Link Job
             </Button>
           )}
         </div>
 
-        {/* Linked Donation */}
+        {/* Linked Placement */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <DollarSign className="h-3 w-3" />
-            Linked Donation
+            Linked Placement
           </Label>
           {card.linked_donation_id ? (
             <div className="p-2 bg-muted/50 rounded-md text-sm flex items-center justify-between">
               <span>
-                <span className="text-muted-foreground">Donation linked</span>
+                <span className="text-muted-foreground">Placement linked</span>
               </span>
               <Button
                 variant="ghost"
@@ -594,7 +594,7 @@ export function CardDetailsForm({
             </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
-              Link Donation
+              Link Placement
             </Button>
           )}
         </div>
