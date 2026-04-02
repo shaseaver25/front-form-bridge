@@ -1,0 +1,1 @@
+ALTER TABLE public.gmail_messages ADD COLUMN is_saved boolean NOT NULL DEFAULT false;

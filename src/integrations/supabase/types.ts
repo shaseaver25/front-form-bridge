@@ -2442,6 +2442,7 @@ export type Database = {
           id: string
           internal_date: string | null
           is_read: boolean | null
+          is_saved: boolean
           label_ids: Json | null
           matched_contact_id: string | null
           snippet: string | null
@@ -2460,6 +2461,7 @@ export type Database = {
           id?: string
           internal_date?: string | null
           is_read?: boolean | null
+          is_saved?: boolean
           label_ids?: Json | null
           matched_contact_id?: string | null
           snippet?: string | null
@@ -2478,6 +2480,7 @@ export type Database = {
           id?: string
           internal_date?: string | null
           is_read?: boolean | null
+          is_saved?: boolean
           label_ids?: Json | null
           matched_contact_id?: string | null
           snippet?: string | null
