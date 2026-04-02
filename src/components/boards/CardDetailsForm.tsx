@@ -571,16 +571,16 @@ export function CardDetailsForm({
           )}
         </div>
 
-        {/* Linked Donation */}
+        {/* Linked Placement */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <DollarSign className="h-3 w-3" />
-            Linked Donation
+            Linked Placement
           </Label>
           {card.linked_donation_id ? (
             <div className="p-2 bg-muted/50 rounded-md text-sm flex items-center justify-between">
               <span>
-                <span className="text-muted-foreground">Donation linked</span>
+                <span className="text-muted-foreground">Placement linked</span>
               </span>
               <Button
                 variant="ghost"
@@ -594,7 +594,7 @@ export function CardDetailsForm({
             </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
-              Link Donation
+              Link Placement
             </Button>
           )}
         </div>
