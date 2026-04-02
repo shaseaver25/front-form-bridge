@@ -34,7 +34,7 @@ export function useUnifiedTasks(filters: TaskFilters) {
       // Also fetch board_cards (project tasks) and merge them
       let boardQuery = supabase
         .from("board_cards")
-        .select("id, headline, description, status, priority, due_date, assigned_to, created_by, created_at, updated_at, completed_at, board_id, column_id, estimated_hours, actual_hours")
+        .select("id, headline, description, priority, due_date, assigned_to, created_by, created_at, updated_at, completed_at, board_id, column_id, estimated_hours, actual_hours")
         .order("due_date", { ascending: true, nullsFirst: false });
 
       if (filters.assignee !== "all") {
