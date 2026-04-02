@@ -82,8 +82,8 @@ export function PriorityScoreBadge({ estimate, taskTitle, algorithmType = "nonpr
               {algorithmType === "nonprofit" ? (
                 <ul className="list-disc list-inside space-y-0.5">
                   <li>Task category success rates</li>
-                  <li>Grant connection value</li>
-                  <li>Constituent giving history</li>
+                  <li>Job connection value</li>
+                  <li>Contact engagement history</li>
                   <li>Urgency & effort ratio</li>
                 </ul>
               ) : (

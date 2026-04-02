@@ -143,8 +143,8 @@ export function TaskROIBadge({ estimate, taskTitle }: TaskROIBadgeProps) {
               <p className="font-medium mb-1">How ROI is calculated:</p>
               <ul className="list-disc list-inside space-y-0.5">
                 <li>Task category and historical success rates</li>
-                <li>Connected grant amounts</li>
-                <li>Constituent giving history and level</li>
+                <li>Connected job placement fees</li>
+                <li>Contact engagement history</li>
                 <li>Task urgency and priority</li>
                 <li>Estimated time investment</li>
               </ul>
