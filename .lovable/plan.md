@@ -1,47 +1,51 @@
 
 
-## Email Storage Optimization Plan
+## ROI Dashboard — What's Needed to Make It Work
 
-### Current Problem
-- Gmail sync stores **all** 150 messages, but only **33** are matched to contacts
-- The remaining 117 unmatched messages serve no CRM purpose and will keep growing
-- The `gmail_messages` table acts as both a sync buffer and permanent storage, which is inefficient
+### Current State
+The ROI dashboard is built and renders, but it shows empty data because:
+1. The `unified_tasks` table has only **1 row** with **no time logged** and **no outcomes**
+2. The `board_cards` table has **2 cards** with **no hours logged** and **none completed**
+3. The ROI hooks only query `unified_tasks` — they don't include board cards (same gap we just fixed for the task list)
+4. The team performance table shows "Team Member" for everyone because it never fetches actual user names
 
-### Recommended Architecture: Rolling Sync Buffer + Pinned Correspondence
+### The Core Problem
+ROI data depends on two things being tracked:
+- **Time invested** (`actual_time_minutes` on unified_tasks, `actual_hours` on board_cards)
+- **Outcomes** (linking completed tasks to placements/revenue via `outcome_amount`, `outcome_id`)
 
-The most efficient approach is a **two-tier model**:
+Neither is being populated right now.
 
-1. **`gmail_messages` stays as a temporary sync buffer** — auto-purge messages older than 7 days that haven't been "saved" to a contact
-2. **Add a "save to contact" action** — users can pin/save important emails from the correspondence panel, which copies key fields into `crm_activities` (the existing activity log table) with `activity_type = 'email'`
-3. **Saved emails live permanently in `crm_activities`** — already linked to contacts, already has RLS, already shown in activity feeds
+### Plan
 
-### Implementation Steps
+**Step 1: Update ROI hooks to include board_cards data**
+- Modify `useTaskROIByCategory`, `useTaskROIByUser`, and `useTaskSummaryStats` in `src/hooks/useTaskROI.ts`
+- Fetch from both `unified_tasks` AND `board_cards`, merge results before aggregating
+- Map `board_cards.actual_hours` → minutes for consistency
+- For team member names: join with `user_profiles` table to get real names instead of "Team Member"
 
-**Step 1: Add a cleanup mechanism**
-- Create a scheduled Edge Function (`gmail-cleanup`) that runs daily
-- Deletes rows from `gmail_messages` where `internal_date` is older than 7 days AND the message has NOT been marked as saved
-- Add a `is_saved` boolean column to `gmail_messages` to track which ones the user chose to keep
+**Step 2: Add time tracking to board cards**
+- When a board card is completed (moved to done column or marked complete), prompt for actual hours spent
+- Add an "Log Hours" action on task cards in the unified task list so users can record time
+- This populates the `actual_hours` field on `board_cards` and `actual_time_minutes` on `unified_tasks`
 
-**Step 2: Add "Save to Contact" UI**
-- In the ContactCorrespondence panel, add a bookmark/save icon on each Gmail message
-- When clicked, copy the email data into `crm_activities` with `activity_type = 'email'`, `direction`, `subject`, `body` (snippet), linked to the `contact_id`
-- Mark the source `gmail_messages` row as `is_saved = true` (so cleanup skips it, or optionally delete it since it's now in activities)
+**Step 3: Add outcome linking**
+- When completing a task, allow linking it to a placement from `crm_placements` (which has `fee_amount`)
+- This populates `outcome_id` and `outcome_amount` on unified_tasks
+- For board cards, use `linked_donation_id` (which maps to placements in the current schema)
 
-**Step 3: Update ContactCorrespondence to read from both sources**
-- Continue reading from `gmail_messages` for recent/unsaved emails (the rolling 7-day window)
-- Also read from `crm_activities` where `activity_type = 'email'` for permanently saved correspondence
-- Merge and deduplicate in the UI
+**Step 4: Rename dashboard labels for recruiting context**
+- "Total Outcomes" → "Total Placement Fees"
+- "Outcome Rate" → "Placement Conversion Rate"
+- "Revenue/Hour" stays as-is (makes sense for recruiting)
+- "Tasks with Outcomes" → "Tasks with Placements"
 
-**Step 4: Schedule the cleanup cron**
-- Daily pg_cron job calls the `gmail-cleanup` Edge Function
-- Deletes `gmail_messages` rows older than 7 days where `is_saved = false`
-
-### Database Changes
-- Add column: `gmail_messages.is_saved` (boolean, default false)
-- No new tables needed — reuses existing `crm_activities`
+### Files to Modify
+- `src/hooks/useTaskROI.ts` — merge board_cards data, fetch user names
+- `src/components/tasks/TaskROIDashboard.tsx` — rename labels
+- `src/components/tasks/UnifiedTaskList.tsx` — add "Log Hours" action
+- `src/components/tasks/CreateTaskDialog.tsx` or new component — add time/outcome logging UI
 
 ### Result
-- `gmail_messages` stays small (only last 7 days + explicitly saved items)
-- Important correspondence lives permanently in `crm_activities`, tied to contacts
-- Users have explicit control over what gets kept
+Once implemented, the dashboard will show real data as soon as team members start logging hours on their tasks and linking completed tasks to placements. The charts and team table will populate automatically.
 
