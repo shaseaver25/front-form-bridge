@@ -192,16 +192,16 @@ export function UnifiedTaskList({ filters, showROIEstimate = true }: UnifiedTask
                     {task.assigned_user.full_name}
                   </span>
                 )}
-                {task.constituent && (
+                {task.contact && (
                   <span className="flex items-center gap-1">
                     <Link2 className="h-3 w-3" />
-                    {task.constituent.first_name} {task.constituent.last_name}
+                    {task.contact.first_name} {task.contact.last_name}
                   </span>
                 )}
-                {task.grant && (
+                {task.job && (
                   <span className="flex items-center gap-1">
                     <Link2 className="h-3 w-3" />
-                    {(task.grant as { title?: string; name?: string }).title || (task.grant as { name?: string }).name}
+                    {(task.job as { title?: string; name?: string }).title || (task.job as { name?: string }).name}
                   </span>
                 )}
                 {getBoardName(task) && (

@@ -44,28 +44,27 @@ export function OutcomeAttributionDialog({ taskId, onClose }: OutcomeAttribution
     queryFn: async () => {
       if (!outcomeType) return [];
       
-      if (outcomeType === "gift_received" && task?.constituent_id) {
+      if (outcomeType === "placement_made" && task?.grant_opportunity_id) {
         const { data } = await supabase
-          .from("gifts")
-          .select("id, amount, date_received")
-          .eq("constituent_id", task.constituent_id)
-          .order("date_received", { ascending: false })
+          .from("crm_placements")
+          .select("id, fee_amount, placement_date")
+          .order("placement_date", { ascending: false })
           .limit(10);
-        return (data || []).map((g) => ({
-          id: g.id,
-          label: `$${g.amount} on ${g.date_received ? new Date(g.date_received).toLocaleDateString() : "N/A"}`,
+        return (data || []).map((p) => ({
+          id: p.id,
+          label: `$${p.fee_amount || 0} on ${p.placement_date ? new Date(p.placement_date).toLocaleDateString() : "N/A"}`,
         }));
       }
       
-      if ((outcomeType === "grant_awarded" || outcomeType === "grant_submitted") && task?.grant_opportunity_id) {
+      if (outcomeType === "candidate_submitted" && task?.grant_opportunity_id) {
         const { data } = await supabase
-          .from("grant_opportunities")
-          .select("id, title, awarded_amount")
+          .from("crm_jobs")
+          .select("id, name")
           .eq("id", task.grant_opportunity_id)
           .maybeSingle();
         return data ? [{
           id: data.id,
-          label: `${data.title} - $${data.awarded_amount || 0}`,
+          label: data.name,
         }] : [];
       }
       
