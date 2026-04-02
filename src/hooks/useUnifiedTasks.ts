@@ -6,6 +6,7 @@ export function useUnifiedTasks(filters: TaskFilters) {
   return useQuery({
     queryKey: ["unified-tasks", filters],
     queryFn: async () => {
+      // Fetch from unified_tasks table
       let query = supabase
         .from("unified_tasks")
         .select("*")
@@ -14,7 +15,7 @@ export function useUnifiedTasks(filters: TaskFilters) {
       if (filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
-      if (filters.source !== "all") {
+      if (filters.source !== "all" && filters.source !== "board_card") {
         query = query.eq("source", filters.source as TaskSource);
       }
       if (filters.assignee !== "all") {
@@ -27,9 +28,91 @@ export function useUnifiedTasks(filters: TaskFilters) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []) as unknown as UnifiedTask[];
+      const { data: unifiedData, error: unifiedError } = await query;
+      if (unifiedError) throw unifiedError;
+
+      // Also fetch board_cards (project tasks) and merge them
+      let boardQuery = supabase
+        .from("board_cards")
+        .select("id, headline, description, status, priority, due_date, assigned_to, created_by, created_at, updated_at, completed_at, board_id, column_id, estimated_hours, actual_hours")
+        .order("due_date", { ascending: true, nullsFirst: false });
+
+      if (filters.assignee !== "all") {
+        boardQuery = boardQuery.eq("assigned_to", filters.assignee);
+      }
+      if (filters.search) {
+        boardQuery = boardQuery.or(`headline.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      }
+
+      const { data: boardCards, error: boardError } = await boardQuery;
+      if (boardError) {
+        console.error("Error fetching board cards:", boardError);
+      }
+
+      // Map board_cards to UnifiedTask shape
+      const boardTasks: UnifiedTask[] = (boardCards || []).map((card) => {
+        // Map board card status to unified task status
+        let taskStatus: TaskStatus = "pending";
+        if (card.completed_at) taskStatus = "completed";
+        else if (card.status === "in_progress" || card.status === "active") taskStatus = "in_progress";
+
+        return {
+          id: card.id,
+          source: "board_card" as TaskSource,
+          source_id: card.board_id,
+          source_url: `/boards/${card.board_id}`,
+          title: card.headline,
+          description: card.description,
+          status: taskStatus,
+          priority: (card.priority || "medium") as TaskPriority,
+          due_date: card.due_date,
+          completed_at: card.completed_at,
+          assigned_to: card.assigned_to,
+          created_by: card.created_by,
+          constituent_id: null,
+          organization_id: null,
+          grant_opportunity_id: null,
+          estimated_time_minutes: card.estimated_hours ? Math.round(card.estimated_hours * 60) : null,
+          actual_time_minutes: card.actual_hours ? Math.round(card.actual_hours * 60) : 0,
+          task_category: null,
+          outcome_type: null,
+          outcome_id: null,
+          outcome_amount: null,
+          outcome_date: null,
+          outcome_notes: null,
+          tags: [],
+          created_at: card.created_at,
+          updated_at: card.updated_at,
+        };
+      });
+
+      // Filter board tasks by status if needed
+      let filteredBoardTasks = boardTasks;
+      if (filters.status !== "all") {
+        filteredBoardTasks = boardTasks.filter(t => t.status === filters.status);
+      }
+      if (filters.source !== "all" && filters.source !== "board_card") {
+        filteredBoardTasks = []; // Don't include board cards if filtering to another source
+      }
+
+      // Merge, deduplicate (by source_id match), and sort
+      const unifiedTasks = (unifiedData || []) as unknown as UnifiedTask[];
+      const existingBoardIds = new Set(
+        unifiedTasks.filter(t => t.source === "board_card").map(t => t.source_id)
+      );
+      const newBoardTasks = filteredBoardTasks.filter(t => !existingBoardIds.has(t.id));
+
+      const allTasks = [...unifiedTasks, ...newBoardTasks];
+      
+      // Sort by due_date ascending, nulls last
+      allTasks.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+
+      return allTasks;
     },
   });
 }
