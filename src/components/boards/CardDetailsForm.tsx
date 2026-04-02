@@ -490,7 +490,7 @@ export function CardDetailsForm({
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
                   <Users className="h-4 w-4 mr-2" />
-                  Link Constituent
+                  Link Contact
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-2" align="start">
