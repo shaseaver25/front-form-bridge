@@ -543,16 +543,16 @@ export function CardDetailsForm({
           )}
         </div>
 
-        {/* Linked Grant */}
+        {/* Linked Job */}
         <div className="space-y-2">
           <Label className="text-muted-foreground flex items-center gap-2">
             <Building2 className="h-3 w-3" />
-            Linked Grant
+            Linked Job
           </Label>
           {card.linked_grant_id ? (
             <div className="p-2 bg-muted/50 rounded-md text-sm flex items-center justify-between">
               <span>
-                <span className="text-muted-foreground">Grant linked</span>
+                <span className="text-muted-foreground">Job linked</span>
               </span>
               <Button
                 variant="ghost"
@@ -566,7 +566,7 @@ export function CardDetailsForm({
             </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full" disabled={isLoading}>
-              Link Grant
+              Link Job
             </Button>
           )}
         </div>
