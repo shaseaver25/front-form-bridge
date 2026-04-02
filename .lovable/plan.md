@@ -1,68 +1,47 @@
 
 
-## Import Crelate CSV Data into Supabase
+## Email Storage Optimization Plan
 
-### Current state
+### Current Problem
+- Gmail sync stores **all** 150 messages, but only **33** are matched to contacts
+- The remaining 117 unmatched messages serve no CRM purpose and will keep growing
+- The `gmail_messages` table acts as both a sync buffer and permanent storage, which is inefficient
 
-Most data from these CSVs is **already synced** via the API:
+### Recommended Architecture: Rolling Sync Buffer + Pinned Correspondence
 
-| CSV File | CSV Rows | DB Rows | Status |
-|----------|----------|---------|--------|
-| Tags | ~15 | 16 (15 with crelate_id) | Already synced |
-| TagRelationships | ~2,541 | 2,541 (2,540 with crelate_id) | Already synced |
-| Urls | ~4,932 | 4,939 (4,920 with crelate_id) | Already synced |
-| TimelineItems | ~6,019 | 7,195 (all with crelate_id) | Already synced (DB has more) |
-| WorkflowItems | ~150 | 113 (110 with crelate_id) | **~40 missing** |
-| Portals | ~824 | 1 | **~823 missing** |
-| Users | ~14 | Reference only | N/A |
-| RelationshipTypes | ~6 | Reference only | N/A |
-| RelationshipGroups | ~1 | Reference only | N/A |
-| SubmittalTemplates | ~13 | No target table | Skip |
+The most efficient approach is a **two-tier model**:
 
-### What to import
+1. **`gmail_messages` stays as a temporary sync buffer** — auto-purge messages older than 7 days that haven't been "saved" to a contact
+2. **Add a "save to contact" action** — users can pin/save important emails from the correspondence panel, which copies key fields into `crm_activities` (the existing activity log table) with `activity_type = 'email'`
+3. **Saved emails live permanently in `crm_activities`** — already linked to contacts, already has RLS, already shown in activity feeds
 
-**1. WorkflowItems → `crm_pipeline_items` (~40 new records)**
+### Implementation Steps
 
-Map CSV columns to existing table:
-- `Id` → `crelate_id` (dedup key)
-- `TargetId` (contact crelate_id) → look up `contact_id` from `crm_contacts.crelate_id`
-- `JobId` → look up `job_id` from `crm_jobs.crelate_id`
-- `WorkflowItemStatusId` → `status` (map values like "Declined - Client", "Placed", "New", etc.)
-- `AverageRating` → `average_rating`
-- `ExecutiveSummaryHtml` → `executive_summary`
-- `LastActivityDateForThisJob` → `last_activity_date`
-- `LastStageChange` → `last_stage_change`
-- `CreatedOnSystem` → `created_at`
+**Step 1: Add a cleanup mechanism**
+- Create a scheduled Edge Function (`gmail-cleanup`) that runs daily
+- Deletes rows from `gmail_messages` where `internal_date` is older than 7 days AND the message has NOT been marked as saved
+- Add a `is_saved` boolean column to `gmail_messages` to track which ones the user chose to keep
 
-Only insert rows where `crelate_id` does not already exist in `crm_pipeline_items`.
+**Step 2: Add "Save to Contact" UI**
+- In the ContactCorrespondence panel, add a bookmark/save icon on each Gmail message
+- When clicked, copy the email data into `crm_activities` with `activity_type = 'email'`, `direction`, `subject`, `body` (snippet), linked to the `contact_id`
+- Mark the source `gmail_messages` row as `is_saved = true` (so cleanup skips it, or optionally delete it since it's now in activities)
 
-**2. Portals → `briefing_room_clients` (~823 new records)**
+**Step 3: Update ContactCorrespondence to read from both sources**
+- Continue reading from `gmail_messages` for recent/unsaved emails (the rolling 7-day window)
+- Also read from `crm_activities` where `activity_type = 'email'` for permanently saved correspondence
+- Merge and deduplicate in the UI
 
-Map CSV columns:
-- `Id` → used as reference
-- `Name` → `client_name`
-- `AccountId` → `crm_company_id` (look up from `crm_companies.crelate_id`)
-- `CompanyName` → fallback for client name
-- `IsActive` → `is_active`
-- `crm_search_id` → link to the related job/search
+**Step 4: Schedule the cleanup cron**
+- Daily pg_cron job calls the `gmail-cleanup` Edge Function
+- Deletes `gmail_messages` rows older than 7 days where `is_saved = false`
 
-This requires inspecting the Portals CSV more carefully to determine which fields map to `crm_search_id` and `client_email`.
+### Database Changes
+- Add column: `gmail_messages.is_saved` (boolean, default false)
+- No new tables needed — reuses existing `crm_activities`
 
-**3. Skip**: Tags, TagRelationships, Urls, TimelineItems (already fully synced). SubmittalTemplates (no target table). Users, RelationshipTypes, RelationshipGroups (reference data only).
-
-### Implementation
-
-Write a Python script that:
-1. Reads the CSV files
-2. Queries existing `crm_contacts` and `crm_jobs` by `crelate_id` to build lookup maps
-3. Transforms WorkflowItems rows into `crm_pipeline_items` inserts, skipping duplicates
-4. Transforms Portals rows into `briefing_room_clients` inserts
-5. Runs the inserts via `psql`
-
-### Technical details
-
-- Uses `psql` with the pre-set env vars for database access
-- Deduplicates on `crelate_id` using `ON CONFLICT DO NOTHING` or pre-filtering
-- Status values from WorkflowItems (e.g., "Declined - Client", "Placed", "Interview") mapped to `crm_pipeline_items.status` values
-- Portals CSV needs deeper inspection of its column structure before finalizing the mapping
+### Result
+- `gmail_messages` stays small (only last 7 days + explicitly saved items)
+- Important correspondence lives permanently in `crm_activities`, tied to contacts
+- Users have explicit control over what gets kept
 
