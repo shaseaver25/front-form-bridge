@@ -39,6 +39,7 @@ import ContactTagManager from "@/components/ContactTagManager";
 import ContactCorrespondence from "@/components/contact/ContactCorrespondence";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
+import EditableCompany from "@/components/contact-edit/EditableCompany";
 import { useContactEdit } from "@/hooks/useContactEdit";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useToast } from "@/hooks/use-toast";
