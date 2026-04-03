@@ -414,7 +414,17 @@ export default function ContactDetail() {
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Company */}
-            {company && !editing && (
+            {editing ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <EditableCompany
+                    value={editData.primary_company_id}
+                    onChange={(v) => setEditData((prev) => ({ ...prev, primary_company_id: v }))}
+                    disabled={saving}
+                  />
+                </CardContent>
+              </Card>
+            ) : company ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -434,7 +444,7 @@ export default function ContactDetail() {
                   )}
                 </CardContent>
               </Card>
-            )}
+            ) : null}
 
             {/* Contact Information */}
             <Card>
