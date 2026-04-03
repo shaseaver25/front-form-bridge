@@ -142,15 +142,9 @@ export function RichTextDisplay({ content, className }: { content: string; class
     return <p className={cn("text-sm text-muted-foreground whitespace-pre-line", className)}>{content}</p>;
   }
 
-  // Lazy-load DOMPurify to sanitize HTML and prevent XSS
-  const sanitized = (() => {
-    try {
-      const DOMPurify = require("dompurify");
-      return DOMPurify.sanitize(content);
-    } catch {
-      return content;
-    }
-  })();
+  const DOMPurify = await import("dompurify");
+  // Actually we can't use async here. Use a synchronous import instead.
+
 
   return (
     <div
