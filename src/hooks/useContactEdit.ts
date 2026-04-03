@@ -76,6 +76,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
     salary_details: "",
     desired_salary_min: "",
     desired_salary_max: "",
+    primary_company_id: "",
   });
   const [editEmails, setEditEmails] = useState<EditableEmail[]>([]);
   const [editPhones, setEditPhones] = useState<EditablePhone[]>([]);
