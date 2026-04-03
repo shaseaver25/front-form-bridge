@@ -3,6 +3,7 @@ import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Undo, Redo
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface RichTextEditorProps {
   content: string;
