@@ -17,6 +17,7 @@ export interface ContactEditData {
   salary_details: string;
   desired_salary_min: string;
   desired_salary_max: string;
+  primary_company_id: string;
 }
 
 export interface EditableEmail {
