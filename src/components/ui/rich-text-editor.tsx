@@ -3,6 +3,7 @@ import { Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Undo, Redo
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface RichTextEditorProps {
   content: string;
@@ -142,6 +143,9 @@ export function RichTextDisplay({ content, className }: { content: string; class
     return <p className={cn("text-sm text-muted-foreground whitespace-pre-line", className)}>{content}</p>;
   }
 
+  const sanitized = DOMPurify.sanitize(content);
+
+
   return (
     <div
       className={cn(
@@ -150,7 +154,7 @@ export function RichTextDisplay({ content, className }: { content: string; class
         "[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5",
         className
       )}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
 }
