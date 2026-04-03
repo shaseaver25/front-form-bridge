@@ -159,6 +159,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
 
     try {
       // 1. Update contact
+      const newCompanyId = editData.primary_company_id || null;
       const { error: contactError } = await supabase
         .from("crm_contacts")
         .update({
@@ -176,10 +177,28 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
           salary_details: editData.salary_details || null,
           desired_salary_min: editData.desired_salary_min ? parseFloat(editData.desired_salary_min) : null,
           desired_salary_max: editData.desired_salary_max ? parseFloat(editData.desired_salary_max) : null,
+          primary_company_id: newCompanyId,
         })
         .eq("id", contactId);
 
       if (contactError) throw contactError;
+
+      // Sync career history for company link
+      if (newCompanyId) {
+        await supabase
+          .from("crm_career_history")
+          .update({ is_current: false })
+          .eq("contact_id", contactId)
+          .eq("is_current", true);
+
+        await supabase.from("crm_career_history").insert({
+          contact_id: contactId,
+          company_id: newCompanyId,
+          job_title: editData.job_title || null,
+          is_current: true,
+          entry_type: "experience",
+        });
+      }
 
       // 2. Sync emails
       await syncMultiValue(
