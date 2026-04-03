@@ -142,6 +142,16 @@ export function RichTextDisplay({ content, className }: { content: string; class
     return <p className={cn("text-sm text-muted-foreground whitespace-pre-line", className)}>{content}</p>;
   }
 
+  // Lazy-load DOMPurify to sanitize HTML and prevent XSS
+  const sanitized = (() => {
+    try {
+      const DOMPurify = require("dompurify");
+      return DOMPurify.sanitize(content);
+    } catch {
+      return content;
+    }
+  })();
+
   return (
     <div
       className={cn(
@@ -150,7 +160,7 @@ export function RichTextDisplay({ content, className }: { content: string; class
         "[&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-5 [&_ol]:pl-5",
         className
       )}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
 }
