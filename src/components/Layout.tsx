@@ -10,6 +10,7 @@ import avidEdgeLogo from "@/assets/avidedge-logo.png";
 import { SupportModeBanner } from "./admin/SupportModeBanner";
 import { ChipAssistant } from "./chip/ChipAssistant";
 import { useSuperAdminAccessLog } from "@/hooks/useSuperAdminAccessLog";
+import { hasClientAppAccess, hasInternalAppAccess } from "@/lib/authUtils";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -34,10 +35,13 @@ const Layout = ({ children }: LayoutProps) => {
         .select("role")
         .eq("user_id", session.user.id);
 
-      const isAdmin = roles?.some((r) => r.role === "admin");
-      if (!isAdmin) {
-        // Client-only users should not see CRM pages
-        navigate("/client/dashboard", { replace: true });
+      const hasInternalAccess = hasInternalAppAccess(roles);
+      const hasClientAccess = hasClientAppAccess(roles);
+
+      if (!hasInternalAccess) {
+        setUser(null);
+        setLoading(false);
+        navigate(hasClientAccess ? "/client/dashboard" : "/login", { replace: true });
         return;
       }
 

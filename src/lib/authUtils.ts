@@ -2,6 +2,19 @@ import { supabase } from "@/integrations/supabase/client";
 import type { NavigateFunction } from "react-router-dom";
 
 const STORAGE_KEY = "sb-rzhcefyigmkavddjjxvg-auth-token";
+const INTERNAL_APP_ROLES = new Set(["admin", "staff", "viewer", "project"]);
+
+type UserRoleRow = {
+  role: string | null;
+};
+
+export function hasInternalAppAccess(roles: UserRoleRow[] | null | undefined): boolean {
+  return (roles ?? []).some(({ role }) => !!role && INTERNAL_APP_ROLES.has(role));
+}
+
+export function hasClientAppAccess(roles: UserRoleRow[] | null | undefined): boolean {
+  return (roles ?? []).some(({ role }) => role === "client");
+}
 
 /**
  * Remove all Supabase auth keys from localStorage.
@@ -53,7 +66,7 @@ export function isStaleSessionError(message: string): boolean {
 
 /**
  * Fetch the user's role and redirect accordingly.
- * - admin  → /
+ * - internal roles (admin/staff/viewer/project) → /
  * - client → /client/dashboard
  * - no role → sign out + return error string
  *
@@ -69,14 +82,14 @@ export async function redirectUserByRole(
       .select("role")
       .eq("user_id", userId);
 
-    const isAdmin = roles?.some((r) => r.role === "admin");
-    const isClient = roles?.some((r) => r.role === "client");
+    const hasInternalAccess = hasInternalAppAccess(roles);
+    const hasClientAccess = hasClientAppAccess(roles);
 
-    if (isAdmin) {
+    if (hasInternalAccess) {
       navigate("/", { replace: true });
       return null;
     }
-    if (isClient) {
+    if (hasClientAccess) {
       navigate("/client/dashboard", { replace: true });
       return null;
     }
