@@ -100,6 +100,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
         salary_details: contact.salary_details || "",
         desired_salary_min: contact.desired_salary_min?.toString() || "",
         desired_salary_max: contact.desired_salary_max?.toString() || "",
+        primary_company_id: contact.primary_company_id || "",
       });
       setEditEmails(
         emails.map((e) => ({
