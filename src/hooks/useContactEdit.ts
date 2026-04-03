@@ -17,6 +17,7 @@ export interface ContactEditData {
   salary_details: string;
   desired_salary_min: string;
   desired_salary_max: string;
+  primary_company_id: string;
 }
 
 export interface EditableEmail {
@@ -75,6 +76,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
     salary_details: "",
     desired_salary_min: "",
     desired_salary_max: "",
+    primary_company_id: "",
   });
   const [editEmails, setEditEmails] = useState<EditableEmail[]>([]);
   const [editPhones, setEditPhones] = useState<EditablePhone[]>([]);
@@ -98,6 +100,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
         salary_details: contact.salary_details || "",
         desired_salary_min: contact.desired_salary_min?.toString() || "",
         desired_salary_max: contact.desired_salary_max?.toString() || "",
+        primary_company_id: contact.primary_company_id || "",
       });
       setEditEmails(
         emails.map((e) => ({
@@ -156,6 +159,7 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
 
     try {
       // 1. Update contact
+      const newCompanyId = editData.primary_company_id || null;
       const { error: contactError } = await supabase
         .from("crm_contacts")
         .update({
@@ -173,10 +177,28 @@ export function useContactEdit(contactId: string, onSaved: () => void) {
           salary_details: editData.salary_details || null,
           desired_salary_min: editData.desired_salary_min ? parseFloat(editData.desired_salary_min) : null,
           desired_salary_max: editData.desired_salary_max ? parseFloat(editData.desired_salary_max) : null,
+          primary_company_id: newCompanyId,
         })
         .eq("id", contactId);
 
       if (contactError) throw contactError;
+
+      // Sync career history for company link
+      if (newCompanyId) {
+        await supabase
+          .from("crm_career_history")
+          .update({ is_current: false })
+          .eq("contact_id", contactId)
+          .eq("is_current", true);
+
+        await supabase.from("crm_career_history").insert({
+          contact_id: contactId,
+          company_id: newCompanyId,
+          job_title: editData.job_title || null,
+          is_current: true,
+          entry_type: "experience",
+        });
+      }
 
       // 2. Sync emails
       await syncMultiValue(

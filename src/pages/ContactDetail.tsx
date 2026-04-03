@@ -39,6 +39,7 @@ import ContactTagManager from "@/components/ContactTagManager";
 import ContactCorrespondence from "@/components/contact/ContactCorrespondence";
 import EditableMultiValueField from "@/components/contact-edit/EditableMultiValueField";
 import EditableAddresses from "@/components/contact-edit/EditableAddresses";
+import EditableCompany from "@/components/contact-edit/EditableCompany";
 import { useContactEdit } from "@/hooks/useContactEdit";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useToast } from "@/hooks/use-toast";
@@ -413,7 +414,17 @@ export default function ContactDetail() {
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Company */}
-            {company && !editing && (
+            {editing ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <EditableCompany
+                    value={editData.primary_company_id}
+                    onChange={(v) => setEditData((prev) => ({ ...prev, primary_company_id: v }))}
+                    disabled={saving}
+                  />
+                </CardContent>
+              </Card>
+            ) : company ? (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -433,7 +444,7 @@ export default function ContactDetail() {
                   )}
                 </CardContent>
               </Card>
-            )}
+            ) : null}
 
             {/* Contact Information */}
             <Card>
