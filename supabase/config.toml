@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.synthesize-company-profile]
 verify_jwt = false
+
+[functions.crm-api]
+verify_jwt = false
