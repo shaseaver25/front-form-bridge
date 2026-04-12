@@ -364,8 +364,14 @@ const ConstituentList = () => {
               onClearAll={handleClearFilters}
               totalCount={contacts.length}
               filteredCount={filteredContacts.length}
-              placeholder="Search by name, email, or company..."
+              placeholder="Search by name, title, company, notes, history..."
             />
+            {deepSearching && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Searching notes, career history, and tags...
+              </p>
+            )}
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {allTags.map((tag) => (
