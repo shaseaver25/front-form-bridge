@@ -64,6 +64,55 @@ const ConstituentList = () => {
   const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [contactTagMap, setContactTagMap] = useState<Record<string, string[]>>({});
+  const [deepMatchIds, setDeepMatchIds] = useState<Set<string> | null>(null);
+  const [deepSearching, setDeepSearching] = useState(false);
+
+  // Deep search across notes, career history, and tags
+  useEffect(() => {
+    if (!isReady || searchTerm.trim().length < 2) {
+      setDeepMatchIds(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setDeepSearching(true);
+      const term = `%${searchTerm.trim()}%`;
+
+      const [notesRes, careerRes, tagsRes] = await Promise.all([
+        supabase
+          .from("crm_contact_notes")
+          .select("contact_id")
+          .ilike("content", term),
+        supabase
+          .from("crm_career_history")
+          .select("contact_id")
+          .or(`job_title.ilike.${term},company_name.ilike.${term},description.ilike.${term}`),
+        supabase
+          .from("crm_tags")
+          .select("id")
+          .ilike("name", term),
+      ]);
+
+      const ids = new Set<string>();
+      (notesRes.data || []).forEach((r: any) => ids.add(r.contact_id));
+      (careerRes.data || []).forEach((r: any) => ids.add(r.contact_id));
+
+      // If matching tags found, get contacts with those tags
+      const matchingTagIds = (tagsRes.data || []).map((t: any) => t.id);
+      if (matchingTagIds.length > 0) {
+        const { data: taggedContacts } = await supabase
+          .from("crm_contact_tags")
+          .select("contact_id")
+          .in("tag_id", matchingTagIds);
+        (taggedContacts || []).forEach((r: any) => ids.add(r.contact_id));
+      }
+
+      setDeepMatchIds(ids);
+      setDeepSearching(false);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, isReady]);
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -212,11 +261,16 @@ const ConstituentList = () => {
   };
 
   const filteredContacts = contacts.filter((c) => {
+    const search = searchTerm.toLowerCase();
     const name = getDisplayName(c).toLowerCase();
     const email = (c.primary_email || "").toLowerCase();
     const company = (c.primary_company_name || "").toLowerCase();
-    const search = searchTerm.toLowerCase();
-    const matchesSearch = name.includes(search) || email.includes(search) || company.includes(search);
+    const title = (c.job_title || "").toLowerCase();
+    const desc = (c.description || "").toLowerCase();
+    const location = getLocation(c).toLowerCase();
+    const matchesLocal = name.includes(search) || email.includes(search) || company.includes(search) || title.includes(search) || desc.includes(search) || location.includes(search);
+    const matchesDeep = deepMatchIds ? deepMatchIds.has(c.id) : false;
+    const matchesSearch = !search || matchesLocal || matchesDeep;
     const matchesTags = selectedTagIds.length === 0 || selectedTagIds.every((tagId) => (contactTagMap[c.id] || []).includes(tagId));
     return matchesSearch && matchesTags;
   });
@@ -310,8 +364,14 @@ const ConstituentList = () => {
               onClearAll={handleClearFilters}
               totalCount={contacts.length}
               filteredCount={filteredContacts.length}
-              placeholder="Search by name, email, or company..."
+              placeholder="Search by name, title, company, notes, history..."
             />
+            {deepSearching && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Searching notes, career history, and tags...
+              </p>
+            )}
             {allTags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {allTags.map((tag) => (
