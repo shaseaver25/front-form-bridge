@@ -261,11 +261,16 @@ const ConstituentList = () => {
   };
 
   const filteredContacts = contacts.filter((c) => {
+    const search = searchTerm.toLowerCase();
     const name = getDisplayName(c).toLowerCase();
     const email = (c.primary_email || "").toLowerCase();
     const company = (c.primary_company_name || "").toLowerCase();
-    const search = searchTerm.toLowerCase();
-    const matchesSearch = name.includes(search) || email.includes(search) || company.includes(search);
+    const title = (c.job_title || "").toLowerCase();
+    const desc = (c.description || "").toLowerCase();
+    const location = getLocation(c).toLowerCase();
+    const matchesLocal = name.includes(search) || email.includes(search) || company.includes(search) || title.includes(search) || desc.includes(search) || location.includes(search);
+    const matchesDeep = deepMatchIds ? deepMatchIds.has(c.id) : false;
+    const matchesSearch = !search || matchesLocal || matchesDeep;
     const matchesTags = selectedTagIds.length === 0 || selectedTagIds.every((tagId) => (contactTagMap[c.id] || []).includes(tagId));
     return matchesSearch && matchesTags;
   });
