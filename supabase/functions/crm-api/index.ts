@@ -251,7 +251,8 @@ Deno.serve(async (req) => {
       const pipelineByJob: Record<string, unknown[]> = {};
       for (const pi of (pipelineRes.data || [])) {
         if (!pipelineByJob[pi.job_id]) pipelineByJob[pi.job_id] = [];
-        const contact = pi.crm_contacts as { id: string; first_name: string | null; last_name: string } | null;
+        const rawContact = pi.crm_contacts as unknown;
+        const contact = (Array.isArray(rawContact) ? rawContact[0] : rawContact) as { id: string; first_name: string | null; last_name: string } | null;
         pipelineByJob[pi.job_id].push({
           pipeline_item_id: pi.id,
           contact_id: pi.contact_id,
