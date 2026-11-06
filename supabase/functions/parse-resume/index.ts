@@ -13,6 +13,9 @@ const outputSchema = z.object({
   first_name: z.string().max(200), last_name: z.string().max(200), job_title: z.string().max(500),
   linkedin_url: z.string().max(1000).refine(value => !value || /^https:\/\/(www\.)?linkedin\.com\//i.test(value)),
   description: z.string().max(30000),
+  emails: z.array(z.string().email().max(320)).max(20),
+  phones: z.array(z.string().min(5).max(100).refine(value => /^[+\d\s().\-xext]+$/i.test(value) && value.replace(/\D/g, "").length >= 5)).max(20),
+  addresses: z.array(z.object({ street: z.string().max(1000), city: z.string().max(200), state: z.string().max(200), postal_code: z.string().max(100), country: z.string().max(200) }).strict()).max(10),
 }).strict();
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -24,7 +27,7 @@ Deno.serve(async req => {
     if (!authorization?.startsWith("Bearer ")) return respond({ error: "Sign in to parse resumes." }, 401);
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_ANON_KEY");
-    const system = Deno.env.get("RESUME_PARSE_SYSTEM_PROMPT");
+    const system = Deno.env.get("RESUME_PARSE_CONTACT_SYSTEM_PROMPT");
     if (!url || !key || !system) return respond({ error: "Resume parsing is not configured." }, 503);
     const client = createClient(url, key, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false } });
     const { data: { user }, error: authError } = await client.auth.getUser(authorization.slice(7));
