@@ -1,5 +1,5 @@
 # Resume parsing
-- [ ] Fix rejected extracted resume details and clarify parsing of resumes already on file.
+- [x] Require structured extraction, normalize optional fields, and show labeled Parse actions for saved resumes; 15 tests and fictional DOCX extraction passed.
 - [x] Add optional parsing on resume upload and existing resumes (PDF, DOCX, TXT).
 - [x] Review extracted contact details before explicitly saving.
 - [x] Secure and deploy parsing; nine tests passed, fictional PDF extraction passed, unauthenticated requests rejected.
