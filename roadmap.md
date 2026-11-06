@@ -1,4 +1,5 @@
 # Resume parsing
+- [ ] Fix and verify three blocking security findings: collaborators, unified tasks, and contact-document downloads.
 - [x] Require structured extraction, normalize optional fields, and show labeled Parse actions for saved resumes; 15 tests and fictional DOCX extraction passed.
 - [x] Add optional parsing on resume upload and existing resumes (PDF, DOCX, TXT).
 - [x] Review extracted contact details before explicitly saving.
