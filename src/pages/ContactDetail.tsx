@@ -684,9 +684,9 @@ export default function ContactDetail() {
               contactId={contact.id}
               contactEmails={emails.map((e: any) => e.value)}
             />
-            <ContactResumes contactId={contact.id} />
+            <ContactResumes contactId={contact.id} onContactUpdated={fetchContact} />
             <ContactNotes contactId={contact.id} />
-            <ContactDocuments contactId={contact.id} />
+            <ContactDocuments contactId={contact.id} onContactUpdated={fetchContact} />
 
             <Card>
               <CardHeader>

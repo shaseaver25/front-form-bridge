@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { generateMessage, GatewayError, type RequestFor } from "npm:@lovable.dev/ai-gateway@0.1.11";
-import type {} from "../../../src/generated/ai-gateway/models.d.ts";
+import type {} from "./generated/models.d.ts";
 import { z } from "npm:zod@3.25.76";
 import mammoth from "npm:mammoth@1.13.0";
 import { Buffer } from "node:buffer";
@@ -53,7 +53,7 @@ Deno.serve(async req => {
     if (download.error || !download.data) return respond({ error: "Unable to read this resume." }, 403);
     if (download.data.size > 10 * 1024 * 1024) return respond({ error: "Resumes must be 10 MB or smaller." }, 413);
     const bytes = Buffer.from(await download.data.arrayBuffer());
-    const content: RequestFor<"messages", "anthropic/claude-sonnet-5">["messages"][number]["content"] = [];
+    const content: Exclude<RequestFor<"messages", "anthropic/claude-sonnet-5">["messages"][number]["content"], string> = [];
     if (/\.pdf$/i.test(name)) {
       if (!bytes.subarray(0, 1024).includes(Buffer.from("%PDF-"))) return respond({ error: "This file is not a valid PDF." }, 400);
       content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: bytes.toString("base64") } });
