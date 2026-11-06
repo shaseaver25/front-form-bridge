@@ -213,7 +213,7 @@ const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) =>
               className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
               onClick={() => openPreview(doc)}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1 basis-48">
                 <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{doc.file_name}</p>
@@ -224,7 +224,7 @@ const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) =>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {canParseResume(doc.file_name) && <Button size="sm" variant="outline" className="h-7 gap-1" title="Parse saved resume" onClick={event => { event.stopPropagation(); setParseDocument({ id: doc.id.slice(4), source: doc.id.startsWith("att-") ? "attachment" : "document", fileName: doc.file_name }); }}><ScanText className="w-3.5 h-3.5" />Parse</Button>}
+                {canParseResume(doc.file_name) && <Button size="sm" className="gap-2" title="Parse saved resume" disabled={parseDocument !== null} onClick={event => { event.stopPropagation(); setParseDocument({ id: doc.id.slice(4), source: doc.id.startsWith("att-") ? "attachment" : "document", fileName: doc.file_name }); }}><ScanText className="w-4 h-4" />Parse resume</Button>}
                 <Button
                   size="icon"
                   variant="ghost"

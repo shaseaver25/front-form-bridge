@@ -12,13 +12,13 @@ vi.mock("@/components/contact/ResumeParseDialog", () => ({ ResumeParseDialog: ({
 afterEach(cleanup);
 it("parses existing stored document resumes without a new upload", async () => {
   render(<ContactResumes contactId="contact" />);
-  const buttons = await screen.findAllByRole("button", { name: "Parse" });
+  const buttons = await screen.findAllByRole("button", { name: "Parse resume" });
   fireEvent.click(buttons[0]);
   expect(screen.getByLabelText("Parse target").textContent).toBe("document:saved-document");
 });
 it("parses existing attachment resumes with their original record ID", async () => {
   render(<ContactResumes contactId="contact" />);
-  const buttons = await screen.findAllByRole("button", { name: "Parse" });
+  const buttons = await screen.findAllByRole("button", { name: "Parse resume" });
   fireEvent.click(buttons[1]);
   expect(screen.getByLabelText("Parse target").textContent).toBe("attachment:saved-attachment");
 });
