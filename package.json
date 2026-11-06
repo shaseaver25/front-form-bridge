@@ -58,7 +58,6 @@
     "lucide-react": "^0.462.0",
     "mammoth": "^1.13.0",
     "next-themes": "^0.3.0",
-    "pdfjs-dist": "^6.5.438",
     "prosemirror-model": "^1.25.4",
     "prosemirror-view": "^1.41.6",
     "react": "^18.3.1",
