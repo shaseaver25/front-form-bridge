@@ -3,5 +3,6 @@
 - Resume extraction uses the Claude Messages surface through the AI Gateway SDK, with its system prompt in environment configuration; no additional AI vendor is introduced.
 - Enforce structured JSON on resume extraction and normalize absent optional fields and LinkedIn links before validation, so missing profile links do not discard valid resumes.
 - Parsed details remain transient until a user approves selected profile fields; combine experience, education, and skills into the searchable description without replacing company links or history rows.
+- Resume contact information uses explicitly approved, insert-only email, phone, and address child records, with save-time duplicate checks and checked errors; never spread these arrays into profile updates or modify existing primary flags.
 - Shared tasks, collaborators, and private contact-file operations use an authenticated internal-role RLS boundary that excludes client accounts, preserving staff collaboration without relying on frontend gating.
 - Resume verification is a development-only route using real user authentication, existing upload/review components, and user-owned marked fictional contacts; never introduce a production auth bypass or treat mocked browser checks as live-service verification.
