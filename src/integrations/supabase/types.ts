@@ -3280,6 +3280,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_internal_crm_staff: { Args: { _user_id: string }; Returns: boolean }
       portal_crm_search_id: { Args: never; Returns: string }
     }
     Enums: {
