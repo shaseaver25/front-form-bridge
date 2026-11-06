@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Download, Loader2, Eye } from "lucide-react";
+import { FileText, Download, Loader2, Eye, ScanText } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { ResumeParseDialog, type ResumeParseSource } from "@/components/contact/ResumeParseDialog";
+import { canParseResume } from "@/lib/resumeParsing";
 
 interface ContactResumesProps {
   contactId: string;
+  onContactUpdated?: () => void;
 }
 
 interface ResumeDoc {
@@ -51,7 +54,8 @@ const isImage = (doc: ResumeDoc) => {
 
 const canPreviewInline = (doc: ResumeDoc) => isPdf(doc) || isImage(doc);
 
-const ContactResumes = ({ contactId }: ContactResumesProps) => {
+const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) => {
+  const [parseDocument, setParseDocument] = useState<ResumeParseSource | null>(null);
   const [resumes, setResumes] = useState<ResumeDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState<ResumeDoc | null>(null);
@@ -226,6 +230,7 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {canParseResume(doc.file_name) && <Button size="icon" variant="ghost" className="h-7 w-7" title="Parse resume" aria-label="Parse resume" onClick={event => { event.stopPropagation(); setParseDocument({ id: doc.id.slice(4), source: doc.id.startsWith("att-") ? "attachment" : "document", fileName: doc.file_name }); }}><ScanText className="w-3.5 h-3.5" /></Button>}
                 <Button
                   size="icon"
                   variant="ghost"
@@ -251,6 +256,7 @@ const ContactResumes = ({ contactId }: ContactResumesProps) => {
       </Card>
 
       {/* Preview Dialog */}
+      <ResumeParseDialog contactId={contactId} document={parseDocument} onClose={() => setParseDocument(null)} onSaved={onContactUpdated} />
       <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) closePreview(); }}>
         <DialogContent className="max-w-4xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
