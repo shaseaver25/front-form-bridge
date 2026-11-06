@@ -17,12 +17,19 @@ const props = { contactId: "contact", document: { id: "resume", source: "documen
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 it("keeps extraction transient on cancel", async () => {
-  mocks.invoke.mockResolvedValue({ data: parsed, error: null });
+  mocks.invoke.mockResolvedValue({ data: { ...parsed, emails: ["sample@example.com"], phones: ["+1 202 555 0100"], addresses: [{ street: "123 Example Street", city: "Chicago", state: "IL", postal_code: "60601", country: "US" }] }, error: null });
   render(<ResumeParseDialog {...props} />);
   await screen.findByDisplayValue("Scrum Master");
+  expect(mocks.invoke).toHaveBeenCalledWith("parse-resume", { body: { contact_id: "contact", document_id: "resume", source: "document" } });
+  expect(screen.getByRole("textbox", { name: "Email 1" })).toHaveValue("sample@example.com");
+  expect(screen.getByRole("textbox", { name: "Phone 1" })).toHaveValue("+1 202 555 0100");
+  expect(screen.getByRole("textbox", { name: "Street" })).toHaveValue("123 Example Street");
+  for (const name of ["Email 1", "Phone 1", "Mailing address 1"]) expect(screen.getByRole("checkbox", { name })).not.toBeChecked();
   expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.saveDetails).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(mocks.update).not.toHaveBeenCalled();
+  expect(mocks.saveDetails).not.toHaveBeenCalled();
 });
 it("only saves explicitly approved contact information and allows editing it", async () => {
   mocks.invoke.mockResolvedValue({ data: { ...parsed, emails: ["alex@example.com"], phones: ["+1 202 555 0100"], addresses: [] }, error: null });
