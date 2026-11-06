@@ -50,7 +50,12 @@ export default function ResumeVerification() {
     catch (failure) { setError(failure instanceof Error ? failure.message : "The sample check failed."); }
     finally { setBusy(false); }
   };
-  useEffect(() => { if (contactId) void run(refresh); }, [contactId]);
+  useEffect(() => {
+    if (!contactId) return;
+    // Creation is still finishing when this effect runs; do not let its busy
+    // flag suppress the first database read-back.
+    void refresh().catch(() => setError("Unable to read back the sample contact."));
+  }, [contactId, userId]);
 
   const create = async () => {
     if (access !== "allowed" || !userId || contactId) return;
