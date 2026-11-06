@@ -25,6 +25,7 @@ const AcceptInvitation = lazy(() => import("@/pages/AcceptInvitation"));
 // CRM Core
 const Constituents = lazy(() => import("@/pages/Constituents"));
 const ContactDetail = lazy(() => import("@/pages/ContactDetail"));
+const ResumeVerification = import.meta.env.DEV ? lazy(() => import("@/pages/ResumeVerification")) : null;
 const Jobs = lazy(() => import("@/pages/Jobs"));
 const JobDetail = lazy(() => import("@/pages/JobDetail"));
 const Donations = lazy(() => import("@/pages/Donations"));
@@ -195,6 +196,7 @@ export const coreRoutes: RouteObject[] = [
 
 // CRM routes
 export const crmRoutes: RouteObject[] = [
+  ...(ResumeVerification ? [{ path: "/dev/resume-verification", element: <ResumeVerification /> }] : []),
   { path: "/constituents", element: <Constituents /> },
   { path: "/contacts/:id", element: <ContactDetail /> },
   {
