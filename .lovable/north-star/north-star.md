@@ -2,7 +2,7 @@
 
 # North star
 
-Retained clients hire the executive they were searching for.
+Recruiters have current candidate and client information for sales and placement decisions.
 
 ## Metric
 
