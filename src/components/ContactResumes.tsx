@@ -79,12 +79,6 @@ const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) =>
         .or("is_document.eq.true,is_primary_doc.eq.true,attachment_type.ilike.%resume%,file_name.ilike.%resume%")
         .not("storage_path", "is", null);
 
-      if (syncedDocsRes.error || attachmentsRes.error) {
-        setResumes([]);
-        setLoading(false);
-        return;
-      }
-
       const syncedDocs: ResumeDoc[] = (syncedDocsRes.data || []).map((doc: any) => ({
         id: `doc-${doc.id}`,
         file_name: doc.file_name,
@@ -216,7 +210,7 @@ const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) =>
           {resumes.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+              className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
               onClick={() => openPreview(doc)}
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -230,7 +224,7 @@ const ContactResumes = ({ contactId, onContactUpdated }: ContactResumesProps) =>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {canParseResume(doc.file_name) && <Button size="icon" variant="ghost" className="h-7 w-7" title="Parse resume" aria-label="Parse resume" onClick={event => { event.stopPropagation(); setParseDocument({ id: doc.id.slice(4), source: doc.id.startsWith("att-") ? "attachment" : "document", fileName: doc.file_name }); }}><ScanText className="w-3.5 h-3.5" /></Button>}
+                {canParseResume(doc.file_name) && <Button size="sm" variant="outline" className="h-7 gap-1" title="Parse saved resume" onClick={event => { event.stopPropagation(); setParseDocument({ id: doc.id.slice(4), source: doc.id.startsWith("att-") ? "attachment" : "document", fileName: doc.file_name }); }}><ScanText className="w-3.5 h-3.5" />Parse</Button>}
                 <Button
                   size="icon"
                   variant="ghost"
