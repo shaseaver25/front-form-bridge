@@ -1,4 +1,5 @@
 # Resume parsing
+- [x] Include reviewed emails, phones, and mailing addresses; deployed, 29 regression tests pass, and fictional contact information extracted by real AI and validated. Live signed-in save remains covered by the open verification task below.
 - [x] Fixed three blocking security findings (collaborators, unified tasks, contact downloads); verified live policies, fresh scan, four regression tests, and marked all resolved.
 - [x] Require structured extraction, normalize optional fields, and show labeled Parse actions for saved resumes; 15 tests and fictional DOCX extraction passed.
 - [x] Add optional parsing on resume upload and existing resumes (PDF, DOCX, TXT).

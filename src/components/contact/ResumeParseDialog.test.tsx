@@ -2,7 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, expect, it, vi } from "vitest";
 import { ResumeParseDialog } from "./ResumeParseDialog";
 
-const mocks = vi.hoisted(() => ({ update: vi.fn(), invoke: vi.fn() }));
+const mocks = vi.hoisted(() => ({ update: vi.fn(), invoke: vi.fn(), saveDetails: vi.fn() }));
+vi.mock("@/lib/saveResumeContactDetails", () => ({ readResumeContactDetails: async () => ({ emails: [{ value: "existing@example.com" }], phones: [], addresses: [] }), saveResumeContactDetails: mocks.saveDetails }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
   functions: { invoke: mocks.invoke },
   from: () => ({
@@ -22,6 +23,16 @@ it("keeps extraction transient on cancel", async () => {
   expect(mocks.update).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(mocks.update).not.toHaveBeenCalled();
+});
+it("only saves explicitly approved contact information and allows editing it", async () => {
+  mocks.invoke.mockResolvedValue({ data: { ...parsed, emails: ["alex@example.com"], phones: ["+1 202 555 0100"], addresses: [] }, error: null });
+  render(<ResumeParseDialog {...props} />);
+  await screen.findByRole("textbox", { name: "Email 1" });
+  expect(screen.getByRole("checkbox", { name: "Email 1" })).not.toBeChecked();
+  fireEvent.change(screen.getByRole("textbox", { name: "Email 1" }), { target: { value: "reviewed@example.com" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Email 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save selected details" }));
+  await waitFor(() => expect(mocks.saveDetails).toHaveBeenCalledWith("contact", expect.objectContaining({ emails: ["reviewed@example.com"] }), new Set(["email-0"])));
 });
 it("saves reviewed missing details without overwriting existing names", async () => {
   mocks.invoke.mockResolvedValue({ data: parsed, error: null });

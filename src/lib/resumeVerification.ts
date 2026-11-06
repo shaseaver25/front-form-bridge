@@ -4,6 +4,9 @@ export const resumeFixtureMarker = "resume-verification-fixture";
 export const resumeFixtureFileName = "fictional-resume.txt";
 export const resumeFixtureText = `Alex Fictional
 Scrum Master
+Email: alex.fictional@example.com
+Phone: +1 202 555 0100
+Mailing address: 1 Sample Street, Chicago, IL 60601, US
 
 Professional summary: Scrum Master with experience guiding software delivery teams.
 Skills: Scrum, Agile delivery, sprint planning, facilitation, Jira.
