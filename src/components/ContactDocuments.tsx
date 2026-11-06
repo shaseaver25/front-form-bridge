@@ -188,7 +188,7 @@ const ContactDocuments = ({ contactId, onContactUpdated }: ContactDocumentsProps
           documents.map((doc) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between p-3 rounded-lg border border-border"
+              className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -200,7 +200,7 @@ const ContactDocuments = ({ contactId, onContactUpdated }: ContactDocumentsProps
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                {canParseResume(doc.file_name) && <Button size="icon" variant="ghost" className="h-7 w-7" title="Parse resume" aria-label="Parse resume" disabled={uploading || parseQueue.length > 0} onClick={() => setParseQueue([{ id: doc.id, source: "document", fileName: doc.file_name }])}><ScanText className="w-3.5 h-3.5" /></Button>}
+                {canParseResume(doc.file_name) && <Button size="sm" variant="outline" className="h-7 gap-1" title="Parse saved resume" disabled={uploading || parseQueue.length > 0} onClick={() => setParseQueue([{ id: doc.id, source: "document", fileName: doc.file_name }])}><ScanText className="w-3.5 h-3.5" />Parse</Button>}
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => downloadFile(doc)}>
                   <Download className="w-3.5 h-3.5" />
                 </Button>

@@ -6,6 +6,7 @@ import { z } from "npm:zod@3.25.76";
 import mammoth from "npm:mammoth@1.13.0";
 import { Buffer } from "node:buffer";
 import { hasResumeParseAccess, isSupportedResume } from "./validation.ts";
+import { normalizeResumeResult, resumeOutputFormat } from "./result.ts";
 
 const inputSchema = z.object({ contact_id: z.string().uuid(), document_id: z.string().uuid(), source: z.enum(["document", "attachment"]) }).strict();
 const outputSchema = z.object({
@@ -64,11 +65,14 @@ Deno.serve(async req => {
       content.push({ type: "text", text });
     }
     content.push({ type: "text", text: "Extract the attached resume as the requested JSON." });
-    const result = await generateMessage({ model: "anthropic/claude-sonnet-5", max_tokens: 10000, system, messages: [{ role: "user", content }] });
+    const result = await generateMessage({ model: "anthropic/claude-sonnet-5", max_tokens: 10000, system, output_config: { format: { type: "json_schema", schema: resumeOutputFormat } }, messages: [{ role: "user", content }] });
     if (result.stop_reason === "max_tokens" || result.stop_reason === "refusal") return respond({ error: "The resume could not be completely parsed. Your file is still saved." }, 422);
     const text = result.content.filter(block => block.type === "text").map(block => block.text).join("");
-    const output = outputSchema.safeParse(JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim()));
-    if (!output.success) return respond({ error: "The extracted details were incomplete. Your file is still saved." }, 422);
+    const output = outputSchema.safeParse(normalizeResumeResult(JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim())));
+    if (!output.success) {
+      console.error("Resume result validation failed", { fields: output.error.issues.map(issue => issue.path.join(".")) });
+      return respond({ error: "The extracted details were incomplete. Your file is still saved." }, 422);
+    }
     return respond(output.data);
   } catch (error) {
     // Never log documents, extracted details, or provider response bodies (PII).
