@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { fetchAllRows } from '@/lib/fetchAllRows';
+import type { Tables } from '@/integrations/supabase/types';
 
 interface CreateCompanyInput {
   name: string;
@@ -18,13 +20,9 @@ export function useSites() {
   const sitesQuery = useQuery({
     queryKey: ['sites'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('crm_companies')
-        .select('*')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
+      return fetchAllRows<Tables<'crm_companies'>>(() =>
+        supabase.from('crm_companies').select('*')
+      );
     },
   });
 

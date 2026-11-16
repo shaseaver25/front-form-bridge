@@ -7,16 +7,19 @@ export function SiteQuickStats() {
   const { data: stats } = useQuery({
     queryKey: ["company-stats"],
     queryFn: async () => {
-      const { data: companies, error } = await supabase
-        .from("crm_companies")
-        .select("status, company_type");
-      
-      if (error) throw error;
+      const countQuery = () =>
+        supabase.from("crm_companies").select("*", { count: "exact", head: true });
 
-      const total = companies?.length ?? 0;
-      const prospects = companies?.filter(c => c.company_type === "prospect" || c.status === "prospect").length ?? 0;
-      const active = companies?.filter(c => c.status === "active").length ?? 0;
-      const clients = companies?.filter(c => c.company_type === "client").length ?? 0;
+      const results = await Promise.all([
+        countQuery(),
+        countQuery().or("company_type.eq.prospect,status.eq.prospect"),
+        countQuery().eq("status", "active"),
+        countQuery().eq("company_type", "client"),
+      ]);
+      const failed = results.find((r) => r.error);
+      if (failed) throw failed.error;
+
+      const [total, prospects, active, clients] = results.map((r) => r.count ?? 0);
 
       return { total, prospects, active, clients };
     },

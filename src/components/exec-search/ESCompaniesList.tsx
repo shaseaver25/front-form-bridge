@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Input } from "@/components/ui/input";
 import { Loader2, Search } from "lucide-react";
@@ -50,12 +51,12 @@ export function ESCompaniesList() {
       return;
     }
 
-    const { data: taggedCompanies } = await supabase
-      .from("crm_company_tags" as any)
-      .select("company_id")
-      .eq("tag_id", tagData.id);
+    const taggedCompanies = await fetchAllRows<{ company_id: string }>(
+      () => supabase.from("crm_company_tags" as any).select("company_id").eq("tag_id", tagData.id),
+      ["company_id", "id"],
+    );
 
-    const companyIds = (taggedCompanies || []).map((t: any) => t.company_id);
+    const companyIds = taggedCompanies.map((t) => t.company_id);
 
     if (companyIds.length === 0) {
       setCompanies([]);
@@ -63,13 +64,21 @@ export function ESCompaniesList() {
       return;
     }
 
-    const { data: companiesData } = await supabase
-      .from("crm_companies")
-      .select("id, name, company_type, status, domain, description")
-      .in("id", companyIds)
-      .order("name");
+    const companiesData: ESCompany[] = [];
+    for (let i = 0; i < companyIds.length; i += 200) {
+      const chunk = companyIds.slice(i, i + 200);
+      companiesData.push(
+        ...(await fetchAllRows<ESCompany>(() =>
+          supabase
+            .from("crm_companies")
+            .select("id, name, company_type, status, domain, description")
+            .in("id", chunk)
+        ))
+      );
+    }
+    companiesData.sort((a, b) => a.name.localeCompare(b.name));
 
-    setCompanies((companiesData as ESCompany[]) || []);
+    setCompanies(companiesData);
     setLoading(false);
   };
 

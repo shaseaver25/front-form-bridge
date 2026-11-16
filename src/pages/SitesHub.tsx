@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,24 +45,22 @@ export default function SitesHub() {
   const { data: sites, isLoading } = useQuery({
     queryKey: ["sites", search, filterStatus, filterType],
     queryFn: async () => {
-      let query = supabase
-        .from("crm_companies")
-        .select("*")
-        .order("name");
+      return fetchAllRows<Tables<"crm_companies">>(() => {
+        let query = supabase
+          .from("crm_companies")
+          .select("*");
 
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%`);
-      }
-      if (filterStatus !== "all") {
-        query = query.eq("status", filterStatus);
-      }
-      if (filterType !== "all") {
-        query = query.eq("company_type", filterType);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+        if (search) {
+          query = query.or(`name.ilike.%${search}%,domain.ilike.%${search}%`);
+        }
+        if (filterStatus !== "all") {
+          query = query.eq("status", filterStatus);
+        }
+        if (filterType !== "all") {
+          query = query.eq("company_type", filterType);
+        }
+        return query;
+      });
     }
   });
 

@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/fetchAllRows";
+import type { Tables } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -33,19 +35,21 @@ export function AdminCompanyList() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-companies"],
     queryFn: async () => {
-      const { data: companies, error } = await supabase
-        .from("crm_companies")
-        .select("id, name, company_type, status, domain")
-        .order("name");
-      if (error) throw error;
+      const companies = await fetchAllRows<
+        Pick<Tables<"crm_companies">, "id" | "name" | "company_type" | "status" | "domain">
+      >(() => supabase.from("crm_companies").select("id, name, company_type, status, domain"));
 
       const ids = companies.map((c) => c.id);
-      const { data: profiles } = await supabase
-        .from("company_profiles")
-        .select("*")
-        .in("company_id", ids);
+      const profiles: Tables<"company_profiles">[] = [];
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data } = await supabase
+          .from("company_profiles")
+          .select("*")
+          .in("company_id", ids.slice(i, i + 200));
+        profiles.push(...(data ?? []));
+      }
 
-      const profileMap = new Map((profiles ?? []).map((p) => [p.company_id, p]));
+      const profileMap = new Map(profiles.map((p) => [p.company_id, p]));
       return companies.map((c) => ({
         ...c,
         profile: profileMap.get(c.id) ?? null,
