@@ -38,48 +38,51 @@ export function ESCompaniesList() {
 
   const fetchCompanies = async () => {
     setLoading(true);
+    try {
+      const { data: tagData } = await supabase
+        .from("crm_tags")
+        .select("id")
+        .eq("name", "Executive Search")
+        .single();
 
-    const { data: tagData } = await supabase
-      .from("crm_tags")
-      .select("id")
-      .eq("name", "Executive Search")
-      .single();
+      if (!tagData) {
+        setCompanies([]);
+        return;
+      }
 
-    if (!tagData) {
-      setCompanies([]);
-      setLoading(false);
-      return;
-    }
-
-    const taggedCompanies = await fetchAllRows<{ company_id: string }>(
-      () => supabase.from("crm_company_tags" as any).select("company_id").eq("tag_id", tagData.id),
-      ["company_id", "id"],
-    );
-
-    const companyIds = taggedCompanies.map((t) => t.company_id);
-
-    if (companyIds.length === 0) {
-      setCompanies([]);
-      setLoading(false);
-      return;
-    }
-
-    const companiesData: ESCompany[] = [];
-    for (let i = 0; i < companyIds.length; i += 200) {
-      const chunk = companyIds.slice(i, i + 200);
-      companiesData.push(
-        ...(await fetchAllRows<ESCompany>(() =>
-          supabase
-            .from("crm_companies")
-            .select("id, name, company_type, status, domain, description")
-            .in("id", chunk)
-        ))
+      const taggedCompanies = await fetchAllRows<{ company_id: string }>(
+        () => supabase.from("crm_company_tags" as any).select("company_id").eq("tag_id", tagData.id),
+        ["company_id", "id"],
       );
-    }
-    companiesData.sort((a, b) => a.name.localeCompare(b.name));
 
-    setCompanies(companiesData);
-    setLoading(false);
+      const companyIds = taggedCompanies.map((t) => t.company_id);
+
+      if (companyIds.length === 0) {
+        setCompanies([]);
+        return;
+      }
+
+      const companiesData: ESCompany[] = [];
+      for (let i = 0; i < companyIds.length; i += 200) {
+        const chunk = companyIds.slice(i, i + 200);
+        companiesData.push(
+          ...(await fetchAllRows<ESCompany>(() =>
+            supabase
+              .from("crm_companies")
+              .select("id, name, company_type, status, domain, description")
+              .in("id", chunk)
+          ))
+        );
+      }
+      companiesData.sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+
+      setCompanies(companiesData);
+    } catch (error) {
+      console.error("Error fetching Executive Search companies:", error);
+      setCompanies([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filtered = companies.filter((c) => {
