@@ -34,7 +34,10 @@ export async function saveResumeContactDetails(contactId: string, values: Parsed
 export async function readResumeCareerHistory(contactId: string) {
   const result = await supabase.from("crm_career_history").select("company_name,job_title,started_at,crm_companies(name)").eq("contact_id", contactId);
   if (result.error) throw new Error("Unable to read existing career history.");
-  return (result.data ?? []).map(row => careerKey(row.company_name || row.crm_companies?.name || "", row.job_title || "", row.started_at));
+  return (result.data ?? []).map(row => {
+    const company = Array.isArray(row.crm_companies) ? row.crm_companies[0] : row.crm_companies;
+    return careerKey(row.company_name || company?.name || "", row.job_title || "", row.started_at);
+  });
 }
 // Adds approved roles that are not already on the contact; companies are linked only on a single exact name match and never created.
 export async function saveResumeCareerHistory(contactId: string, values: ParsedResume, selected: Set<string>) {
