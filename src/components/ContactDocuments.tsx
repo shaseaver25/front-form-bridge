@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Upload, Trash2, Download, Loader2, ScanText } from "lucide-react";
+import { FileText, Upload, Trash2, Download, Loader2, ScanText, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 import { useDropzone } from "react-dropzone";
 import { formatDistanceToNow } from "date-fns";
@@ -156,6 +156,7 @@ const ContactDocuments = ({ contactId, onContactUpdated }: ContactDocumentsProps
         <div className="flex items-center gap-2">
           <Checkbox id={`parse-upload-${contactId}`} checked={parseOnUpload} disabled={uploading} onCheckedChange={checked => setParseOnUpload(checked === true)} />
           <Label htmlFor={`parse-upload-${contactId}`}>Parse resume after upload</Label>
+          <Button size="sm" variant="outline" className="gap-2 ml-auto" disabled={uploading || parseQueue.length > 0} onClick={() => setParseQueue([{ id: "", source: "linkedin", fileName: "LinkedIn profile" }])}><Linkedin className="w-4 h-4" />Parse LinkedIn profile</Button>
         </div>
         <div
           {...getRootProps()}

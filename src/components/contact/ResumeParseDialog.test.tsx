@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, expect, it, vi } from "vitest";
 import { ResumeParseDialog } from "./ResumeParseDialog";
 
-const mocks = vi.hoisted(() => ({ update: vi.fn(), invoke: vi.fn(), saveDetails: vi.fn() }));
-vi.mock("@/lib/saveResumeContactDetails", () => ({ readResumeContactDetails: async () => ({ emails: [{ value: "existing@example.com" }], phones: [], addresses: [] }), saveResumeContactDetails: mocks.saveDetails }));
+const mocks = vi.hoisted(() => ({ update: vi.fn(), invoke: vi.fn(), saveDetails: vi.fn(), saveCareer: vi.fn(), saveUrl: vi.fn() }));
+vi.mock("@/lib/saveResumeContactDetails", () => ({ readResumeContactDetails: async () => ({ emails: [{ value: "existing@example.com" }], phones: [], addresses: [] }), saveResumeContactDetails: mocks.saveDetails, readResumeCareerHistory: async () => ["example co|scrum master|2019-03-01"], saveResumeCareerHistory: mocks.saveCareer, saveResumeLinkedInUrl: mocks.saveUrl }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
   functions: { invoke: mocks.invoke },
   from: () => ({
@@ -50,4 +50,22 @@ it("saves reviewed missing details without overwriting existing names", async ()
   fireEvent.click(screen.getByRole("button", { name: "Save selected details" }));
   await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
   expect(mocks.update).toHaveBeenCalledWith({ job_title: "Senior Scrum Master", description: parsed.description });
+});
+it("parses a pasted LinkedIn profile and proposes only new roles", async () => {
+  mocks.invoke.mockResolvedValue({ data: { ...parsed, linkedin_url: "https://www.linkedin.com/in/sample-person", career_history: [
+    { company: "Example Co", title: "Scrum Master", start_date: "2019-03", end_date: "", is_current: true, description: "" },
+    { company: "Sample LLC", title: "Analyst", start_date: "2015", end_date: "2018", is_current: false, description: "" },
+  ] }, error: null });
+  render(<ResumeParseDialog {...props} document={{ id: "", source: "linkedin", fileName: "LinkedIn profile" }} />);
+  const parse = screen.getByRole("button", { name: "Parse profile" });
+  expect(parse).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("LinkedIn profile URL"), { target: { value: "linkedin.com/in/sample-person" } });
+  fireEvent.change(screen.getByLabelText("Profile text"), { target: { value: "Sample Person · Scrum Master at Example Co" } });
+  fireEvent.click(parse);
+  await screen.findByText("Already in CRM");
+  expect(mocks.invoke).toHaveBeenCalledWith("parse-resume", { body: { contact_id: "contact", source: "linkedin", linkedin_url: "https://linkedin.com/in/sample-person", text: "Sample Person · Scrum Master at Example Co" } });
+  expect(screen.getByRole("checkbox", { name: "Analyst · Sample LLC" })).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Save selected details" }));
+  await waitFor(() => expect(mocks.saveCareer).toHaveBeenCalledWith("contact", expect.anything(), new Set(["career-1"])));
+  expect(mocks.saveUrl).toHaveBeenCalledWith("contact", "https://www.linkedin.com/in/sample-person");
 });

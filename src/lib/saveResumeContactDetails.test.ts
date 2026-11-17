@@ -1,9 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { parsedResumeSchema } from "./resumeParsing";
-import { saveResumeContactDetails } from "./saveResumeContactDetails";
+import { saveResumeCareerHistory, saveResumeContactDetails, saveResumeLinkedInUrl } from "./saveResumeContactDetails";
 const mocks = vi.hoisted(() => ({ insert: vi.fn(), records: {} as Record<string, unknown[]>, failPhone: false }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: (table: string) => ({
-  select: () => ({ eq: async () => ({ data: mocks.records[table] ?? [], error: null }) }),
+  select: () => ({ eq: async () => ({ data: mocks.records[table] ?? [], error: null }), ilike: () => ({ limit: async () => ({ data: mocks.records[table] ?? [], error: null }) }) }),
   insert: async (rows: unknown[]) => {
     mocks.insert(table, rows);
     if (table === "crm_contact_phones" && mocks.failPhone) return { error: { message: "denied" } };
@@ -27,4 +27,22 @@ it("reports partial failure and does not duplicate saved emails on retry", async
   mocks.failPhone = false; mocks.insert.mockClear();
   await saveResumeContactDetails("sample-contact", values, selected);
   expect(mocks.insert.mock.calls.map(call => call[0])).toEqual(["crm_contact_phones", "crm_addresses"]);
+});
+it("adds only new career roles and links a company on a single name match", async () => {
+  mocks.records.crm_career_history = [{ company_name: "Example Co", job_title: "Scrum Master", started_at: "2019-03-01", crm_companies: null }];
+  mocks.records.crm_companies = [{ id: "company-1" }];
+  const career = parsedResumeSchema.parse({ ...values, career_history: [
+    { company: "example co", title: "Scrum Master", start_date: "2019-03", end_date: "", is_current: true, description: "" },
+    { company: "Sample LLC", title: "Analyst", start_date: "2015", end_date: "2018-06", is_current: false, description: "Reporting" },
+  ] });
+  await saveResumeCareerHistory("sample-contact", career, new Set(["career-0", "career-1"]));
+  expect(mocks.insert).toHaveBeenCalledOnce();
+  expect(mocks.insert).toHaveBeenCalledWith("crm_career_history", [{ contact_id: "sample-contact", entry_type: "experience", company_id: "company-1", company_name: "Sample LLC", job_title: "Analyst", started_at: "2015-01-01", ended_at: "2018-06-01", is_current: false, description: "Reporting" }]);
+});
+it("adds a LinkedIn URL row only when the contact does not already have it", async () => {
+  mocks.records.crm_contact_urls = [{ value: "https://www.linkedin.com/in/sample-person/" }];
+  await saveResumeLinkedInUrl("sample-contact", "https://linkedin.com/in/sample-person");
+  expect(mocks.insert).not.toHaveBeenCalled();
+  await saveResumeLinkedInUrl("sample-contact", "https://www.linkedin.com/in/other-person");
+  expect(mocks.insert).toHaveBeenCalledWith("crm_contact_urls", [{ contact_id: "sample-contact", value: "https://www.linkedin.com/in/other-person", category: "linkedin", is_primary: false }]);
 });

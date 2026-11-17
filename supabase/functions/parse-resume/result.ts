@@ -4,8 +4,9 @@ export const resumeOutputFormat = {
     ...Object.fromEntries(["first_name", "last_name", "job_title", "linkedin_url", "description"].map(key => [key, { type: "string" }])),
     emails: { type: "array", items: { type: "string" } }, phones: { type: "array", items: { type: "string" } },
     addresses: { type: "array", items: { type: "object", properties: Object.fromEntries(["street", "city", "state", "postal_code", "country"].map(key => [key, { type: "string" }])), required: ["street", "city", "state", "postal_code", "country"], additionalProperties: false } },
+    career_history: { type: "array", items: { type: "object", properties: { ...Object.fromEntries(["company", "title", "start_date", "end_date", "description"].map(key => [key, { type: "string" }])), is_current: { type: "boolean" } }, required: ["company", "title", "start_date", "end_date", "is_current", "description"], additionalProperties: false } },
   },
-  required: ["first_name", "last_name", "job_title", "linkedin_url", "description", "emails", "phones", "addresses"],
+  required: ["first_name", "last_name", "job_title", "linkedin_url", "description", "emails", "phones", "addresses", "career_history"],
   additionalProperties: false,
 };
 
@@ -43,7 +44,18 @@ export function normalizeResumeResult(value: unknown) {
       return [key, typeof part === "string" ? part.trim() : ""];
     }));
   }).filter(item => Object.values(item).some(Boolean));
-  const result = { first_name: stringField("first_name"), last_name: stringField("last_name"), job_title: stringField("job_title"), linkedin_url, description: stringField("description"), emails: strings("emails"), phones: strings("phones"), addresses };
+  // Dates are kept only as YYYY or YYYY-MM; anything else is treated as not stated.
+  const careerDate = (part: unknown) => typeof part === "string" && /^\d{4}(-(0[1-9]|1[0-2]))?$/.test(part.trim()) ? part.trim() : "";
+  const career_history = arrayField("career_history").map(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid career entry");
+    const text = (key: string) => {
+      const part = Reflect.get(item, key);
+      if (part != null && typeof part !== "string") throw new Error("Invalid career entry part");
+      return typeof part === "string" ? part.trim() : "";
+    };
+    return { company: text("company"), title: text("title"), start_date: careerDate(Reflect.get(item, "start_date")), end_date: careerDate(Reflect.get(item, "end_date")), is_current: Reflect.get(item, "is_current") === true, description: text("description") };
+  }).filter(item => item.company || item.title);
+  const result = { first_name: stringField("first_name"), last_name: stringField("last_name"), job_title: stringField("job_title"), linkedin_url, description: stringField("description"), emails: strings("emails"), phones: strings("phones"), addresses, career_history };
   if (!result.first_name && !result.last_name && !result.job_title && !result.description) throw new Error("Empty resume result");
   return result;
 }

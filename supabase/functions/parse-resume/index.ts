@@ -8,7 +8,11 @@ import { Buffer } from "node:buffer";
 import { hasResumeParseAccess, isSupportedResume } from "./validation.ts";
 import { normalizeResumeResult, resumeOutputFormat } from "./result.ts";
 
-const inputSchema = z.object({ contact_id: z.string().uuid(), document_id: z.string().uuid(), source: z.enum(["document", "attachment"]) }).strict();
+const inputSchema = z.union([
+  z.object({ contact_id: z.string().uuid(), document_id: z.string().uuid(), source: z.enum(["document", "attachment"]) }).strict(),
+  // LinkedIn blocks automated fetching, so profiles arrive as text pasted by staff; the URL is never fetched.
+  z.object({ contact_id: z.string().uuid(), source: z.literal("linkedin"), linkedin_url: z.string().max(1000).regex(/^https:\/\/(www\.)?linkedin\.com\//i), text: z.string().trim().min(1).max(100000) }).strict(),
+]);
 const outputSchema = z.object({
   first_name: z.string().max(200), last_name: z.string().max(200), job_title: z.string().max(500),
   linkedin_url: z.string().max(1000).refine(value => !value || /^https:\/\/(www\.)?linkedin\.com\//i.test(value)),
@@ -16,6 +20,7 @@ const outputSchema = z.object({
   emails: z.array(z.string().email().max(320)).max(20),
   phones: z.array(z.string().min(5).max(100).refine(value => /^[+\d\s().\-xext]+$/i.test(value) && value.replace(/\D/g, "").length >= 5)).max(20),
   addresses: z.array(z.object({ street: z.string().max(1000), city: z.string().max(200), state: z.string().max(200), postal_code: z.string().max(100), country: z.string().max(200) }).strict()).max(10),
+  career_history: z.array(z.object({ company: z.string().max(500), title: z.string().max(500), start_date: z.string().max(7), end_date: z.string().max(7), is_current: z.boolean(), description: z.string().max(5000) }).strict()).max(50),
 }).strict();
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -36,42 +41,49 @@ Deno.serve(async req => {
     if (roles.error || !hasResumeParseAccess((roles.data || []).map(row => row.role))) return respond({ error: "Resume parsing is available to authorized CRM staff only." }, 403);
     const parsed = inputSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return respond({ error: "A valid contact and resume are required." }, 400);
-    const { contact_id, document_id, source } = parsed.data;
+    const { contact_id, source } = parsed.data;
     const contact = await client.from("crm_contacts").select("id").eq("id", contact_id).maybeSingle();
     if (contact.error || !contact.data) return respond({ error: "Contact unavailable." }, 404);
-    let name: string;
-    let path: string;
-    if (source === "document") {
-      const row = await client.from("crm_contact_documents").select("file_name,file_url").eq("id", document_id).eq("contact_id", contact_id).maybeSingle();
-      if (row.error || !row.data) return respond({ error: "Resume unavailable for this contact." }, 404);
-      name = row.data.file_name; path = row.data.file_url;
-    } else {
-      const row = await client.from("crm_attachments").select("file_name,storage_path").eq("id", document_id).eq("contact_id", contact_id).maybeSingle();
-      if (row.error || !row.data?.storage_path) return respond({ error: "Resume unavailable for this contact." }, 404);
-      name = row.data.file_name; path = row.data.storage_path;
-    }
-    if (!isSupportedResume(name)) return respond({ error: "Parse a PDF, DOCX, or TXT resume. Convert older DOC files to PDF first." }, 415);
-    // Only stored object paths are accepted; never fetch arbitrary external URLs.
-    if (/^https?:\/\//i.test(path)) return respond({ error: "This resume must be uploaded to the CRM before parsing." }, 400);
-    const download = await client.storage.from("contact-documents").download(path);
-    if (download.error || !download.data) return respond({ error: "Unable to read this resume." }, 403);
-    if (download.data.size > 10 * 1024 * 1024) return respond({ error: "Resumes must be 10 MB or smaller." }, 413);
-    const bytes = Buffer.from(await download.data.arrayBuffer());
     const content: Exclude<RequestFor<"messages", "anthropic/claude-sonnet-5">["messages"][number]["content"], string> = [];
-    if (/\.pdf$/i.test(name)) {
-      if (!bytes.subarray(0, 1024).includes(Buffer.from("%PDF-"))) return respond({ error: "This file is not a valid PDF." }, 400);
-      content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: bytes.toString("base64") } });
+    if (parsed.data.source === "linkedin") {
+      content.push({ type: "text", text: parsed.data.text });
     } else {
-      const text = /\.docx$/i.test(name) ? (await mammoth.extractRawText({ buffer: bytes })).value : new TextDecoder().decode(bytes);
-      if (!text.trim()) return respond({ error: "No readable text found. Try uploading a PDF copy." }, 422);
-      if (text.length > 100000) return respond({ error: "This resume is too long to parse. Upload a shorter copy." }, 413);
-      content.push({ type: "text", text });
+      const { document_id } = parsed.data;
+      let name: string;
+      let path: string;
+      if (source === "document") {
+        const row = await client.from("crm_contact_documents").select("file_name,file_url").eq("id", document_id).eq("contact_id", contact_id).maybeSingle();
+        if (row.error || !row.data) return respond({ error: "Resume unavailable for this contact." }, 404);
+        name = row.data.file_name; path = row.data.file_url;
+      } else {
+        const row = await client.from("crm_attachments").select("file_name,storage_path").eq("id", document_id).eq("contact_id", contact_id).maybeSingle();
+        if (row.error || !row.data?.storage_path) return respond({ error: "Resume unavailable for this contact." }, 404);
+        name = row.data.file_name; path = row.data.storage_path;
+      }
+      if (!isSupportedResume(name)) return respond({ error: "Parse a PDF, DOCX, or TXT resume. Convert older DOC files to PDF first." }, 415);
+      // Only stored object paths are accepted; never fetch arbitrary external URLs.
+      if (/^https?:\/\//i.test(path)) return respond({ error: "This resume must be uploaded to the CRM before parsing." }, 400);
+      const download = await client.storage.from("contact-documents").download(path);
+      if (download.error || !download.data) return respond({ error: "Unable to read this resume." }, 403);
+      if (download.data.size > 10 * 1024 * 1024) return respond({ error: "Resumes must be 10 MB or smaller." }, 413);
+      const bytes = Buffer.from(await download.data.arrayBuffer());
+      if (/\.pdf$/i.test(name)) {
+        if (!bytes.subarray(0, 1024).includes(Buffer.from("%PDF-"))) return respond({ error: "This file is not a valid PDF." }, 400);
+        content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: bytes.toString("base64") } });
+      } else {
+        const text = /\.docx$/i.test(name) ? (await mammoth.extractRawText({ buffer: bytes })).value : new TextDecoder().decode(bytes);
+        if (!text.trim()) return respond({ error: "No readable text found. Try uploading a PDF copy." }, 422);
+        if (text.length > 100000) return respond({ error: "This resume is too long to parse. Upload a shorter copy." }, 413);
+        content.push({ type: "text", text });
+      }
     }
-    content.push({ type: "text", text: "Extract the attached resume as the requested JSON." });
+    content.push({ type: "text", text: `Extract the ${source === "linkedin" ? "LinkedIn profile text above" : "attached resume"} as the requested JSON. In career_history list each stated job, most recent first: company, title, start_date and end_date as YYYY-MM or YYYY (empty string if not stated), is_current true only when the role is stated as current or "Present", and a short description only if stated. Never guess.` });
     const result = await generateMessage({ model: "anthropic/claude-sonnet-5", max_tokens: 10000, system, output_config: { format: { type: "json_schema", schema: resumeOutputFormat } }, messages: [{ role: "user", content }] });
     if (result.stop_reason === "max_tokens" || result.stop_reason === "refusal") return respond({ error: "The resume could not be completely parsed. Your file is still saved." }, 422);
     const text = result.content.filter(block => block.type === "text").map(block => block.text).join("");
-    const output = outputSchema.safeParse(normalizeResumeResult(JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim())));
+    const raw = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+    // For pasted LinkedIn profiles the URL staff entered is authoritative.
+    const output = outputSchema.safeParse(normalizeResumeResult(parsed.data.source === "linkedin" ? { ...raw, linkedin_url: parsed.data.linkedin_url } : raw));
     if (!output.success) {
       console.error("Resume result validation failed", { fields: output.error.issues.map(issue => issue.path.join(".")) });
       return respond({ error: "The extracted details were incomplete. Your file is still saved." }, 422);

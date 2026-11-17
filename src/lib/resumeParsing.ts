@@ -3,6 +3,7 @@ import { z } from "zod";
 export const resumeFields = ["first_name", "last_name", "job_title", "linkedin_url", "description"] as const;
 export type ResumeField = typeof resumeFields[number];
 export const resumeAddressSchema = z.object({ street: z.string().max(1000), city: z.string().max(200), state: z.string().max(200), postal_code: z.string().max(100), country: z.string().max(200) }).strict();
+export const careerEntrySchema = z.object({ company: z.string().max(500), title: z.string().max(500), start_date: z.string().max(7), end_date: z.string().max(7), is_current: z.boolean(), description: z.string().max(5000) }).strict();
 export const parsedResumeSchema = z.object({
   first_name: z.string().max(200),
   last_name: z.string().max(200),
@@ -12,6 +13,7 @@ export const parsedResumeSchema = z.object({
   emails: z.array(z.string().trim().email().max(320)).max(20).default([]),
   phones: z.array(z.string().trim().min(5).max(100).refine(value => /^[+\d\s().\-xext]+$/i.test(value) && value.replace(/\D/g, "").length >= 5, "Use a valid phone number")).max(20).default([]),
   addresses: z.array(resumeAddressSchema).max(10).default([]),
+  career_history: z.array(careerEntrySchema).max(50).default([]),
 }).strict();
 export type ParsedResume = z.infer<typeof parsedResumeSchema>;
 export const canParseResume = (name: string) => /\.(pdf|docx|txt)$/i.test(name);
@@ -19,6 +21,10 @@ export function approvedResumeUpdates(values: z.input<typeof parsedResumeSchema>
   const valid = parsedResumeSchema.parse(values);
   return Object.fromEntries(resumeFields.filter(key => selected.has(key) && valid[key].trim()).map(key => [key, valid[key].trim()]));
 }
+// "2019" -> "2019-01-01", "2019-03" -> "2019-03-01"; empty means not stated.
+export const careerDate = (value: string) => !value ? null : value.length === 4 ? `${value}-01-01` : `${value}-01`;
+export const careerKey = (company: string, title: string, startedAt: string | null) => [company, title].map(part => part.trim().toLowerCase().replace(/\s+/g, " ")).concat((startedAt ?? "").slice(0, 10)).join("|");
+export const linkedInUrlKey = (value: string) => value.trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/\/+$/, "");
 export const phoneKey = (value: string) => value.replace(/\D/g, "");
 export const addressKey = (value: z.infer<typeof resumeAddressSchema>) => [value.street, value.city, value.state, value.postal_code, value.country].map(part => part.trim().toLowerCase().replace(/\s+/g, " ")).join("|");
 export function approvedResumeContactDetails(values: ParsedResume, selected: Set<string>, existing: { emails: string[]; phones: string[]; addresses: z.infer<typeof resumeAddressSchema>[] }) {
