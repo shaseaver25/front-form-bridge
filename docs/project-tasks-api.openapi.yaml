@@ -40,15 +40,22 @@ paths:
         "401": { $ref: "#/components/responses/Error" }
     post:
       operationId: createTask
-      summary: Create a task in the Backlog
+      summary: Create a task (Backlog, or To Do if the board has no Backlog)
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [headline]
+              required: [headline, added_by]
               properties:
+                added_by:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                  description: >
+                    Name of the person or assistant adding the task (for example
+                    "Juliet" or "Juliet's GPT"). Shown at the top of the task description.
                 headline: { type: string, maxLength: 200 }
                 description: { type: string, maxLength: 5000 }
                 priority: { $ref: "#/components/schemas/Priority" }
@@ -103,6 +110,12 @@ paths:
               required: [content]
               properties:
                 content: { type: string, maxLength: 5000 }
+                added_by:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                  description: >
+                    Optional. When given, the comment is prefixed with the name and a colon.
       responses:
         "201":
           description: Comment added

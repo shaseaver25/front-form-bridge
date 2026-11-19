@@ -25,6 +25,7 @@ const TYPE_PREFIX: Record<string, string> = {
 const MAX_HEADLINE = 200;
 const MAX_DESCRIPTION = 5000;
 const MAX_COMMENT = 5000;
+const MAX_ADDED_BY = 80;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Constant-time compare so response timing doesn't leak the key.
@@ -56,6 +57,16 @@ function isObj(v: unknown): v is Obj {
 
 function validText(v: unknown, max: number): v is string {
   return typeof v === "string" && v.trim().length > 0 && v.length <= max;
+}
+
+// Visible attribution: who (person or assistant) added the task.
+function validName(v: unknown): v is string {
+  return typeof v === "string" && v.trim().length >= 1 && v.trim().length <= MAX_ADDED_BY;
+}
+
+function buildDescription(addedBy: string, description: unknown): string {
+  const body = typeof description === "string" ? description : "";
+  return `Added by: ${addedBy.trim()}\n\n${body}`;
 }
 
 Deno.serve(async (req) => {
@@ -163,10 +174,13 @@ Deno.serve(async (req) => {
     if (method === "POST" && path === "/tasks") {
       const body = await req.json().catch(() => null);
       if (!isObj(body)) return json({ error: "JSON body required" }, 400);
-      const { headline, description, priority, type } = body;
+      const { headline, description, priority, type, added_by } = body;
 
       if (!validText(headline, MAX_HEADLINE)) {
         return json({ error: `headline is required (max ${MAX_HEADLINE} characters)` }, 400);
+      }
+      if (!validName(added_by)) {
+        return json({ error: `added_by is required (1-${MAX_ADDED_BY} characters): the name of who is adding this task` }, 400);
       }
       if (description !== undefined && description !== null && !(typeof description === "string" && description.length <= MAX_DESCRIPTION)) {
         return json({ error: `description must be a string up to ${MAX_DESCRIPTION} characters` }, 400);
@@ -198,7 +212,7 @@ Deno.serve(async (req) => {
           column_id: column.id,
           created_by: createdBy,
           headline: title.slice(0, MAX_HEADLINE + 20),
-          description: typeof description === "string" ? description : null,
+          description: buildDescription(added_by, description),
           priority: (priority as string) ?? "medium",
           position: (last?.position ?? -1) + 1,
           is_suggested: true,
@@ -207,7 +221,7 @@ Deno.serve(async (req) => {
         .single();
       if (error) return json({ error: error.message }, 500);
 
-      await logActivity(data.id, "created", { source: "gpt" });
+      await logActivity(data.id, "created", { source: "gpt", added_by: added_by.trim() });
       return json({ id: data.id, message: "Task created" }, 201);
     }
 
@@ -311,6 +325,11 @@ Deno.serve(async (req) => {
       if (!isObj(body) || !validText(body.content, MAX_COMMENT)) {
         return json({ error: `content is required (max ${MAX_COMMENT} characters)` }, 400);
       }
+      if (body.added_by !== undefined && !validName(body.added_by)) {
+        return json({ error: `added_by must be 1-${MAX_ADDED_BY} characters` }, 400);
+      }
+      const commentText = (typeof body.added_by === "string" ? `${body.added_by.trim()}: ` : "") + body.content.trim();
+      if (commentText.length > MAX_COMMENT + MAX_ADDED_BY + 2) return json({ error: "comment too long" }, 400);
 
       const { data: card, error: cardErr } = await supabase
         .from("board_cards")
@@ -323,12 +342,12 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from("board_card_comments")
-        .insert({ card_id: taskId, user_id: createdBy, content: body.content.trim(), is_ai_generated: true })
+        .insert({ card_id: taskId, user_id: createdBy, content: commentText, is_ai_generated: true })
         .select("id")
         .single();
       if (error) return json({ error: error.message }, 500);
 
-      await logActivity(taskId, "commented", {});
+      await logActivity(taskId, "commented", typeof body.added_by === "string" ? { added_by: body.added_by.trim() } : {});
       return json({ id: data.id, message: "Comment added" }, 201);
     }
 
