@@ -1,6 +1,6 @@
 const HeroSection = ({ onGetStarted, onSeeFeatures }: { onGetStarted: () => void; onSeeFeatures: () => void }) => {
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center pt-20 px-4 overflow-hidden bg-background">
+    <section id="hero" className="relative min-h-screen flex flex-col items-center justify-center pt-20 px-4 overflow-hidden bg-background">
       {/* Decorative circles - matching AvidEdge's teal/yellow aesthetic */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Large yellow circle */}
@@ -43,7 +43,7 @@ const HeroSection = ({ onGetStarted, onSeeFeatures }: { onGetStarted: () => void
       </div>
 
       {/* Below-fold intro text */}
-      <div className="absolute bottom-12 left-0 right-0 px-4">
+      <div className="relative z-10 w-full pb-12 md:absolute md:bottom-12 md:left-0 md:right-0 md:pb-0 px-4">
         <div className="container mx-auto max-w-6xl grid md:grid-cols-2 gap-8 items-start">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary leading-tight">
             Technology Leadership<br />
