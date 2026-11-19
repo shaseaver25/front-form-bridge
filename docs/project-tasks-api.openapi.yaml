@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: AvidEdge Coding Needs Tracker
+  version: 1.0.0
+  description: >
+    Log and update AvidEdge CRM and portal bugs and feature requests on one
+    project board. Never include candidate or client personal data or secrets.
+servers:
+  - url: https://rzhcefyigmkavddjjxvg.supabase.co/functions/v1/project-tasks-api
+security:
+  - ApiKeyAuth: []
+paths:
+  /tasks:
+    get:
+      operationId: listTasks
+      summary: List or search tasks (search before creating a new one)
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/Status" }
+        - name: q
+          in: query
+          description: Text to look for in the title or description
+          schema: { type: string, maxLength: 100 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        "200":
+          description: Matching tasks, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items: { $ref: "#/components/schemas/Task" }
+                  count: { type: integer }
+        "401": { $ref: "#/components/responses/Error" }
+    post:
+      operationId: createTask
+      summary: Create a task in the Backlog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [headline]
+              properties:
+                headline: { type: string, maxLength: 200 }
+                description: { type: string, maxLength: 5000 }
+                priority: { $ref: "#/components/schemas/Priority" }
+                type: { $ref: "#/components/schemas/Type" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+  /tasks/{id}:
+    patch:
+      operationId: updateTask
+      summary: Update a task or move it to another status
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                headline: { type: string, maxLength: 220 }
+                description: { type: string, maxLength: 5000 }
+                priority: { $ref: "#/components/schemas/Priority" }
+                status: { $ref: "#/components/schemas/Status" }
+                is_blocked: { type: boolean }
+                blocked_reason: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+  /tasks/{id}/comments:
+    post:
+      operationId: addComment
+      summary: Add a comment to a task
+      parameters:
+        - $ref: "#/components/parameters/TaskId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, maxLength: 5000 }
+      responses:
+        "201":
+          description: Comment added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Created" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+  schemas:
+    Status:
+      type: string
+      enum: [backlog, todo, in_progress, review, done]
+    Priority:
+      type: string
+      enum: [low, medium, high, urgent]
+    Type:
+      type: string
+      enum: [bug, feature, improvement, question]
+    Created:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        message: { type: string }
+    Task:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        headline: { type: string }
+        description: { type: [string, "null"] }
+        priority: { $ref: "#/components/schemas/Priority" }
+        status: { type: [string, "null"] }
+        column: { type: [string, "null"] }
+        is_blocked: { type: boolean }
+        blocked_reason: { type: [string, "null"] }
+        completed_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
