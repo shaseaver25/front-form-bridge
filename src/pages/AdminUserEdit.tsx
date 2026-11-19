@@ -17,6 +17,12 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, Loader2, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+const ROLE_OPTIONS = [
+  { value: "admin", label: "Admin" },
+  { value: "moderator", label: "Staff (Moderator)" },
+  { value: "client", label: "Client" },
+] as const;
+
 export default function AdminUserEdit() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
@@ -30,8 +36,9 @@ export default function AdminUserEdit() {
     job_title: "",
     organization_name: "",
     is_active: true,
-    role: "staff",
+    role: "",
   });
+  const [initialRole, setInitialRole] = useState("");
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -61,12 +68,15 @@ export default function AdminUserEdit() {
         return;
       }
 
-      // Get user role
-      const { data: roleData } = await supabase
+      // Get user roles (a user can have more than one)
+      const { data: roleRows, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
+        .eq("user_id", userId);
+
+      if (roleError) throw roleError;
+      const roles = roleRows.map((r) => r.role);
+      const role = ROLE_OPTIONS.find((o) => roles.includes(o.value))?.value ?? "";
 
       // Get user email via secure backend function
       const { data: emailData, error: emailError } = await supabase.functions.invoke("get-user-email", {
@@ -83,8 +93,9 @@ export default function AdminUserEdit() {
         job_title: profile.job_title || "",
         organization_name: profile.organization_name || "",
         is_active: profile.is_active ?? true,
-        role: roleData?.role || "staff",
+        role,
       });
+      setInitialRole(role);
       setEmail(emailData?.email || profile.email || "");
     } catch (error) {
       console.error("Error loading user:", error);
@@ -118,12 +129,14 @@ export default function AdminUserEdit() {
 
       if (profileError) throw profileError;
 
-      // Update user role via edge function to avoid RLS self-lock
-      const { data: roleResult, error: roleError } = await supabase.functions.invoke("update-user-role", {
-        body: { userId, newRole: formData.role },
-      });
+      if (formData.role && formData.role !== initialRole) {
+        // Update user role via edge function to avoid RLS self-lock
+        const { data: roleResult, error: roleError } = await supabase.functions.invoke("update-user-role", {
+          body: { userId, newRole: formData.role },
+        });
 
-      if (roleError || roleResult?.error) throw new Error(roleResult?.error || roleError?.message || "Failed to update role");
+        if (roleError || roleResult?.error) throw new Error(roleResult?.error || roleError?.message || "Failed to update role");
+      }
 
       toast({
         title: "Success",
@@ -135,7 +148,7 @@ export default function AdminUserEdit() {
       console.error("Error updating user:", error);
       toast({
         title: "Error",
-        description: "Failed to update user.",
+        description: error instanceof Error ? error.message : "Failed to update user.",
         variant: "destructive",
       });
     } finally {
@@ -256,13 +269,12 @@ export default function AdminUserEdit() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                    <SelectItem value="project">Project Collaborator</SelectItem>
+                    {ROLE_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

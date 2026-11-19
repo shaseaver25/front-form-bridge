@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const validRoles = ["admin", "staff", "viewer", "project", "client"];
+    const validRoles = ["admin", "moderator", "client"];
     if (!validRoles.includes(newRole)) {
       return new Response(JSON.stringify({ error: "Invalid role" }), {
         status: 400,
@@ -66,25 +66,27 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Delete existing roles and insert new one in a transaction-safe way
-    const { error: deleteError } = await adminClient
+    // Add the new role first so a failure never leaves the user without a role
+    const { error: upsertError } = await adminClient
       .from("user_roles")
-      .delete()
-      .eq("user_id", userId);
+      .upsert({ user_id: userId, role: newRole }, { onConflict: "user_id,role", ignoreDuplicates: true });
 
-    if (deleteError) {
-      return new Response(JSON.stringify({ error: deleteError.message }), {
+    if (upsertError) {
+      return new Response(JSON.stringify({ error: upsertError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: insertError } = await adminClient
+    // Then remove any other roles
+    const { error: deleteError } = await adminClient
       .from("user_roles")
-      .insert({ user_id: userId, role: newRole });
+      .delete()
+      .eq("user_id", userId)
+      .neq("role", newRole);
 
-    if (insertError) {
-      return new Response(JSON.stringify({ error: insertError.message }), {
+    if (deleteError) {
+      return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
