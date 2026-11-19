@@ -1,8 +1,5 @@
 project_id = "rzhcefyigmkavddjjxvg"
 
-[functions.crelate-sync]
-verify_jwt = false
-
 [functions.send-user-invitation]
 verify_jwt = false
 

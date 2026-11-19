@@ -366,7 +366,6 @@ AvidEdge Search is a full-featured CRM and executive search management platform 
 - **Supported integrations:**
   | Integration | Description |
   |-------------|-------------|
-  | **Crelate** | ATS sync — contact, company, job, pipeline migration |
   | **Salesforce** | CRM import wizard with field mapping |
   | **QuickBooks** | Financial/accounting integration with OAuth callback |
   | **Stripe** | Payment processing |
@@ -377,10 +376,6 @@ AvidEdge Search is a full-featured CRM and executive search management platform 
   | **Fireflies** | Meeting transcription |
   | **LMS** | Learning management system |
   | **N8N** | Workflow automation (email) |
-- **Crelate Sync** — Supabase Edge Function for data migration with:
-  - Migration log tracking
-  - Sync log with status, records synced/created/updated/failed
-  - Entity-type-based sync
 
 ---
 
@@ -500,7 +495,6 @@ AvidEdge Search is a full-featured CRM and executive search management platform 
 ### Backend
 - **Supabase** (PostgreSQL, Auth, Storage, Edge Functions, Realtime)
 - **Edge Functions:**
-  - `crelate-sync` — Crelate ATS data synchronization
   - `send-user-invitation` — email invitation delivery
   - `help-assistant` — AI chat/support (referenced, hosted externally)
   - `chip-voice-note` — voice note AI processing (referenced)
