@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import Layout from "@/components/Layout";
 import CompanyAvatar from "@/components/companies/CompanyAvatar";
+import { useCompanyProfile } from "@/hooks/useCompanyProfile";
 import {
   ArrowLeft,
   Globe,
@@ -33,6 +34,7 @@ import {
   Phone,
   Loader2,
   User,
+  ShieldAlert,
 } from "lucide-react";
 
 const statusColors: Record<string, string> = {
@@ -214,6 +216,25 @@ export default function SiteDetail() {
     enabled: !!company?.parent_company_id,
   });
 
+  // Company profile (read-only here; edited under Admin > Companies)
+  const { data: companyProfile, error: profileError } = useCompanyProfile(siteId);
+  const profile = companyProfile?.profile;
+
+  // Fetch tags linked to this company
+  const { data: tags } = useQuery({
+    queryKey: ["company-tags", siteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crm_company_tags")
+        .select("tag:crm_tags(id, name)")
+        .eq("company_id", siteId)
+        .overrideTypes<{ tag: { id: string; name: string } | null }[], { merge: false }>();
+      if (error) throw error;
+      return (data || []).map((row) => row.tag).filter(Boolean);
+    },
+    enabled: !!siteId,
+  });
+
   // Fetch source name
   const { data: source } = useQuery({
     queryKey: ["company-source", company?.source_id],
@@ -321,6 +342,39 @@ export default function SiteDetail() {
     ? [primaryAddress.line1, primaryAddress.city, primaryAddress.state, primaryAddress.zip_code].filter(Boolean).join(", ")
     : null;
 
+  const compRange = [profile?.comp_range_min, profile?.comp_range_max]
+    .filter((v) => v != null)
+    .map((v) => `$${Number(v).toLocaleString()}`)
+    .join(" – ");
+
+  const profileFields = [
+    { label: "Company Story", value: profile?.company_story },
+    { label: "Where They Are", value: profile?.where_they_are },
+    { label: "Where They're Going", value: profile?.where_they_are_going },
+    { label: "Strategic Posture", value: profile?.strategic_posture },
+    { label: "Strategic Goals", value: profile?.strategic_goals?.join(", ") },
+    { label: "PE Firm Name", value: profile?.pe_firm_name },
+    { label: "PE Firm Context", value: profile?.pe_firm_context },
+    { label: "Board Structure", value: profile?.board_structure },
+    { label: "Key Decision Makers", value: profile?.key_decision_makers },
+    { label: "Culture Summary", value: profile?.culture_summary },
+    { label: "Decision Making Style", value: profile?.decision_making_style },
+    { label: "Competitive Landscape", value: profile?.competitive_landscape },
+    { label: "Tech Stack", value: Array.isArray(profile?.tech_stack) ? profile.tech_stack.join(", ") : null },
+    {
+      label: "Geographic Locations",
+      value: Array.isArray(profile?.geographic_locations)
+        ? (profile.geographic_locations as { city?: string; state?: string; type?: string }[])
+            .map((l) => [l.city, l.state].filter(Boolean).join(", ") + (l.type ? ` (${l.type})` : ""))
+            .join("; ")
+        : null,
+    },
+    { label: "Office Preference", value: profile?.office_preference },
+    { label: "Preferred Candidate Geography", value: profile?.preferred_candidate_geography },
+    { label: "Compensation Range", value: compRange },
+    { label: "Bonus Structure", value: profile?.bonus_structure },
+  ].filter((f) => f.value);
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -352,6 +406,14 @@ export default function SiteDetail() {
                   </Badge>
                 )}
               </div>
+
+              {tags && tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {tags.map((tag) => (
+                    <Badge key={tag.id} variant="secondary">{tag.name}</Badge>
+                  ))}
+                </div>
+              )}
 
               {/* Inline metadata row */}
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
@@ -476,6 +538,41 @@ export default function SiteDetail() {
               <p className="text-sm text-muted-foreground italic">
                 Click "Generate with AI" to create an overview of this company using public information and your CRM data.
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Company Profile (read-only) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profileError ? (
+              <p className="text-sm text-destructive">Failed to load profile: {profileError.message}</p>
+            ) : profile ? (
+              <div className="space-y-4">
+                {profile.off_limits_source && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm font-medium">
+                    <ShieldAlert className="h-4 w-4" />
+                    Off-Limits — {profile.off_limits_reason || "No reason provided"}
+                  </div>
+                )}
+                {profileFields.length > 0 ? (
+                  <dl className="grid gap-4 md:grid-cols-2">
+                    {profileFields.map(({ label, value }) => (
+                      <div key={label}>
+                        <dt className="text-sm font-medium">{label}</dt>
+                        <dd className="text-sm text-muted-foreground whitespace-pre-wrap">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Profile is empty</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No profile on file</p>
             )}
           </CardContent>
         </Card>

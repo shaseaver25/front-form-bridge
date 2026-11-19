@@ -16,11 +16,12 @@ export function useCompanyProfile(companyId: string | undefined) {
         .single();
       if (companyError) throw companyError;
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("company_profiles")
         .select("*")
         .eq("company_id", companyId!)
         .maybeSingle();
+      if (profileError) throw profileError;
 
       return { company, profile };
     },
