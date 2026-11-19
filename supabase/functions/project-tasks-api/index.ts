@@ -25,6 +25,7 @@ const TYPE_PREFIX: Record<string, string> = {
 const MAX_HEADLINE = 200;
 const MAX_DESCRIPTION = 5000;
 const MAX_COMMENT = 5000;
+const MAX_TRANSCRIPT = 50000;
 const MAX_ADDED_BY = 80;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -322,14 +323,26 @@ Deno.serve(async (req) => {
     // POST /tasks/{id}/comments
     if (method === "POST" && commentMatch && taskId) {
       const body = await req.json().catch(() => null);
-      if (!isObj(body) || !validText(body.content, MAX_COMMENT)) {
+      if (!isObj(body)) {
         return json({ error: `content is required (max ${MAX_COMMENT} characters)` }, 400);
+      }
+      if (body.type !== undefined && body.type !== "comment" && body.type !== "transcript") {
+        return json({ error: "type must be 'comment' or 'transcript'" }, 400);
+      }
+      const isTranscript = body.type === "transcript";
+      const limit = isTranscript ? MAX_TRANSCRIPT : MAX_COMMENT;
+      if (!validText(body.content, limit)) {
+        return json({ error: `content is required (max ${limit} characters)` }, 400);
       }
       if (body.added_by !== undefined && !validName(body.added_by)) {
         return json({ error: `added_by must be 1-${MAX_ADDED_BY} characters` }, 400);
       }
-      const commentText = (typeof body.added_by === "string" ? `${body.added_by.trim()}: ` : "") + body.content.trim();
-      if (commentText.length > MAX_COMMENT + MAX_ADDED_BY + 2) return json({ error: "comment too long" }, 400);
+      const TRANSCRIPT_HEADING = "Transcript from Juliet:\n\n";
+      const commentText = isTranscript
+        ? TRANSCRIPT_HEADING + body.content.trim()
+        : (typeof body.added_by === "string" ? `${body.added_by.trim()}: ` : "") + body.content.trim();
+      const maxStored = isTranscript ? MAX_TRANSCRIPT + TRANSCRIPT_HEADING.length : MAX_COMMENT + MAX_ADDED_BY + 2;
+      if (commentText.length > maxStored) return json({ error: "comment too long" }, 400);
 
       const { data: card, error: cardErr } = await supabase
         .from("board_cards")
@@ -347,7 +360,9 @@ Deno.serve(async (req) => {
         .single();
       if (error) return json({ error: error.message }, 500);
 
-      await logActivity(taskId, "commented", typeof body.added_by === "string" ? { added_by: body.added_by.trim() } : {});
+      const details: Record<string, unknown> = typeof body.added_by === "string" ? { added_by: body.added_by.trim() } : {};
+      if (isTranscript) details.type = "transcript";
+      await logActivity(taskId, "commented", details);
       return json({ id: data.id, message: "Comment added" }, 201);
     }
 

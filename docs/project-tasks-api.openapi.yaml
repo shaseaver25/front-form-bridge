@@ -109,13 +109,27 @@ paths:
               type: object
               required: [content]
               properties:
-                content: { type: string, maxLength: 5000 }
+                type:
+                  type: string
+                  enum: [comment, transcript]
+                  default: comment
+                  description: >
+                    transcript = Juliet's spoken explanation saved verbatim (not a summary),
+                    up to 50,000 characters; stored with the heading 'Transcript from Juliet:'.
+                    comment = normal short comment.
+                content:
+                  type: string
+                  maxLength: 50000
+                  description: >
+                    Comment or transcript text. The limit is 5000 characters for comments
+                    and 50,000 characters for transcripts.
                 added_by:
                   type: string
                   minLength: 1
                   maxLength: 80
                   description: >
                     Optional. When given, the comment is prefixed with the name and a colon.
+                    Not prefixed onto transcripts.
       responses:
         "201":
           description: Comment added
