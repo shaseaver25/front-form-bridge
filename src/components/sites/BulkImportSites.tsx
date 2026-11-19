@@ -19,10 +19,9 @@ interface BulkImportSitesProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const sampleData = `Eden Prairie Schools,district,public_school,Eden Prairie,high,network,"Connection through board member"
-Edina Public Schools,district,public_school,Edina,high,network,"Know Nathan Swenson"
-Shakopee Public Schools,district,public_school,Shakopee,medium,network,""
-District 287,district,intermediate_district,Plymouth,high,network,"Serves 12 member districts"`;
+const sampleData = `Acme Robotics,prospect,prospect,acmerobotics.example,"Industrial automation, Series B"
+Northwind Foods,client,active,northwind.example,""
+Contoso Health,partner,active,,"Referral partner"`;
 
 export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
   const [csvData, setCsvData] = useState("");
@@ -30,8 +29,9 @@ export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
 
   const importSites = useMutation({
     mutationFn: async (data: string) => {
-      const lines = data.trim().split("\n");
-      const sites = lines.map((line) => {
+      const { data: user } = await supabase.auth.getUser();
+      const lines = data.trim().split("\n").filter((line) => line.trim());
+      const companies = lines.map((line, i) => {
         // Handle quoted CSV values properly
         const parts: string[] = [];
         let current = "";
@@ -49,29 +49,27 @@ export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
         }
         parts.push(current.trim());
 
-        const [name, site_type, organization_type, address_city, budget_tier, connection_source, connection_notes] = parts;
+        const [name, company_type, status, domain, description] = parts;
+        if (!name) throw new Error(`Line ${i + 1}: name is required`);
 
         return {
-          name: name || "Unnamed Site",
-          site_type: site_type || "school",
-          organization_type: organization_type || null,
-          address_city: address_city || null,
-          address_state: "MN",
-          budget_tier: budget_tier || "unknown",
-          connection_source: connection_source || null,
-          connection_notes: connection_notes || null,
-          relationship_status: "prospect",
+          name,
+          company_type: company_type || "client",
+          status: status || "active",
+          domain: domain || null,
+          description: description || null,
+          created_by: user.user?.id,
         };
       });
 
-      const { error } = await supabase.from("sites").insert(sites);
+      const { error } = await supabase.from("crm_companies").insert(companies);
       if (error) throw error;
-      return sites.length;
+      return companies.length;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["sites"] });
-      queryClient.invalidateQueries({ queryKey: ["site-stats"] });
-      toast.success(`${count} sites imported successfully`);
+      queryClient.invalidateQueries({ queryKey: ["company-stats"] });
+      toast.success(`${count} companies imported successfully`);
       onOpenChange(false);
       setCsvData("");
     },
@@ -86,10 +84,10 @@ export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Bulk Import Sites
+            Bulk Import Companies
           </DialogTitle>
           <DialogDescription>
-            Paste CSV data with columns: Name, Site Type, Organization Type, City, Budget Tier, Connection Source, Connection Notes
+            Paste CSV data with columns: Name, Company Type, Status, Domain, Description
           </DialogDescription>
         </DialogHeader>
 
@@ -113,10 +111,8 @@ export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
           </div>
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p><strong>Site Types:</strong> school, district, organization, partner</p>
-            <p><strong>Organization Types:</strong> public_school, charter, private, intermediate_district, nonprofit, corporate</p>
-            <p><strong>Budget Tiers:</strong> high, medium, low, unknown</p>
-            <p><strong>Connection Sources:</strong> network, referral, cold_outreach, event, inbound, existing_relationship</p>
+            <p><strong>Company Types:</strong> client, prospect, partner, vendor (default: client)</p>
+            <p><strong>Statuses:</strong> active, inactive, prospect, client, archived (default: active)</p>
           </div>
 
           <div className="flex justify-end gap-2">
@@ -128,7 +124,7 @@ export function BulkImportSites({ open, onOpenChange }: BulkImportSitesProps) {
               disabled={!csvData.trim() || importSites.isPending}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {importSites.isPending ? "Importing..." : "Import Sites"}
+              {importSites.isPending ? "Importing..." : "Import Companies"}
             </Button>
           </div>
         </div>
